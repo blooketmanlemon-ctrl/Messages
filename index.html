@@ -5,9 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f6fa">
 <meta name="description" content="Chatly — your personal messages.">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <title>Chatly</title>
-<meta name="chatly-build" content="chatly-media-sounds-2026-10-31">
+<meta name="chatly-build" content="chatly-sounds-call-controls-logo-2026-10-31">
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <style>
 :root{color-scheme:light;--bg:#f4f5f9;--panel:#fff;--soft:#f0f1f6;--line:#e7e8ef;--text:#20212a;--muted:#858997;--blue:#1685f8;--blue2:#0878ed;--bubble:#e9eaf0;--shadow:0 12px 40px #1d2a4510}
 *{box-sizing:border-box}html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);background:var(--bg)}button,input,textarea{font:inherit}button{cursor:pointer;border:0}button:disabled{opacity:.5;cursor:not-allowed}.hidden{display:none!important}.muted{color:var(--muted)}.small{font-size:12px}
@@ -198,6 +202,7 @@ body {
 #messageForm{position:relative}
 .sound-setting{display:flex;align-items:center;gap:10px;padding:10px 0;color:var(--text);font-size:14px}
 .sound-setting input{width:18px;height:18px;accent-color:var(--blue)}
+.sound-test-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .call-action:disabled{opacity:.45}
 @media(max-width:600px){.message-attachment img,.message-attachment video{max-height:300px}}
 </style>
@@ -274,6 +279,8 @@ body {
       <button class="call-action accept" id="acceptCall">Accept</button>
     </div>
     <div class="call-actions hidden" id="callOutgoingActions">
+      <button class="call-action neutral" id="toggleMicRinging" disabled>Mute mic</button>
+      <button class="call-action neutral" id="toggleCameraRinging" disabled>Camera off</button>
       <button class="call-action end" id="cancelCall">Cancel call</button>
     </div>
     <div class="call-actions hidden" id="callActiveActions">
@@ -293,7 +300,7 @@ const SUPABASE_ANON_KEY="sb_publishable_ifYAMrdUhuyX-iOZULuP4w_nZx6oQtl";
 const $=id=>document.getElementById(id);
 let sb,user,profile,mode="login",activeConversation=null,activeContact=null,liveChannel=null,seen=new Set(),conversations=[];
 let callSignalChannel=null,callState=null;
-let soundEnabled=localStorage.getItem("chatly-sounds")!=="off",audioContextInstance=null,ringtoneInterval=null,messageSoundChannel=null;
+let soundEnabled=localStorage.getItem("chatly-sounds")!=="off",audioContextInstance=null,ringtoneInterval=null,messageSoundChannel=null,pendingChatSounds=[],playedMessageSoundIds=new Set();
 const nickKey="chatly-v2-nicknames";
 function esc(s=""){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function initials(s="U"){return (s.trim()[0]||"U").toUpperCase();}
@@ -305,41 +312,109 @@ function toast(s){const el=$("chatStatus");if(el)el.textContent=s;}
 function getChatAudioContext(){
   const AudioCtx=window.AudioContext||window.webkitAudioContext;
   if(!AudioCtx)return null;
-  if(!audioContextInstance)audioContextInstance=new AudioCtx();
-  if(audioContextInstance.state==="suspended")audioContextInstance.resume().catch(()=>{});
+  if(!audioContextInstance||audioContextInstance.state==="closed"){
+    audioContextInstance=new AudioCtx({latencyHint:"interactive"});
+  }
   return audioContextInstance;
 }
-function scheduleChatTone(ctx,frequency,start,duration,volume=0.035){
+async function unlockChatAudio(){
+  const ctx=getChatAudioContext();
+  if(!ctx)return false;
+  try{
+    if(ctx.state!=="running")await ctx.resume();
+  }catch(error){
+    console.warn("Chatly audio could not be unlocked:",error);
+  }
+  if(ctx.state==="running"){
+    const queued=pendingChatSounds.splice(0);
+    for(const item of queued){
+      if(Date.now()-item.at<12000)playChatSoundNow(ctx,item.kind);
+    }
+    return true;
+  }
+  return false;
+}
+function scheduleChatTone(ctx,frequency,start,duration,volume=0.055){
   const osc=ctx.createOscillator(),gain=ctx.createGain();
-  osc.type="sine";osc.frequency.setValueAtTime(frequency,start);
+  osc.type="sine";
+  osc.frequency.setValueAtTime(frequency,start);
   gain.gain.setValueAtTime(0.0001,start);
   gain.gain.exponentialRampToValueAtTime(Math.max(0.0002,volume),start+0.018);
   gain.gain.setValueAtTime(Math.max(0.0002,volume),start+Math.max(0.02,duration-0.035));
   gain.gain.exponentialRampToValueAtTime(0.0001,start+duration);
-  osc.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(start+duration+0.02);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start+duration+0.02);
 }
-function playChatSound(kind){
-  if(!soundEnabled)return;
-  const ctx=getChatAudioContext();if(!ctx||ctx.state!=="running")return;
+function playChatSoundNow(ctx,kind){
+  if(!ctx||ctx.state!=="running")return false;
   const now=ctx.currentTime+0.025;
   if(kind==="message"){
-    scheduleChatTone(ctx,740,now,0.085,0.025);
-    scheduleChatTone(ctx,988,now+0.105,0.12,0.025);
+    scheduleChatTone(ctx,740,now,0.11,0.055);
+    scheduleChatTone(ctx,988,now+0.13,0.15,0.055);
   }else if(kind==="incoming"){
-    scheduleChatTone(ctx,660,now,0.32,0.035);
-    scheduleChatTone(ctx,784,now+0.37,0.32,0.035);
+    scheduleChatTone(ctx,659,now,0.28,0.06);
+    scheduleChatTone(ctx,784,now+0.33,0.28,0.06);
+    scheduleChatTone(ctx,988,now+0.66,0.24,0.05);
   }else if(kind==="outgoing"){
-    scheduleChatTone(ctx,440,now,0.42,0.03);
-    scheduleChatTone(ctx,480,now+0.46,0.42,0.03);
+    scheduleChatTone(ctx,440,now,0.36,0.05);
+    scheduleChatTone(ctx,480,now+0.41,0.36,0.05);
   }
+  return true;
 }
-function stopCallRingtone(){if(ringtoneInterval){clearInterval(ringtoneInterval);ringtoneInterval=null;}}
+function playChatSound(kind){
+  if(!soundEnabled)return false;
+  const ctx=audioContextInstance;
+  if(ctx&&ctx.state==="running")return playChatSoundNow(ctx,kind);
+  // Browsers require a user gesture before first playback. Keep only a few
+  // recent notifications; they play after the user unlocks sound in Chatly.
+  if(!pendingChatSounds.some(item=>item.kind===kind)){
+    pendingChatSounds.push({kind,at:Date.now()});
+    if(pendingChatSounds.length>3)pendingChatSounds.shift();
+  }
+  if(ctx&&ctx.state==="suspended"){
+    ctx.resume().then(()=>{
+      if(ctx.state==="running"){
+        const queued=pendingChatSounds.splice(0);
+        for(const item of queued){
+          if(Date.now()-item.at<12000)playChatSoundNow(ctx,item.kind);
+        }
+      }
+    }).catch(()=>{});
+  }
+  return false;
+}
+function stopCallRingtone(){
+  if(ringtoneInterval){clearInterval(ringtoneInterval);ringtoneInterval=null;}
+}
 function startCallRingtone(kind){
   stopCallRingtone();
   playChatSound(kind);
   ringtoneInterval=setInterval(()=>playChatSound(kind),kind==="incoming"?1900:2200);
 }
-document.addEventListener("pointerdown",()=>{if(soundEnabled)getChatAudioContext();},{once:true});
+async function unlockChatAudioFromGesture(){
+  if(soundEnabled)await unlockChatAudio();
+}
+["pointerdown","touchend","keydown"].forEach(type=>{
+  document.addEventListener(type,unlockChatAudioFromGesture,{capture:true,passive:true});
+});
+document.addEventListener("visibilitychange",()=>{
+  if(!document.hidden&&soundEnabled&&audioContextInstance?.state==="suspended"){
+    // The next tap resumes audio if the browser suspended it in the background.
+    pendingChatSounds.length=Math.min(pendingChatSounds.length,2);
+  }
+});
+function messagePreview(message){
+  if(!message)return "Start a conversation";
+  if(message.content)return message.content;
+  const type=message.attachment_type||"";
+  if(type.startsWith("image/"))return "📷 Photo";
+  if(type.startsWith("video/"))return "🎥 Video";
+  if(type.startsWith("audio/"))return "🎵 Audio";
+  return "📎 "+(message.attachment_name||"File");
+}
+
 function messagePreview(message){
   if(!message)return "Start a conversation";
   if(message.content)return message.content;
@@ -711,10 +786,20 @@ function subscribeToCallSignals(){
 function refreshCallControls(){
   const call=callState;
   if(!call)return;
-  const audio=call.localStream?.getAudioTracks?.()[0];
-  const video=call.localStream?.getVideoTracks?.()[0];
-  $("toggleMic").textContent=audio?.enabled?"Mute mic":"Unmute mic";
-  $("toggleCamera").textContent=video?.enabled?"Camera off":"Camera on";
+  const audio=call.localStream?.getAudioTracks?.()[0]||null;
+  const video=call.localStream?.getVideoTracks?.()[0]||null;
+  for(const id of ["toggleMic","toggleMicRinging"]){
+    const button=$(id);
+    button.disabled=!audio;
+    button.textContent=audio?.enabled?"Mute mic":"Unmute mic";
+    button.setAttribute("aria-pressed",String(!!audio&&!audio.enabled));
+  }
+  for(const id of ["toggleCamera","toggleCameraRinging"]){
+    const button=$(id);
+    button.disabled=!video;
+    button.textContent=video?.enabled?"Camera off":"Camera on";
+    button.setAttribute("aria-pressed",String(!!video&&!video.enabled));
+  }
 }
 
 function showError(s){$("authError").textContent=s||"";}
@@ -727,7 +812,7 @@ function displayName(p){return p?.display_name||p?.username||"Chatly user";}
 async function loadConversations(){const {data,error}=await sb.from("conversations").select("id,user_one,user_two,created_at").or(`user_one.eq.${user.id},user_two.eq.${user.id}`).order("created_at",{ascending:false});if(error){$("conversationList").innerHTML=`<div class="empty">Could not load messages: ${esc(error.message)}</div>`;return;}const rows=data||[];const ids=[...new Set(rows.map(c=>c.user_one===user.id?c.user_two:c.user_one))];let profiles={};if(ids.length){const r=await sb.from("profiles").select("id,username,display_name,avatar_url").in("id",ids);if(r.error){console.error(r.error)}else for(const p of r.data||[])profiles[p.id]=p;}conversations=[];for(const c of rows){const other=c.user_one===user.id?c.user_two:c.user_one;const p=profiles[other];if(!p)continue;const {data:last}=await sb.from("direct_messages").select("content,created_at,sender_id,attachment_name,attachment_type,attachment_path").eq("conversation_id",c.id).order("created_at",{ascending:false}).limit(1).maybeSingle();conversations.push({...c,otherId:other,person:p,last});}renderConversations();}
 function renderConversations(){const q=$("searchChats").value.trim().toLowerCase();const list=conversations.filter(c=>nickname(c.otherId,displayName(c.person)).toLowerCase().includes(q));$("conversationList").innerHTML=list.length?list.map(c=>{const n=nickname(c.otherId,displayName(c.person));const preview=c.last?(c.last.sender_id===user.id?"You: ":"")+messagePreview(c.last):"Start a conversation";const time=c.last?new Date(c.last.created_at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"";return `<div class="conversation ${activeConversation===c.id?"active":""}" data-conv="${c.id}"><div class="avatar" data-avatar="${c.otherId}">${c.person.avatar_url?`<img src="${esc(c.person.avatar_url)}" alt="">`:esc(initials(n))}</div><div class="conv-copy"><div class="conv-top"><span class="conv-name">${esc(n)}</span><span class="conv-time">${time}</span></div><div class="conv-preview">${esc(preview)}</div></div></div>`}).join(""):'<div class="empty"><div><p>No conversations yet.</p><button class="primary" id="listNewChat">Start a chat</button></div></div>';$("conversationList").querySelectorAll("[data-conv]").forEach(el=>el.onclick=()=>openConversation(el.dataset.conv));const btn=$("listNewChat");if(btn)btn.onclick=newChatModal;}
 async function newChatModal(){modal("Start a new chat",`<p class="muted small">Enter someone's exact Chatly username.</p><input class="field" id="findUsername" placeholder="Username"><p class="small" id="findError" style="color:#d84a5b"></p><div class="modal-actions"><button class="secondary" id="cancelModal">Cancel</button><button class="primary" id="findPerson">Find person</button></div>`);$("cancelModal").onclick=closeModal;$("findPerson").onclick=async()=>{const name=$("findUsername").value.trim();if(!name)return;$("findError").textContent="Searching…";const {data,error}=await sb.from("profiles").select("id,username,display_name,avatar_url").ilike("username",name).maybeSingle();if(error){$("findError").textContent=error.message;return;}if(!data){$("findError").textContent="No user found with that exact username.";return;}if(data.id===user.id){$("findError").textContent="That's your own username.";return;}const {data:cid,error:ce}=await sb.rpc("chatly_get_or_create_conversation",{p_other_user:data.id});if(ce){$("findError").textContent=ce.message;return;}closeModal();await loadConversations();await openConversation(cid);};}
-async function openConversation(id){const c=conversations.find(x=>x.id===id);if(!c)return;activeConversation=id;activeContact=c.person;seen=new Set();$("app").classList.add("chat-open");$("emptyState").classList.add("hidden");$("chatHead").classList.remove("hidden");$("messages").classList.remove("hidden");$("messageForm").classList.remove("hidden");const name=nickname(c.otherId,displayName(c.person));$("chatName").textContent=name;setAvatar($("chatAvatar"),c.person.avatar_url,name);renderConversations();if(liveChannel){sb.removeChannel(liveChannel);liveChannel=null;}await loadMessages(true);liveChannel=sb.channel("dm-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"direct_messages",filter:"conversation_id=eq."+id},async payload=>{const nearBottom=nearBottomNow();const {data}=await sb.from("direct_messages").select("id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size").eq("id",payload.new.id).single();if(data){appendMessage(data);if(nearBottom||data.sender_id===user.id)scrollBottom();refreshPreview(id,data);}}).subscribe();}
+async function openConversation(id){const c=conversations.find(x=>x.id===id);if(!c)return;activeConversation=id;activeContact=c.person;seen=new Set();$("app").classList.add("chat-open");$("emptyState").classList.add("hidden");$("chatHead").classList.remove("hidden");$("messages").classList.remove("hidden");$("messageForm").classList.remove("hidden");const name=nickname(c.otherId,displayName(c.person));$("chatName").textContent=name;setAvatar($("chatAvatar"),c.person.avatar_url,name);renderConversations();if(liveChannel){sb.removeChannel(liveChannel);liveChannel=null;}await loadMessages(true);liveChannel=sb.channel("dm-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"direct_messages",filter:"conversation_id=eq."+id},async payload=>{const nearBottom=nearBottomNow();const {data}=await sb.from("direct_messages").select("id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size").eq("id",payload.new.id).single();if(data){playIncomingMessageSound(data);appendMessage(data);if(nearBottom||data.sender_id===user.id)scrollBottom();refreshPreview(id,data);}}).subscribe();}
 function nearBottomNow(){const el=$("messages");return el.scrollHeight-el.scrollTop-el.clientHeight<110;}
 function scrollBottom(){const el=$("messages");requestAnimationFrame(()=>{el.scrollTop=el.scrollHeight;});}
 async function loadMessages(scroll){const {data,error}=await sb.from("direct_messages").select("id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size").eq("conversation_id",activeConversation).order("created_at",{ascending:true}).limit(200);if(error){$("messages").textContent=error.message;return;}$("messages").innerHTML="";seen.clear();(data||[]).forEach(appendMessage);if(scroll)scrollBottom();}
@@ -837,12 +922,21 @@ $("messageInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey
 $("videoCallBtn").onclick=startVideoCall;
 $("attachButton").onclick=()=>$("chatFileInput").click();
 $("chatFileInput").onchange=event=>uploadChatFiles(event.target.files);
+function playIncomingMessageSound(message){
+  if(!message||message.sender_id===user?.id)return;
+  if(message.id&&playedMessageSoundIds.has(message.id))return;
+  if(message.id){
+    playedMessageSoundIds.add(message.id);
+    if(playedMessageSoundIds.size>150)playedMessageSoundIds.clear();
+  }
+  playChatSound("message");
+}
 function subscribeToMessageSounds(){
   if(!sb||!user||messageSoundChannel)return;
   messageSoundChannel=sb.channel("chatly-message-sounds-"+user.id)
     .on("postgres_changes",{event:"INSERT",schema:"public",table:"direct_messages"},payload=>{
       const message=payload?.new;
-      if(message&&message.sender_id!==user.id&&conversations.some(c=>c.id===message.conversation_id))playChatSound("message");
+      if(message&&conversations.some(c=>c.id===message.conversation_id))playIncomingMessageSound(message);
     }).subscribe(status=>{
       if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("Chatly message sounds:",status);
     });
@@ -852,14 +946,18 @@ $("declineCall").onclick=rejectIncomingCall;
 $("cancelCall").onclick=()=>finishCall(true,"cancel");
 $("endCall").onclick=()=>finishCall(true,callState?.phase==="outgoing"?"cancel":"hangup");
 $("closeCall").onclick=()=>finishCall(false);
-$("toggleMic").onclick=()=>{
+function toggleCallMicrophone(){
   const track=callState?.localStream?.getAudioTracks?.()[0];
   if(track){track.enabled=!track.enabled;refreshCallControls();}
-};
-$("toggleCamera").onclick=()=>{
+}
+function toggleCallCamera(){
   const track=callState?.localStream?.getVideoTracks?.()[0];
   if(track){track.enabled=!track.enabled;refreshCallControls();}
-};
+}
+$("toggleMic").onclick=toggleCallMicrophone;
+$("toggleMicRinging").onclick=toggleCallMicrophone;
+$("toggleCamera").onclick=toggleCallCamera;
+$("toggleCameraRinging").onclick=toggleCallCamera;
 $("searchChats").oninput=renderConversations;
 $("newChat").onclick=newChatModal;$("emptyNewChat").onclick=newChatModal;
 $("backToChats").onclick=()=>{$("app").classList.remove("chat-open");};
@@ -867,7 +965,26 @@ $("renameContact").onclick=()=>{const c=conversations.find(x=>x.id===activeConve
 function modal(title,body){$("modalRoot").innerHTML=`<div class="modal-back" id="modalBack"><section class="modal"><h2>${esc(title)}</h2>${body}</section></div>`;$("modalBack").onclick=e=>{if(e.target.id==="modalBack")closeModal();};}
 function closeModal(){$("modalRoot").innerHTML="";}
 $("settings").onclick=profileModal;
-function profileModal(){const dark=document.body.classList.contains("dark");modal("Customize Chatly",`<div class="avatar avatar-preview" id="profilePreview"></div><label class="small muted">Display name</label><input class="field" id="displayNameInput" maxlength="32" value="${esc(profile.display_name||profile.username)}"><label class="small muted">Profile picture</label><input class="field" id="avatarFile" type="file" accept="image/*"><label class="sound-setting"><input id="soundEnabledInput" type="checkbox" ${soundEnabled?"checked":""}><span>Play message sounds and call ringtones</span></label><label class="small muted">Appearance</label><div class="theme-row"><button class="theme-choice ${!dark?"selected":""}" id="lightTheme">☀ Light</button><button class="theme-choice ${dark?"selected":""}" id="darkTheme">☾ Dark</button></div><div class="modal-actions"><button class="secondary" id="cancelModal">Cancel</button><button class="primary" id="saveProfile">Save</button></div>`);setAvatar($("profilePreview"),profile.avatar_url,profile.display_name||profile.username);$("cancelModal").onclick=closeModal;$("lightTheme").onclick=()=>setTheme(false);$("darkTheme").onclick=()=>setTheme(true);$("saveProfile").onclick=async()=>{try{const display=$("displayNameInput").value.trim()||profile.username;let avatar_url=profile.avatar_url||null;const file=$("avatarFile").files[0];if(file){if(file.size>4*1024*1024)throw Error("Choose an image under 4 MB.");const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"");const path=`${user.id}/${crypto.randomUUID()}.${ext}`;const up=await sb.storage.from("chat-avatars").upload(path,file,{upsert:false,contentType:file.type});if(up.error)throw up.error;avatar_url=sb.storage.from("chat-avatars").getPublicUrl(path).data.publicUrl;}const {data,error}=await sb.from("profiles").update({display_name:display,avatar_url}).eq("id",user.id).select().single();if(error)throw error;profile=data;$("myName").textContent=display;setAvatar($("myAvatar"),avatar_url,display);soundEnabled=$("soundEnabledInput").checked;localStorage.setItem("chatly-sounds",soundEnabled?"on":"off");closeModal();}catch(err){alert("Could not save profile: "+err.message);}};}
+function profileModal(){const dark=document.body.classList.contains("dark");modal("Customize Chatly",`<div class="avatar avatar-preview" id="profilePreview"></div><label class="small muted">Display name</label><input class="field" id="displayNameInput" maxlength="32" value="${esc(profile.display_name||profile.username)}"><label class="small muted">Profile picture</label><input class="field" id="avatarFile" type="file" accept="image/*"><label class="sound-setting"><input id="soundEnabledInput" type="checkbox" ${soundEnabled?"checked":""}><span>Play message sounds and call ringtones</span></label><div class="sound-test-row"><button type="button" class="secondary" id="testSoundsButton">Test sound</button><span class="small muted" id="testSoundStatus">Tap to check audio.</span></div><label class="small muted">Appearance</label><div class="theme-row"><button class="theme-choice ${!dark?"selected":""}" id="lightTheme">☀ Light</button><button class="theme-choice ${dark?"selected":""}" id="darkTheme">☾ Dark</button></div><div class="modal-actions"><button class="secondary" id="cancelModal">Cancel</button><button class="primary" id="saveProfile">Save</button></div>`);setAvatar($("profilePreview"),profile.avatar_url,profile.display_name||profile.username);$("cancelModal").onclick=closeModal;
+$("soundEnabledInput").onchange=()=>{
+  soundEnabled=$("soundEnabledInput").checked;
+  localStorage.setItem("chatly-sounds",soundEnabled?"on":"off");
+  if(!soundEnabled){pendingChatSounds.length=0;stopCallRingtone();}
+};
+$("testSoundsButton").onclick=async()=>{
+  soundEnabled=true;
+  $("soundEnabledInput").checked=true;
+  localStorage.setItem("chatly-sounds","on");
+  $("testSoundStatus").textContent="Playing…";
+  const ready=await unlockChatAudio();
+  if(ready){
+    playChatSoundNow(audioContextInstance,"message");
+    $("testSoundStatus").textContent="Sounds are working!";
+  }else{
+    $("testSoundStatus").textContent="Your browser blocked audio. Tap again or check device sound.";
+  }
+};
+$("lightTheme").onclick=()=>setTheme(false);$("darkTheme").onclick=()=>setTheme(true);$("saveProfile").onclick=async()=>{try{const display=$("displayNameInput").value.trim()||profile.username;let avatar_url=profile.avatar_url||null;const file=$("avatarFile").files[0];if(file){if(file.size>4*1024*1024)throw Error("Choose an image under 4 MB.");const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"");const path=`${user.id}/${crypto.randomUUID()}.${ext}`;const up=await sb.storage.from("chat-avatars").upload(path,file,{upsert:false,contentType:file.type});if(up.error)throw up.error;avatar_url=sb.storage.from("chat-avatars").getPublicUrl(path).data.publicUrl;}const {data,error}=await sb.from("profiles").update({display_name:display,avatar_url}).eq("id",user.id).select().single();if(error)throw error;profile=data;$("myName").textContent=display;setAvatar($("myAvatar"),avatar_url,display);soundEnabled=$("soundEnabledInput").checked;localStorage.setItem("chatly-sounds",soundEnabled?"on":"off");if(!soundEnabled)pendingChatSounds.length=0;closeModal();}catch(err){alert("Could not save profile: "+err.message);}};}
 function setTheme(dark){document.body.classList.toggle("dark",dark);localStorage.setItem("chatly-theme",dark?"dark":"light");$("lightTheme")?.classList.toggle("selected",!dark);$("darkTheme")?.classList.toggle("selected",dark);}
 setTheme(localStorage.getItem("chatly-theme")==="dark");
 $("signOut").onclick=async()=>{await finishCall(false);if(callSignalChannel)await sb.removeChannel(callSignalChannel);await sb.auth.signOut();};

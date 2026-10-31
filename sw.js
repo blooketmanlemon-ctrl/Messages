@@ -1,5 +1,11 @@
-const CACHE_NAME = "chatly-media-sounds-20261031";
-const STATIC_ASSETS = ["./manifest.webmanifest", "./icon.svg"];
+const CACHE_NAME = "chatly-sounds-calls-logo-v2";
+const STATIC_ASSETS = [
+  "./manifest.webmanifest",
+  "./icon.svg",
+  "./icon-192.png",
+  "./icon-512.png",
+  "./apple-touch-icon.png"
+];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -9,10 +15,7 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(
-      keys.filter((key) => key.startsWith("chatly-") && key !== CACHE_NAME)
-        .map((key) => caches.delete(key))
-    );
+    await Promise.all(keys.filter((key) => key.startsWith("chatly-") && key !== CACHE_NAME).map((key) => caches.delete(key)));
     await self.clients.claim();
   })());
 });
@@ -22,7 +25,6 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
 
-  // Always fetch the HTML from GitHub Pages so updates are not stuck in cache.
   if (request.mode === "navigate" || url.pathname.endsWith("/index.html") || url.pathname.endsWith("/")) {
     event.respondWith(fetch(request));
     return;

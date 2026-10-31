@@ -1,38 +1,42 @@
-CHATLY — MEDIA, SOUNDS & VIDEO CALL CONTROLS
+CHATLY — CALL CONTROL + SOUND FIX + YOUR APP LOGO
 
-This package adds:
-- Message notification tones and incoming/outgoing call ringtones (Web Audio; no external sound files).
-- A sound on/off setting in Customize Chatly.
-- Multi-file attachments: images, videos, audio, PDF, text, office documents and ZIP files.
-- Private chat media storage with signed viewing URLs.
-- Mute/unmute microphone and camera on/off buttons during video calls (included in the call panel).
-- Existing Chatly scrolling layout preserved.
+This package updates the website files while keeping the current Chatly scroll layout,
+media sharing, video calls, Supabase settings, and existing database schema.
 
-PUBLISH THE WEBSITE
+WHAT CHANGED
+- Added mute/camera-on-off controls to the outgoing ringing screen. They become active
+  after the browser grants camera/microphone permission and stay available while ringing.
+- Reworked Web Audio unlocking so sound starts after a user gesture, queues a small
+  number of recent alerts until audio is unlocked, and has a Test sound button in Settings.
+- Added the supplied Chatly logo as browser favicon, PWA icons, and iPad Home Screen icon.
+- Updated service-worker cache version so the fresh icon assets load.
+
+PUBLISH
 1. Unzip this package.
-2. Open https://github.com/blooketmanlemon-ctrl/Messages
-3. Replace these four files in the repository root: index.html, sw.js,
-   manifest.webmanifest, icon.svg.
-4. Commit the changes to main.
+2. In the GitHub Messages repository root, replace:
+   index.html
+   sw.js
+   manifest.webmanifest
+   icon.svg
+3. Also upload these new files to the same root:
+   icon-192.png
+   icon-512.png
+   apple-touch-icon.png
+4. Commit to the main branch.
+5. On Chatly, open Settings and use Test sound once. This grants the browser's audio
+   permission for this page. Make sure the device is not muted.
+6. The camera/microphone buttons appear on the outgoing call screen after permission
+   has been granted, while the other person is still ringing.
 
-SUPABASE
-1. If you have already run the earlier video-call SQL, do not run it again.
-2. Run media-uploads-setup.sql in Supabase SQL Editor once to create the private
-   chat-media bucket, storage policies, and attachment columns.
-3. The SQL file is included for convenience; do NOT upload it to GitHub.
+DATABASE
+No new SQL is needed for these changes. Keep the existing Supabase media and call
+signaling tables you already created.
 
-USAGE
-- Open a conversation and use the + button beside the message box to attach files.
-- Maximum attachment size: 50 MB per file.
-- Sounds can be switched off in Customize Chatly.
-- Open a conversation and press the camera button to call. During a call use
-  Mute mic, Unmute mic, Camera off, Camera on, and End call.
-
-NOTES
-- Browsers may require one tap/click before sounds can play.
-- Camera/microphone require HTTPS and browser permission.
-- WebRTC currently uses public STUN servers only; some strict networks may need
-  a TURN relay for reliable connection.
-- Files shared in a conversation can be viewed by its participants. Do not send
-  passwords, private documents, or other sensitive information.
-- This app has not been live-tested between two real accounts in this environment.
+BROWSER NOTES
+- Browsers require a tap/click before they allow web audio playback.
+- Sound alerts require Chatly to be open and connected; this package does not add
+  background push notifications.
+- iPad Home Screen icons can be cached. If the old icon remains, remove the old
+  Chatly Home Screen shortcut and add the website to the Home Screen again.
+- Video calls require camera and microphone permissions. STUN-only calling can fail
+  on some restrictive networks without a TURN relay.

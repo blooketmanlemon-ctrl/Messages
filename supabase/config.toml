@@ -1,0 +1,2 @@
+[functions.chatly-turn-config]
+verify_jwt = true

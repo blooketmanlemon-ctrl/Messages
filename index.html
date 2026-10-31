@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <title>Chatly</title>
-<meta name="chatly-build" content="chatly-groups-and-group-calls-2026-10-31">
+<meta name="chatly-build" content="chatly-turn-relay-ready-2026-10-31">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -551,12 +551,41 @@ async function getCallMedia(call){
   refreshCallControls();
   return stream;
 }
-function createCallPeerConnection(call){
+let chatlyTurnCache=null;
+let chatlyTurnCacheUntil=0;
+let chatlyTurnPromise=null;
+async function loadChatlyTurnIceServers(force=false){
+  if(!force&&chatlyTurnCache&&Date.now()<chatlyTurnCacheUntil)return chatlyTurnCache;
+  if(chatlyTurnPromise)return chatlyTurnPromise;
+  if(!sb||!user)throw new Error("Sign in before starting a call.");
+  chatlyTurnPromise=(async()=>{
+    const {data,error}=await sb.functions.invoke("chatly-turn-config",{body:{}});
+    if(error){
+      throw new Error("Chatly couldn't load the TURN relay settings. Make sure the chatly-turn-config Supabase Edge Function is deployed and its TURN secrets are set. Details: "+(error.message||"request failed"));
+    }
+    const servers=Array.isArray(data?.iceServers)?data.iceServers:[];
+    const usable=servers.filter(server=>{
+      const urls=Array.isArray(server?.urls)?server.urls:[server?.urls];
+      return urls.some(url=>typeof url==="string"&&/^turns?:/i.test(url));
+    });
+    if(!usable.length){
+      throw new Error(data?.error||"TURN relay isn't configured yet. Add your TURN server URLs, username, and credential to Supabase Edge Function secrets, then retry.");
+    }
+    chatlyTurnCache=usable;
+    // Keep returned credentials in memory only; don't write relay credentials to localStorage.
+    chatlyTurnCacheUntil=Date.now()+Math.min(Number(data?.cacheSeconds)||240,300)*1000;
+    return chatlyTurnCache;
+  })();
+  try{return await chatlyTurnPromise;}
+  finally{chatlyTurnPromise=null;}
+}
+async function createCallPeerConnection(call){
+  setCallStatus("Loading secure relay settings…");
+  const iceServers=await loadChatlyTurnIceServers();
+  if(callState?.id!==call.id)throw new Error("This call has already ended.");
   const pc=new RTCPeerConnection({
-    iceServers:[
-      {urls:"stun:stun.l.google.com:19302"},
-      {urls:"stun:stun1.l.google.com:19302"}
-    ]
+    iceServers,
+    iceCandidatePoolSize:2
   });
   call.pc=pc;
   call.remoteStream=new MediaStream();
@@ -617,8 +646,34 @@ function createCallPeerConnection(call){
         }
       },10000);
     }else if(pc.connectionState==="failed"){
-      showCallNotice("The connection failed. Try again.");
+      if(!call.failureShown){
+        call.failureShown=true;
+        showCallNotice("Couldn't establish the call. Check that your TURN server settings are correct and that the network allows TURN over TLS/TCP port 443. Some school or public networks may block relayed calls too.");
+      }
     }
+  };
+  pc.oniceconnectionstatechange=()=>{
+    if(callState?.id!==call.id)return;
+    const state=pc.iceConnectionState;
+    if(state==="checking"){
+      setCallStatus("Checking the secure relay connection…");
+    }else if(state==="connected"||state==="completed"){
+      if(call.disconnectTimer)clearTimeout(call.disconnectTimer);
+      call.disconnectTimer=null;
+      setCallStatus("Secure call connection established.");
+    }else if(state==="disconnected"){
+      setCallStatus("Direct connection interrupted. Trying to recover…");
+    }else if(state==="failed"&&!call.failureShown){
+      call.failureShown=true;
+      showCallNotice("Couldn't establish the call. Check that your TURN server settings are correct and that the network allows TURN over TLS/TCP port 443. Some school or public networks may block relayed calls too.");
+    }
+  };
+  pc.onicecandidateerror=event=>{
+    console.warn("Chatly TURN/ICE candidate error:",{
+      errorCode:event.errorCode,
+      errorText:event.errorText,
+      url:event.url
+    });
   };
   return pc;
 }
@@ -672,7 +727,7 @@ async function startVideoCall(){
   try{
     const stream=await getCallMedia(call);
     if(callState?.id!==call.id)return;
-    const pc=createCallPeerConnection(call);
+    const pc=await createCallPeerConnection(call);
     stream.getTracks().forEach(track=>pc.addTrack(track,stream));
     const offer=await pc.createOffer();
     await pc.setLocalDescription(offer);
@@ -706,7 +761,7 @@ async function acceptIncomingCall(){
   try{
     const stream=await getCallMedia(call);
     if(callState?.id!==call.id)return;
-    const pc=createCallPeerConnection(call);
+    const pc=await createCallPeerConnection(call);
     stream.getTracks().forEach(track=>pc.addTrack(track,stream));
     if(!call.offerDescription)throw new Error("The caller's offer was missing. Ask them to call again.");
     await pc.setRemoteDescription(new RTCSessionDescription(call.offerDescription));
@@ -1022,7 +1077,9 @@ $("messageForm").onsubmit=async e=>{e.preventDefault();const content=$("messageI
 $("messageInput").addEventListener("input",()=>{const el=$("messageInput");el.style.height="auto";el.style.height=Math.min(el.scrollHeight,120)+"px";});
 $("messageInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("messageForm").requestSubmit();}});
 $("videoCallBtn").onclick=()=>{const c=conversations.find(x=>x.id===activeConversation);if(c?.isGroup)startGroupCall(c);else startVideoCall();};
-function startGroupCall(group){if(!group?.call_room){alert("This group does not have a call room yet. Run the Chatly groups SQL first, then reload.");return;}const room="Chatly-"+group.id.replace(/-/g,"")+"-"+group.call_room.replace(/-/g,"");const url="https://meet.jit.si/"+encodeURIComponent(room);if(!confirm("Open this group video call in a new tab? Group calls are hosted by Jitsi Meet, an external video service. Everyone in the group can join by tapping the video button."))return;window.open(url,"_blank","noopener,noreferrer");}
+function startGroupCall(group){
+  alert("Group video calls are temporarily paused in this build. The previous version opened an outside video service, which has been removed. Group chats still work; private calls can be tested in local-network-only mode.");
+}
 $("attachButton").onclick=()=>$("chatFileInput").click();
 $("chatFileInput").onchange=event=>uploadChatFiles(event.target.files);
 function playIncomingMessageSound(message){

@@ -1,4 +1,4 @@
-const CACHE_NAME = "chatly-groups-v1";
+const CACHE_NAME = "chatly-turn-relay-ready-v3";
 const STATIC_ASSETS = [
   "./manifest.webmanifest",
   "./icon.svg",

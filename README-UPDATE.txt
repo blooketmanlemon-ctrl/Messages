@@ -19,3 +19,11 @@ No new SQL is required. This update uses the existing chat_message_hidden table 
 
 CALLING
 The existing Metered TURN secrets and chatly-turn-config Edge Function are unchanged.
+
+
+BLOCKING UPDATE
+1. Run CHATLY-BLOCKING-SQL.sql once in Supabase SQL Editor.
+2. Replace the files in the ROOT of your GitHub Pages repository with this ZIP's contents.
+3. Commit and hard-refresh Chatly.
+
+Blocking prevents new private messages and one-to-one calls in either direction. Existing messages remain visible. Shared group chats and group calls are not affected by an individual block. No Metered settings or Edge Function changes are required.

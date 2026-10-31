@@ -1,4 +1,4 @@
-const CACHE_NAME = "chatly-group-calls-message-selection-20261031";
+const CACHE_NAME = "chatly-blocking-message-selection-20261031";
 const STATIC_ASSETS = [
   "./manifest.webmanifest",
   "./icon.svg",

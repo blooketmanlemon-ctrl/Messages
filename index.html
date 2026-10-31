@@ -600,12 +600,70 @@ body.chatly-reduce-motion *,body.chatly-reduce-motion *::before,body.chatly-redu
     </footer>
   </section>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Supabase SDK is loaded with CDN fallback from the main app script. -->
 <script>
 const SUPABASE_URL="https://rfivnjnvliqpehdkqqap.supabase.co";
 const SUPABASE_ANON_KEY="sb_publishable_ifYAMrdUhuyX-iOZULuP4w_nZx6oQtl";
 const $=id=>document.getElementById(id);
 let sb,user,profile,mode="login",activeConversation=null,activeContact=null,liveChannel=null,seen=new Set(),conversations=[];
+let supabaseInitPromise=null;
+let supabaseAuthListenerBound=false;
+
+// Load Supabase JS from a fallback CDN if the primary script is unavailable.
+function loadSupabaseSdk(){
+  if(window.supabase&&typeof window.supabase.createClient==="function")return Promise.resolve(window.supabase);
+  const sources=[
+    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
+    "https://unpkg.com/@supabase/supabase-js@2"
+  ];
+  return new Promise((resolve,reject)=>{
+    let index=0;
+    const tryNext=()=>{
+      if(window.supabase&&typeof window.supabase.createClient==="function"){
+        resolve(window.supabase);return;
+      }
+      if(index>=sources.length){
+        reject(new Error("Chatly couldn't load its Supabase login library. Check your internet connection or whether your network blocks jsDelivr and unpkg, then refresh Chatly."));
+        return;
+      }
+      const script=document.createElement("script");
+      script.src=sources[index++];
+      script.async=true;
+      script.crossOrigin="anonymous";
+      script.onload=()=>{
+        if(window.supabase&&typeof window.supabase.createClient==="function")resolve(window.supabase);
+        else{script.remove();tryNext();}
+      };
+      script.onerror=()=>{script.remove();tryNext();};
+      document.head.appendChild(script);
+    };
+    tryNext();
+  });
+}
+
+async function ensureSupabaseClient(){
+  if(sb&&sb.auth)return sb;
+  if(!supabaseInitPromise){
+    supabaseInitPromise=(async()=>{
+      const sdk=await loadSupabaseSdk();
+      sb=sdk.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+      if(!sb||!sb.auth)throw new Error("Supabase loaded, but its authentication client could not be initialized. Refresh Chatly and try again.");
+      const {data,error}=await sb.auth.getSession();
+      if(error)throw error;
+      if(data?.session)await enter(data.session.user);
+      if(!supabaseAuthListenerBound){
+        sb.auth.onAuthStateChange(async(event,session)=>{
+          if(event==="SIGNED_IN"&&session&&!user)await enter(session.user);
+          if(event==="SIGNED_OUT")location.reload();
+        });
+        supabaseAuthListenerBound=true;
+      }
+      return sb;
+    })();
+  }
+  try{return await supabaseInitPromise;}
+  catch(error){sb=undefined;supabaseInitPromise=null;throw error;}
+}
 let conversationLoadToken=0;
 let blockedByMeIds=new Set(),blockedMeIds=new Set(),blockChannel=null,blockDataAvailable=false;
 let messageSelectionMode=false;
@@ -1584,8 +1642,8 @@ function refreshCallControls(){
 function showError(s){$("authError").textContent=s||"";}
 function setMode(next){mode=next;$("authTitle").textContent=mode==="login"?"Your conversations, together.":"Join Chatly."; $("authSubtitle").textContent=mode==="login"?"Sign in to your Chatly account.":"Create an account to start messaging."; $("username").classList.toggle("hidden",mode==="login");$("username").required=mode==="signup";$("authSubmit").textContent=mode==="login"?"Sign in":"Create account";$("switchText").textContent=mode==="login"?"New to Chatly?":"Already have an account?";$("authSwitch").textContent=mode==="login"?"Create an account":"Sign in";showError("");}
 $("authSwitch").onclick=e=>{e.preventDefault();setMode(mode==="login"?"signup":"login")};
-async function start(){sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);const {data:{session}}=await sb.auth.getSession();if(session)await enter(session.user);sb.auth.onAuthStateChange(async(event,session)=>{if(event==="SIGNED_IN"&&session&&!user)await enter(session.user);if(event==="SIGNED_OUT")location.reload()});}
-$("authForm").onsubmit=async e=>{e.preventDefault();showError("");try{const email=$("email").value.trim(),password=$("password").value;if(mode==="signup"){const username=$("username").value.trim();if(!/^[a-zA-Z0-9_]{3,24}$/.test(username))throw Error("Username must be 3–24 letters, numbers, or underscores.");const {data,error}=await sb.auth.signUp({email,password,options:{data:{username}}});if(error)throw error;if(data.session)await enter(data.user);else showError("Check your email to confirm your account, then sign in.");}else{const {data,error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;await enter(data.user)}}catch(err){showError(err.message||"Something went wrong.")}};
+async function start(){await ensureSupabaseClient();}
+$("authForm").onsubmit=async e=>{e.preventDefault();showError("");try{const client=await ensureSupabaseClient();const email=$("email").value.trim(),password=$("password").value;if(mode==="signup"){const username=$("username").value.trim();if(!/^[a-zA-Z0-9_]{3,24}$/.test(username))throw Error("Username must be 3–24 letters, numbers, or underscores.");const {data,error}=await client.auth.signUp({email,password,options:{data:{username}}});if(error)throw error;if(data.session)await enter(data.user);else showError("Check your email to confirm your account, then sign in.");}else{const {data,error}=await client.auth.signInWithPassword({email,password});if(error)throw error;await enter(data.user)}}catch(err){console.error("Chatly login error:",err);showError(err.message||"Something went wrong. Please try again.")}};
 function isBlockedByMe(otherId){return !!otherId&&blockedByMeIds.has(otherId);}
 function isBlockedByOther(otherId){return !!otherId&&blockedMeIds.has(otherId);}
 function isBlockedBetween(otherId){return isBlockedByMe(otherId)||isBlockedByOther(otherId);}
@@ -2753,7 +2811,7 @@ if("serviceWorker"in navigator&&location.protocol!=="file:"){
   });
 }
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&user)setTimeout(()=>checkPendingIncomingCalls().catch(()=>{}),650);});
-start().catch(err=>{console.error(err);showError(err.message);});
+start().catch(err=>{console.error("Chatly startup error:",err);showError(err.message||"Chatly could not initialize. Refresh and try again.");});
 </script>
 </body>
 </html>

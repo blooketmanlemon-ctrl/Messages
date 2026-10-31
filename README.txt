@@ -40,3 +40,24 @@ BROWSER NOTES
   Chatly Home Screen shortcut and add the website to the Home Screen again.
 - Video calls require camera and microphone permissions. STUN-only calling can fail
   on some restrictive networks without a TURN relay.
+
+
+GROUP CHATS + GROUP CALLS
+- Use the + button and choose Create group.
+- Enter a group name and exact Chatly usernames separated by commas or new lines.
+- Open a group and use the pencil button to add more members.
+- Group chats support live text messages and the existing photo/video/audio/file uploads.
+- The video button opens the group's shared Jitsi Meet room in a new tab. Each group member
+  can join the same room by pressing the video button in that group. Group video calls are
+  hosted by Jitsi Meet, an external service, not by Chatly's Supabase project.
+
+REQUIRED DATABASE SETUP FOR GROUPS
+1. In Supabase Dashboard, open SQL Editor.
+2. Open CHATLY-GROUPS-SQL.sql from this package, copy all of it, and run it once.
+3. Wait for the query to finish successfully. It creates group tables, access policies,
+   helper RPCs, group attachment access, and enables Realtime for group messages.
+4. Deploy the updated index.html and sw.js to the same GitHub Pages repository root.
+5. Refresh Chatly with Ctrl+Shift+R. Existing private chats and call signaling remain intact.
+
+The group call room ID is randomly generated for each group and is only visible to its
+members. Jitsi is an external provider; avoid sharing group call links outside the group.

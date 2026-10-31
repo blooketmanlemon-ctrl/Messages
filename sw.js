@@ -1,4 +1,4 @@
-const CACHE_NAME = "chatly-sounds-calls-logo-v2-camera-profile";
+const CACHE_NAME = "chatly-groups-v1";
 const STATIC_ASSETS = [
   "./manifest.webmanifest",
   "./icon.svg",

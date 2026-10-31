@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <title>Chatly</title>
-<meta name="chatly-build" content="chatly-camera-profile-update-2026-10-31">
+<meta name="chatly-build" content="chatly-groups-and-group-calls-2026-10-31">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -237,7 +237,7 @@ body.dark .call-avatar{background:#35445c;color:#fff}
 </div>
 <div id="app" class="app hidden">
   <aside class="list-pane">
-    <header class="list-head"><div class="brand">chat<span>ly</span></div><div class="spacer"></div><button class="round-btn" id="newChat" title="New message">＋</button></header>
+    <header class="list-head"><div class="brand">chat<span>ly</span></div><div class="spacer"></div><button class="round-btn" id="newChat" title="New message or group">＋</button></header>
     <div class="search-wrap"><input class="search" id="searchChats" placeholder="Search conversations"></div>
     <div class="list-label">Messages</div>
     <div class="conversation-list" id="conversationList"><div class="empty">Your conversations will appear here.</div></div>
@@ -255,7 +255,7 @@ body.dark .call-avatar{background:#35445c;color:#fff}
       <div><div class="chat-person" id="chatName"></div><div class="chat-status" id="chatStatus">Chatly message</div></div>
       <div class="spacer"></div>
       <button class="round-btn call-head-btn" id="videoCallBtn" title="Start video call" aria-label="Start video call">📹</button>
-      <button class="round-btn" id="renameContact" title="Rename contact">✎</button>
+      <button class="round-btn" id="renameContact" title="Group members / rename contact">✎</button>
     </header>
     <section class="messages hidden" id="messages" aria-live="polite"></section>
     <form class="composer-area hidden" id="messageForm">
@@ -312,6 +312,7 @@ const SUPABASE_ANON_KEY="sb_publishable_ifYAMrdUhuyX-iOZULuP4w_nZx6oQtl";
 const $=id=>document.getElementById(id);
 let sb,user,profile,mode="login",activeConversation=null,activeContact=null,liveChannel=null,seen=new Set(),conversations=[];
 let callSignalChannel=null,callState=null;
+let activeGroupChannel=null,groupMembershipChannel=null;
 let soundEnabled=localStorage.getItem("chatly-sounds")!=="off",audioContextInstance=null,ringtoneInterval=null,messageSoundChannel=null,pendingChatSounds=[],playedMessageSoundIds=new Set();
 const nickKey="chatly-v2-nicknames";
 function esc(s=""){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
@@ -845,20 +846,79 @@ function setMode(next){mode=next;$("authTitle").textContent=mode==="login"?"Your
 $("authSwitch").onclick=e=>{e.preventDefault();setMode(mode==="login"?"signup":"login")};
 async function start(){sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);const {data:{session}}=await sb.auth.getSession();if(session)await enter(session.user);sb.auth.onAuthStateChange(async(event,session)=>{if(event==="SIGNED_IN"&&session&&!user)await enter(session.user);if(event==="SIGNED_OUT")location.reload()});}
 $("authForm").onsubmit=async e=>{e.preventDefault();showError("");try{const email=$("email").value.trim(),password=$("password").value;if(mode==="signup"){const username=$("username").value.trim();if(!/^[a-zA-Z0-9_]{3,24}$/.test(username))throw Error("Username must be 3–24 letters, numbers, or underscores.");const {data,error}=await sb.auth.signUp({email,password,options:{data:{username}}});if(error)throw error;if(data.session)await enter(data.user);else showError("Check your email to confirm your account, then sign in.");}else{const {data,error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;await enter(data.user)}}catch(err){showError(err.message||"Something went wrong.")}};
-async function enter(authUser){user=authUser;const {data,error}=await sb.from("profiles").select("*").eq("id",user.id).single();if(error)throw error;profile=data;$("auth").classList.add("hidden");$("app").classList.remove("hidden");$("myName").textContent=profile.display_name||profile.username;setAvatar($("myAvatar"),profile.avatar_url,profile.display_name||profile.username);await loadConversations();subscribeToCallSignals();subscribeToMessageSounds();}
+async function enter(authUser){user=authUser;const {data,error}=await sb.from("profiles").select("*").eq("id",user.id).single();if(error)throw error;profile=data;$("auth").classList.add("hidden");$("app").classList.remove("hidden");$("myName").textContent=profile.display_name||profile.username;setAvatar($("myAvatar"),profile.avatar_url,profile.display_name||profile.username);await loadConversations();subscribeToCallSignals();subscribeToMessageSounds();subscribeToGroupMemberships();}
 function displayName(p){return p?.display_name||p?.username||"Chatly user";}
-async function loadConversations(){const {data,error}=await sb.from("conversations").select("id,user_one,user_two,created_at").or(`user_one.eq.${user.id},user_two.eq.${user.id}`).order("created_at",{ascending:false});if(error){$("conversationList").innerHTML=`<div class="empty">Could not load messages: ${esc(error.message)}</div>`;return;}const rows=data||[];const ids=[...new Set(rows.map(c=>c.user_one===user.id?c.user_two:c.user_one))];let profiles={};if(ids.length){const r=await sb.from("profiles").select("id,username,display_name,avatar_url").in("id",ids);if(r.error){console.error(r.error)}else for(const p of r.data||[])profiles[p.id]=p;}conversations=[];for(const c of rows){const other=c.user_one===user.id?c.user_two:c.user_one;const p=profiles[other];if(!p)continue;const {data:last}=await sb.from("direct_messages").select("content,created_at,sender_id,attachment_name,attachment_type,attachment_path").eq("conversation_id",c.id).order("created_at",{ascending:false}).limit(1).maybeSingle();conversations.push({...c,otherId:other,person:p,last});}renderConversations();}
-function renderConversations(){const q=$("searchChats").value.trim().toLowerCase();const list=conversations.filter(c=>nickname(c.otherId,displayName(c.person)).toLowerCase().includes(q));$("conversationList").innerHTML=list.length?list.map(c=>{const n=nickname(c.otherId,displayName(c.person));const preview=c.last?(c.last.sender_id===user.id?"You: ":"")+messagePreview(c.last):"Start a conversation";const time=c.last?new Date(c.last.created_at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"";return `<div class="conversation ${activeConversation===c.id?"active":""}" data-conv="${c.id}"><div class="avatar" data-avatar="${c.otherId}">${c.person.avatar_url?`<img src="${esc(c.person.avatar_url)}" alt="">`:esc(initials(n))}</div><div class="conv-copy"><div class="conv-top"><span class="conv-name">${esc(n)}</span><span class="conv-time">${time}</span></div><div class="conv-preview">${esc(preview)}</div></div></div>`}).join(""):'<div class="empty"><div><p>No conversations yet.</p><button class="primary" id="listNewChat">Start a chat</button></div></div>';$("conversationList").querySelectorAll("[data-conv]").forEach(el=>el.onclick=()=>openConversation(el.dataset.conv));const btn=$("listNewChat");if(btn)btn.onclick=newChatModal;}
-async function newChatModal(){modal("Start a new chat",`<p class="muted small">Enter someone's exact Chatly username.</p><input class="field" id="findUsername" placeholder="Username"><p class="small" id="findError" style="color:#d84a5b"></p><div class="modal-actions"><button class="secondary" id="cancelModal">Cancel</button><button class="primary" id="findPerson">Find person</button></div>`);$("cancelModal").onclick=closeModal;$("findPerson").onclick=async()=>{const name=$("findUsername").value.trim();if(!name)return;$("findError").textContent="Searching…";const {data,error}=await sb.from("profiles").select("id,username,display_name,avatar_url").ilike("username",name).maybeSingle();if(error){$("findError").textContent=error.message;return;}if(!data){$("findError").textContent="No user found with that exact username.";return;}if(data.id===user.id){$("findError").textContent="That's your own username.";return;}const {data:cid,error:ce}=await sb.rpc("chatly_get_or_create_conversation",{p_other_user:data.id});if(ce){$("findError").textContent=ce.message;return;}closeModal();await loadConversations();await openConversation(cid);};}
-async function openConversation(id){const c=conversations.find(x=>x.id===id);if(!c)return;activeConversation=id;activeContact=c.person;seen=new Set();$("app").classList.add("chat-open");$("emptyState").classList.add("hidden");$("chatHead").classList.remove("hidden");$("messages").classList.remove("hidden");$("messageForm").classList.remove("hidden");const name=nickname(c.otherId,displayName(c.person));$("chatName").textContent=name;setAvatar($("chatAvatar"),c.person.avatar_url,name);renderConversations();if(liveChannel){sb.removeChannel(liveChannel);liveChannel=null;}await loadMessages(true);liveChannel=sb.channel("dm-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"direct_messages",filter:"conversation_id=eq."+id},async payload=>{const nearBottom=nearBottomNow();const {data}=await sb.from("direct_messages").select("id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size").eq("id",payload.new.id).single();if(data){playIncomingMessageSound(data);appendMessage(data);if(nearBottom||data.sender_id===user.id)scrollBottom();refreshPreview(id,data);}}).subscribe();}
+async function loadConversations(){
+  const {data,error}=await sb.from("conversations").select("id,user_one,user_two,created_at").or(`user_one.eq.${user.id},user_two.eq.${user.id}`).order("created_at",{ascending:false});
+  if(error){$("conversationList").innerHTML=`<div class="empty">Could not load messages: ${esc(error.message)}</div>`;return;}
+  const rows=data||[];const ids=[...new Set(rows.map(c=>c.user_one===user.id?c.user_two:c.user_one))];let profiles={};
+  if(ids.length){const r=await sb.from("profiles").select("id,username,display_name,avatar_url").in("id",ids);if(r.error)console.error(r.error);else for(const p of r.data||[])profiles[p.id]=p;}
+  conversations=[];
+  for(const c of rows){const other=c.user_one===user.id?c.user_two:c.user_one;const person=profiles[other];if(!person)continue;const {data:last}=await sb.from("direct_messages").select("id,content,created_at,sender_id,attachment_name,attachment_type,attachment_path").eq("conversation_id",c.id).order("created_at",{ascending:false}).limit(1).maybeSingle();conversations.push({...c,otherId:other,person,last,isGroup:false});}
+  const {data:memberships,error:me}=await sb.from("chat_group_members").select("group_id").eq("user_id",user.id);
+  if(me){console.warn("Group list unavailable until the Chatly groups SQL is installed:",me.message);}
+  else if((memberships||[]).length){
+    const groupIds=[...new Set(memberships.map(x=>x.group_id))];
+    const {data:groups,error:ge}=await sb.from("chat_groups").select("id,name,created_by,call_room,created_at").in("id",groupIds).order("created_at",{ascending:false});
+    if(ge)console.warn("Could not load groups:",ge.message);
+    else for(const g of groups||[]){
+      const {data:gm}=await sb.from("chat_group_members").select("user_id").eq("group_id",g.id);
+      const memberIds=(gm||[]).map(x=>x.user_id);
+      const {data:people}=await sb.from("profiles").select("id,username,display_name,avatar_url").in("id",memberIds);
+      const memberProfiles=people||[];
+      const {data:last}=await sb.from("chat_group_messages").select("id,content,created_at,sender_id,attachment_name,attachment_type,attachment_path").eq("group_id",g.id).order("created_at",{ascending:false}).limit(1).maybeSingle();
+      conversations.push({...g,isGroup:true,members:memberProfiles,memberIds,last});
+    }
+  }
+  conversations.sort((a,b)=>new Date(b.last?.created_at||b.created_at)-new Date(a.last?.created_at||a.created_at));
+  renderConversations();
+}
+function conversationTitle(c){return c.isGroup?c.name:nickname(c.otherId,displayName(c.person));}
+function renderConversations(){
+  const q=$("searchChats").value.trim().toLowerCase();
+  const list=conversations.filter(c=>conversationTitle(c).toLowerCase().includes(q)||(c.isGroup&&(c.members||[]).some(p=>displayName(p).toLowerCase().includes(q))));
+  $("conversationList").innerHTML=list.length?list.map(c=>{
+    const n=conversationTitle(c),preview=c.last?(c.last.sender_id===user.id?"You: ":(c.isGroup?((c.members||[]).find(p=>p.id===c.last.sender_id)?.display_name||"Member")+": ":""))+messagePreview(c.last):c.isGroup?"Group conversation":"Start a conversation";
+    const time=c.last?new Date(c.last.created_at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"";
+    const avatar=c.isGroup?'<span style="font-size:23px">👥</span>':(c.person.avatar_url?`<img src="${esc(c.person.avatar_url)}" alt="">`:esc(initials(n)));
+    return `<div class="conversation ${activeConversation===c.id?"active":""}" data-conv="${c.id}"><div class="avatar">${avatar}</div><div class="conv-copy"><div class="conv-top"><span class="conv-name">${esc(n)}</span><span class="conv-time">${time}</span></div><div class="conv-preview">${esc(preview)}</div></div></div>`;
+  }).join(""):'<div class="empty"><div><p>No conversations yet.</p><button class="primary" id="listNewChat">Start a chat</button></div></div>';
+  $("conversationList").querySelectorAll("[data-conv]").forEach(el=>el.onclick=()=>openConversation(el.dataset.conv));const btn=$("listNewChat");if(btn)btn.onclick=newChatModal;
+}
+async function newChatModal(){
+  modal("Start a conversation",`<p class="muted small">Start a private chat or create a group with multiple Chatly usernames.</p><div class="modal-actions" style="justify-content:stretch"><button class="secondary" id="makeGroup" style="flex:1">👥 Create group</button><button class="secondary" id="makeDirect" style="flex:1">＋ Private chat</button></div><div id="newChatArea"><input class="field" id="findUsername" placeholder="Exact Chatly username"><p class="small" id="findError" style="color:#d84a5b"></p><div class="modal-actions"><button class="secondary" id="cancelModal">Cancel</button><button class="primary" id="findPerson">Find person</button></div></div>`);
+  $("cancelModal").onclick=closeModal;$("makeGroup").onclick=createGroupModal;$("makeDirect").onclick=()=>{ $("findUsername").focus(); };
+  $("findPerson").onclick=async()=>{const name=$("findUsername").value.trim();if(!name)return;$("findError").textContent="Searching…";const {data,error}=await sb.from("profiles").select("id,username,display_name,avatar_url").ilike("username",name).maybeSingle();if(error){$("findError").textContent=error.message;return;}if(!data){$("findError").textContent="No user found with that exact username.";return;}if(data.id===user.id){$("findError").textContent="That's your own username.";return;}const {data:cid,error:ce}=await sb.rpc("chatly_get_or_create_conversation",{p_other_user:data.id});if(ce){$("findError").textContent=ce.message;return;}closeModal();await loadConversations();await openConversation(cid);};
+}
+function createGroupModal(){
+  modal("Create a group",`<p class="muted small">Give the group a name, then enter the exact Chatly usernames to add. Separate names with commas or new lines. You will be included automatically.</p><input class="field" id="groupNameInput" maxlength="48" placeholder="Group name"><textarea class="field" id="groupUsersInput" rows="4" placeholder="username1, username2, username3"></textarea><p class="small muted">Groups support up to 20 members, including you.</p><p class="small" id="groupError" style="color:#d84a5b"></p><div class="modal-actions"><button class="secondary" id="cancelModal">Cancel</button><button class="primary" id="createGroupButton">Create group</button></div>`);
+  $("cancelModal").onclick=closeModal;$("createGroupButton").onclick=async()=>{
+    const name=$("groupNameInput").value.trim();const names=[...new Set($("groupUsersInput").value.split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean).map(x=>x.replace(/^@/,"")))];
+    if(!name){$("groupError").textContent="Enter a group name.";return;}if(!names.length){$("groupError").textContent="Add at least one other Chatly username.";return;}if(names.length>19){$("groupError").textContent="Add up to 19 other people.";return;}
+    $("createGroupButton").disabled=true;$("groupError").textContent="Finding members…";
+    try{let memberIds=[];if(names.length){const {data,error}=await sb.from("profiles").select("id,username").or(names.map(n=>"username.ilike."+n).join(","));if(error)throw error;const found=new Map((data||[]).map(p=>[p.username.toLowerCase(),p]));const missing=names.filter(n=>!found.has(n.toLowerCase()));if(missing.length)throw new Error("Usernames not found: "+missing.join(", "));memberIds=[...found.values()].map(p=>p.id).filter(id=>id!==user.id);}
+      const {data:gid,error}=await sb.rpc("chatly_create_group",{p_name:name,p_member_ids:memberIds});if(error)throw error;closeModal();await loadConversations();await openConversation(gid);
+    }catch(error){$("groupError").textContent=error.message||String(error);$("createGroupButton").disabled=false;}
+  };
+}
+async function openConversation(id){
+  const c=conversations.find(x=>x.id===id);if(!c)return;activeConversation=id;activeContact=c.person||null;seen=new Set();$("app").classList.add("chat-open");$("emptyState").classList.add("hidden");$("chatHead").classList.remove("hidden");$("messages").classList.remove("hidden");$("messageForm").classList.remove("hidden");
+  const name=conversationTitle(c);$("chatName").textContent=name;if(c.isGroup){$("chatAvatar").innerHTML="👥";$("chatStatus").textContent=(c.members||[]).length+" members";$("renameContact").title="Add people to group";}else{setAvatar($("chatAvatar"),c.person.avatar_url,name);$("chatStatus").textContent="Chatly message";$("renameContact").title="Rename contact";}
+  renderConversations();if(liveChannel){sb.removeChannel(liveChannel);liveChannel=null;}if(activeGroupChannel){sb.removeChannel(activeGroupChannel);activeGroupChannel=null;}
+  await loadMessages(true);
+  if(c.isGroup){activeGroupChannel=sb.channel("group-chat-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_group_messages",filter:"group_id=eq."+id},async payload=>{const near=nearBottomNow();const {data}=await sb.from("chat_group_messages").select("id,group_id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size").eq("id",payload.new.id).single();if(data){playIncomingMessageSound(data);appendMessage(data);if(near||data.sender_id===user.id)scrollBottom();refreshPreview(id,data);}}).subscribe();}
+  else{liveChannel=sb.channel("dm-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"direct_messages",filter:"conversation_id=eq."+id},async payload=>{const nearBottom=nearBottomNow();const {data}=await sb.from("direct_messages").select("id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size").eq("id",payload.new.id).single();if(data){playIncomingMessageSound(data);appendMessage(data);if(nearBottom||data.sender_id===user.id)scrollBottom();refreshPreview(id,data);}}).subscribe();}
+}
 function nearBottomNow(){const el=$("messages");return el.scrollHeight-el.scrollTop-el.clientHeight<110;}
 function scrollBottom(){const el=$("messages");requestAnimationFrame(()=>{el.scrollTop=el.scrollHeight;});}
-async function loadMessages(scroll){const {data,error}=await sb.from("direct_messages").select("id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size").eq("conversation_id",activeConversation).order("created_at",{ascending:true}).limit(200);if(error){$("messages").textContent=error.message;return;}$("messages").innerHTML="";seen.clear();(data||[]).forEach(appendMessage);if(scroll)scrollBottom();}
+async function loadMessages(scroll){const c=conversations.find(x=>x.id===activeConversation);const table=c?.isGroup?"chat_group_messages":"direct_messages";const filter=c?.isGroup?"group_id":"conversation_id";const {data,error}=await sb.from(table).select("id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size").eq(filter,activeConversation).order("created_at",{ascending:true}).limit(200);if(error){$("messages").textContent=error.message;return;}$("messages").innerHTML="";seen.clear();(data||[]).forEach(appendMessage);if(scroll)scrollBottom();}
 function appendMessage(m){
   if(seen.has(m.id))return;
   seen.add(m.id);
   const row=document.createElement("div");
   row.className="message-row"+(m.sender_id===user.id?" mine":"");
+  const currentConversation=conversations.find(c=>c.id===activeConversation);
+  if(currentConversation?.isGroup&&m.sender_id!==user.id){const sender=(currentConversation.members||[]).find(p=>p.id===m.sender_id);const label=document.createElement("div");label.className="message-time";label.textContent=displayName(sender)||"Group member";row.append(label);}
   if(m.content){
     const bubble=document.createElement("div");
     bubble.className="bubble";
@@ -913,6 +973,9 @@ async function renderMessageAttachment(message,holder){
 }
 async function uploadChatFiles(fileList){
   if(!activeConversation||!user)return;
+  const currentConversation=conversations.find(c=>c.id===activeConversation);
+  const messageTable=currentConversation?.isGroup?"chat_group_messages":"direct_messages";
+  const conversationField=currentConversation?.isGroup?"group_id":"conversation_id";
   const files=Array.from(fileList||[]);
   if(!files.length)return;
   const attachButton=$("attachButton");
@@ -928,15 +991,16 @@ async function uploadChatFiles(fileList){
         cacheControl:"3600",upsert:false,contentType:fileType
       });
       if(uploadError)throw uploadError;
-      const {error:messageError}=await sb.from("direct_messages").insert({
-        conversation_id:activeConversation,
+      const messageRow={
+        [conversationField]:activeConversation,
         sender_id:user.id,
         content:"",
         attachment_path:path,
         attachment_name:file.name||"Attachment",
         attachment_type:fileType,
         attachment_size:file.size
-      });
+      };
+      const {error:messageError}=await sb.from(messageTable).insert(messageRow);
       if(messageError){
         await sb.storage.from("chat-media").remove([path]);
         throw messageError;
@@ -953,11 +1017,12 @@ async function uploadChatFiles(fileList){
   }
 }
 
-function refreshPreview(id,m){const c=conversations.find(x=>x.id===id);if(c){c.last=m;renderConversations();}}
-$("messageForm").onsubmit=async e=>{e.preventDefault();const content=$("messageInput").value.trim();if(!content||!activeConversation)return;const btn=$("messageForm").querySelector("button");btn.disabled=true;const {error}=await sb.from("direct_messages").insert({conversation_id:activeConversation,sender_id:user.id,content});btn.disabled=false;if(error){alert("Message could not send: "+error.message);return;}$("messageInput").value="";$("messageInput").style.height="auto";};
+function refreshPreview(id,m){const c=conversations.find(x=>x.id===id);if(c){c.last=m;conversations.sort((a,b)=>new Date(b.last?.created_at||b.created_at)-new Date(a.last?.created_at||a.created_at));renderConversations();}}
+$("messageForm").onsubmit=async e=>{e.preventDefault();const content=$("messageInput").value.trim();if(!content||!activeConversation)return;const c=conversations.find(x=>x.id===activeConversation);const table=c?.isGroup?"chat_group_messages":"direct_messages";const field=c?.isGroup?"group_id":"conversation_id";const btn=$("messageForm").querySelector("button");btn.disabled=true;const {error}=await sb.from(table).insert({[field]:activeConversation,sender_id:user.id,content});btn.disabled=false;if(error){alert("Message could not send: "+error.message);return;}$("messageInput").value="";$("messageInput").style.height="auto";};
 $("messageInput").addEventListener("input",()=>{const el=$("messageInput");el.style.height="auto";el.style.height=Math.min(el.scrollHeight,120)+"px";});
 $("messageInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("messageForm").requestSubmit();}});
-$("videoCallBtn").onclick=startVideoCall;
+$("videoCallBtn").onclick=()=>{const c=conversations.find(x=>x.id===activeConversation);if(c?.isGroup)startGroupCall(c);else startVideoCall();};
+function startGroupCall(group){if(!group?.call_room){alert("This group does not have a call room yet. Run the Chatly groups SQL first, then reload.");return;}const room="Chatly-"+group.id.replace(/-/g,"")+"-"+group.call_room.replace(/-/g,"");const url="https://meet.jit.si/"+encodeURIComponent(room);if(!confirm("Open this group video call in a new tab? Group calls are hosted by Jitsi Meet, an external video service. Everyone in the group can join by tapping the video button."))return;window.open(url,"_blank","noopener,noreferrer");}
 $("attachButton").onclick=()=>$("chatFileInput").click();
 $("chatFileInput").onchange=event=>uploadChatFiles(event.target.files);
 function playIncomingMessageSound(message){
@@ -969,12 +1034,25 @@ function playIncomingMessageSound(message){
   }
   playChatSound("message");
 }
+function subscribeToGroupMemberships(){
+  if(!sb||!user||groupMembershipChannel)return;
+  groupMembershipChannel=sb.channel("chatly-group-members-"+user.id)
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_group_members",filter:"user_id=eq."+user.id},()=>{
+      loadConversations().catch(error=>console.warn("Could not refresh group list:",error));
+    }).subscribe(status=>{
+      if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("Chatly group membership subscription:",status);
+    });
+}
 function subscribeToMessageSounds(){
   if(!sb||!user||messageSoundChannel)return;
   messageSoundChannel=sb.channel("chatly-message-sounds-"+user.id)
     .on("postgres_changes",{event:"INSERT",schema:"public",table:"direct_messages"},payload=>{
       const message=payload?.new;
-      if(message&&conversations.some(c=>c.id===message.conversation_id))playIncomingMessageSound(message);
+      if(message&&conversations.some(c=>!c.isGroup&&c.id===message.conversation_id))playIncomingMessageSound(message);
+    })
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_group_messages"},payload=>{
+      const message=payload?.new;
+      if(message&&conversations.some(c=>c.isGroup&&c.id===message.group_id))playIncomingMessageSound(message);
     }).subscribe(status=>{
       if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("Chatly message sounds:",status);
     });
@@ -1010,7 +1088,8 @@ $("toggleCameraRinging").onclick=toggleCallCamera;
 $("searchChats").oninput=renderConversations;
 $("newChat").onclick=newChatModal;$("emptyNewChat").onclick=newChatModal;
 $("backToChats").onclick=()=>{$("app").classList.remove("chat-open");};
-$("renameContact").onclick=()=>{const c=conversations.find(x=>x.id===activeConversation);if(!c)return;const old=nickname(c.otherId,displayName(c.person));modal("Rename contact",`<input class="field" id="nicknameInput" maxlength="32" value="${esc(old)}"><div class="modal-actions"><button class="secondary" id="cancelModal">Cancel</button><button class="primary" id="saveNickname">Save</button></div>`);$("cancelModal").onclick=closeModal;$("saveNickname").onclick=()=>{const val=$("nicknameInput").value.trim();if(val)saveNickname(c.otherId,val);closeModal();$("chatName").textContent=val||displayName(c.person);renderConversations();};};
+$("renameContact").onclick=()=>{const c=conversations.find(x=>x.id===activeConversation);if(!c)return;if(c.isGroup){manageGroupMembers(c);return;}const old=nickname(c.otherId,displayName(c.person));modal("Rename contact",`<input class="field" id="nicknameInput" maxlength="32" value="${esc(old)}"><div class="modal-actions"><button class="secondary" id="cancelModal">Cancel</button><button class="primary" id="saveNickname">Save</button></div>`);$("cancelModal").onclick=closeModal;$("saveNickname").onclick=()=>{const val=$("nicknameInput").value.trim();if(val)saveNickname(c.otherId,val);closeModal();$("chatName").textContent=val||displayName(c.person);renderConversations();};};
+function manageGroupMembers(group){modal("Group members",`<p class="small muted">${(group.members||[]).map(p=>esc(displayName(p))).join(" · ")}</p><p class="small muted">Add people by entering exact Chatly usernames.</p><input class="field" id="addGroupUsers" placeholder="username1, username2"><p class="small" id="addGroupError" style="color:#d84a5b"></p><div class="modal-actions"><button class="secondary" id="cancelModal">Close</button><button class="primary" id="addGroupPeople">Add people</button></div>`);$("cancelModal").onclick=closeModal;$("addGroupPeople").onclick=async()=>{const names=[...new Set($("addGroupUsers").value.split(/[\n,;]+/).map(x=>x.trim().replace(/^@/,"")).filter(Boolean))];if(!names.length)return;$("addGroupError").textContent="Finding members…";try{const {data,error}=await sb.from("profiles").select("id,username").or(names.map(n=>"username.ilike."+n).join(","));if(error)throw error;const found=new Map((data||[]).map(p=>[p.username.toLowerCase(),p]));const missing=names.filter(n=>!found.has(n.toLowerCase()));if(missing.length)throw Error("Usernames not found: "+missing.join(", "));const ids=[...found.values()].map(p=>p.id).filter(id=>!group.memberIds.includes(id));const {error:rpcError}=await sb.rpc("chatly_add_group_members",{p_group_id:group.id,p_member_ids:ids});if(rpcError)throw rpcError;closeModal();await loadConversations();await openConversation(group.id);}catch(error){$("addGroupError").textContent=error.message||String(error);}};} 
 function modal(title,body){$("modalRoot").innerHTML=`<div class="modal-back" id="modalBack"><section class="modal"><h2>${esc(title)}</h2>${body}</section></div>`;$("modalBack").onclick=e=>{if(e.target.id==="modalBack")closeModal();};}
 function closeModal(){$("modalRoot").innerHTML="";}
 $("settings").onclick=profileModal;

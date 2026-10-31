@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <title>Chatly</title>
-<meta name="chatly-build" content="chatly-group-calls-screen-share-message-board-incall-chat-camera-flip-2026-10-31">
+<meta name="chatly-build" content="chatly-contact-dedupe-message-selection-2026-10-31">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -251,6 +251,24 @@ body.dark .call-avatar{background:#35445c;color:#fff}
 @media(hover:hover){.message-tools{opacity:0}.message-row:hover .message-tools,.message-row:focus-within .message-tools{opacity:1}}
 </style>
 
+<style id="chatly-message-selection-ui">
+.select-messages-btn{background:var(--soft);color:var(--blue);font-size:13px;font-weight:750;padding:8px 12px;border-radius:10px;white-space:nowrap}
+.select-messages-btn.active{background:#e5f0ff;color:#075fbd}
+.message-selection-toolbar{flex:none;display:flex;align-items:center;gap:8px;min-height:48px;padding:7px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+.message-selection-toolbar .spacer{flex:1}
+.message-selection-toolbar .selection-count{font-size:13px;font-weight:750;color:var(--text);white-space:nowrap}
+.message-selection-toolbar button{font-size:12px;padding:8px 10px;border-radius:9px}
+.message-row{position:relative;transition:outline-color .12s ease,background .12s ease}
+.message-select-indicator{display:none;position:absolute;left:-29px;top:8px;width:22px;height:22px;border-radius:50%;border:2px solid var(--muted);background:var(--panel);color:white;font-size:13px;line-height:1;place-items:center;padding:0;z-index:2}
+.message-row.mine .message-select-indicator{left:auto;right:-29px}
+#messages.selection-mode .message-select-indicator{display:grid}
+#messages.selection-mode .message-row{cursor:pointer}
+#messages.selection-mode .message-row.selected-message{outline:2px solid var(--blue);outline-offset:4px;border-radius:12px}
+#messages.selection-mode .message-row.selected-message .message-select-indicator{border-color:var(--blue);background:var(--blue)}
+#messages.selection-mode .message-row .message-tools{display:none}
+@media(max-width:560px){.message-selection-toolbar{gap:5px;padding:7px 8px;flex-wrap:wrap}.message-selection-toolbar .selection-count{font-size:12px}.message-selection-toolbar button{font-size:11px;padding:7px 8px}.message-select-indicator{left:-23px;width:19px;height:19px}.message-row.mine .message-select-indicator{right:-23px}.chat-head{gap:8px}}
+</style>
+
 <style id="chatly-in-call-chat-camera-flip-styles">
 .in-call-chat-panel{flex:none;margin:8px 14px 0;background:#182235;border:1px solid #34445e;border-radius:14px;overflow:hidden;color:#f8fafc;display:flex;flex-direction:column;min-height:0;max-height:205px}
 .in-call-chat-panel.hidden{display:none!important}
@@ -305,12 +323,21 @@ body.dark .call-avatar{background:#35445c;color:#fff}
     <section class="empty" id="emptyState"><div><div class="empty-icon">✉</div><h2 style="color:var(--text)">Your messages</h2><p>Choose a conversation or start a new one.</p><button class="primary" id="emptyNewChat">New message</button></div></section>
     <header class="chat-head hidden" id="chatHead">
       <button class="round-btn mobile-back" id="backToChats" aria-label="Back">‹</button>
+      <button class="select-messages-btn" id="selectMessagesBtn" type="button" title="Select messages" aria-label="Select messages">Select</button>
       <div class="avatar" id="chatAvatar">?</div>
       <div><div class="chat-person" id="chatName"></div><div class="chat-status" id="chatStatus">Chatly message</div></div>
       <div class="spacer"></div>
       <button class="round-btn call-head-btn" id="videoCallBtn" title="Start video call" aria-label="Start video call">📹</button>
       <button class="round-btn" id="renameContact" title="Group members / rename contact">✎</button>
     </header>
+    <div class="message-selection-toolbar hidden" id="messageSelectionToolbar" role="toolbar" aria-label="Selected message actions">
+      <span class="selection-count" id="messageSelectionCount">0 selected</span>
+      <div class="spacer"></div>
+      <button class="secondary" id="selectionEditBtn" type="button" disabled>Edit</button>
+      <button class="secondary" id="selectionDeleteBtn" type="button" disabled>Delete for me</button>
+      <button class="secondary board-danger" id="selectionUnsendBtn" type="button" disabled>Unsend</button>
+      <button class="text-btn" id="selectionCancelBtn" type="button">Cancel</button>
+    </div>
     <section class="messages hidden" id="messages" aria-live="polite"></section>
     <form class="composer-area hidden" id="messageForm">
       <div class="upload-status" id="uploadStatus" aria-live="polite"></div>
@@ -406,6 +433,9 @@ const SUPABASE_URL="https://rfivnjnvliqpehdkqqap.supabase.co";
 const SUPABASE_ANON_KEY="sb_publishable_ifYAMrdUhuyX-iOZULuP4w_nZx6oQtl";
 const $=id=>document.getElementById(id);
 let sb,user,profile,mode="login",activeConversation=null,activeContact=null,liveChannel=null,seen=new Set(),conversations=[];
+let conversationLoadToken=0;
+let messageSelectionMode=false;
+const selectedMessages=new Map();
 let callSignalChannel=null,callState=null;
 let activeGroupChannel=null,groupMembershipChannel=null;
 let groupCallState=null,groupCallSignalChannel=null,pendingGroupInvite=null;
@@ -1170,8 +1200,9 @@ $("authForm").onsubmit=async e=>{e.preventDefault();showError("");try{const emai
 async function enter(authUser){user=authUser;const {data,error}=await sb.from("profiles").select("*").eq("id",user.id).single();if(error)throw error;profile=data;$("auth").classList.add("hidden");$("app").classList.remove("hidden");$("myName").textContent=profile.display_name||profile.username;setAvatar($("myAvatar"),profile.avatar_url,profile.display_name||profile.username);await loadConversations();subscribeToCallSignals();subscribeToGroupCallSignals();subscribeToMessageSounds();subscribeToGroupMemberships();}
 function displayName(p){return p?.display_name||p?.username||"Chatly user";}
 async function loadConversations(){
+  const loadToken=++conversationLoadToken;
   const {data,error}=await sb.from("conversations").select("id,user_one,user_two,created_at").or(`user_one.eq.${user.id},user_two.eq.${user.id}`).order("created_at",{ascending:false});
-  if(error){$("conversationList").innerHTML=`<div class="empty">Could not load messages: ${esc(error.message)}</div>`;return;}
+  if(error){if(loadToken===conversationLoadToken)$("conversationList").innerHTML=`<div class="empty">Could not load messages: ${esc(error.message)}</div>`;return;}
   const rows=data||[];
   let hiddenConversationIds=new Set();
   const hiddenResult=await sb.from("chat_hidden_conversations").select("conversation_id").eq("user_id",user.id);
@@ -1181,10 +1212,21 @@ async function loadConversations(){
   const hiddenMessagesResult=await sb.from("chat_message_hidden").select("message_id").eq("user_id",user.id);
   if(hiddenMessagesResult.error)console.warn("Hidden message previews unavailable:",hiddenMessagesResult.error.message);
   const hiddenMessageIds=new Set((hiddenMessagesResult.data||[]).map(row=>row.message_id));
-  const ids=[...new Set(visibleRows.map(c=>c.user_one===user.id?c.user_two:c.user_one))];let profiles={};
+  const ids=[...new Set(visibleRows.map(c=>c.user_one===user.id?c.user_two:c.user_one))];
+  let profiles={};
   if(ids.length){const r=await sb.from("profiles").select("id,username,display_name,avatar_url").in("id",ids);if(r.error)console.error(r.error);else for(const p of r.data||[])profiles[p.id]=p;}
-  conversations=[];
-  for(const c of visibleRows){const other=c.user_one===user.id?c.user_two:c.user_one;const person=profiles[other];if(!person)continue;const {data:recent}=await sb.from("direct_messages").select("id,content,created_at,sender_id,attachment_name,attachment_type,attachment_path").eq("conversation_id",c.id).order("created_at",{ascending:false}).limit(40);const last=(recent||[]).find(message=>!hiddenMessageIds.has(message.id))||null;conversations.push({...c,otherId:other,person,last,isGroup:false});}
+
+  // Build into a local array. Never mutate the shared list while awaits are pending.
+  const nextConversations=[];
+  for(const c of visibleRows){
+    const other=c.user_one===user.id?c.user_two:c.user_one;
+    const person=profiles[other];
+    if(!person)continue;
+    const {data:recent}=await sb.from("direct_messages").select("id,content,created_at,sender_id,attachment_name,attachment_type,attachment_path").eq("conversation_id",c.id).order("created_at",{ascending:false}).limit(40);
+    const last=(recent||[]).find(message=>!hiddenMessageIds.has(message.id))||null;
+    nextConversations.push({...c,otherId:other,person,last,isGroup:false});
+  }
+
   const {data:memberships,error:me}=await sb.from("chat_group_members").select("group_id").eq("user_id",user.id);
   if(me){console.warn("Group list unavailable until the Chatly groups SQL is installed:",me.message);}
   else if((memberships||[]).length){
@@ -1194,13 +1236,26 @@ async function loadConversations(){
     else for(const g of groups||[]){
       const {data:gm}=await sb.from("chat_group_members").select("user_id").eq("group_id",g.id);
       const memberIds=(gm||[]).map(x=>x.user_id);
-      const {data:people}=await sb.from("profiles").select("id,username,display_name,avatar_url").in("id",memberIds);
+      const {data:people}=memberIds.length?await sb.from("profiles").select("id,username,display_name,avatar_url").in("id",memberIds):{data:[]};
       const memberProfiles=people||[];
-      const {data:recent}=await sb.from("chat_group_messages").select("id,content,created_at,sender_id,attachment_name,attachment_type,attachment_path").eq("group_id",g.id).order("created_at",{ascending:false}).limit(40);const last=(recent||[]).find(message=>!hiddenMessageIds.has(message.id))||null;
-      conversations.push({...g,isGroup:true,members:memberProfiles,memberIds,last});
+      const {data:recent}=await sb.from("chat_group_messages").select("id,content,created_at,sender_id,attachment_name,attachment_type,attachment_path").eq("group_id",g.id).order("created_at",{ascending:false}).limit(40);
+      const last=(recent||[]).find(message=>!hiddenMessageIds.has(message.id))||null;
+      nextConversations.push({...g,isGroup:true,members:memberProfiles,memberIds,last});
     }
   }
-  conversations.sort((a,b)=>new Date(b.last?.created_at||b.created_at)-new Date(a.last?.created_at||a.created_at));
+
+  // If multiple legacy conversation rows exist for the same person, show one
+  // contact entry only. Keep the most recently active thread for that person.
+  const unique=new Map();
+  for(const item of nextConversations){
+    const key=item.isGroup?`group:${item.id}`:`direct:${item.otherId}`;
+    const existing=unique.get(key);
+    const activity=Date.parse(item.last?.created_at||item.created_at||0)||0;
+    const existingActivity=existing?(Date.parse(existing.last?.created_at||existing.created_at||0)||0):-1;
+    if(!existing||activity>existingActivity)unique.set(key,item);
+  }
+  if(loadToken!==conversationLoadToken)return;
+  conversations=[...unique.values()].sort((a,b)=>new Date(b.last?.created_at||b.created_at)-new Date(a.last?.created_at||a.created_at));
   renderConversations();
 }
 function conversationTitle(c){return c.isGroup?c.name:nickname(c.otherId,displayName(c.person));}
@@ -1232,6 +1287,7 @@ function createGroupModal(){
   };
 }
 async function openConversation(id){
+  if(messageSelectionMode)toggleMessageSelectionMode(false);
   const c=conversations.find(x=>x.id===id);if(!c)return;activeConversation=id;activeContact=c.person||null;seen=new Set();$("app").classList.add("chat-open");$("emptyState").classList.add("hidden");$("chatHead").classList.remove("hidden");$("messages").classList.remove("hidden");$("messageForm").classList.remove("hidden");
   const name=conversationTitle(c);$("chatName").textContent=name;if(c.isGroup){$("chatAvatar").innerHTML="👥";$("chatStatus").textContent=(c.members||[]).length+" members";$("renameContact").title="Add people to group";}else{setAvatar($("chatAvatar"),c.person.avatar_url,name);$("chatStatus").textContent="Chatly message";$("renameContact").title="Rename contact";}
   renderConversations();if(liveChannel){sb.removeChannel(liveChannel);liveChannel=null;}if(activeGroupChannel){sb.removeChannel(activeGroupChannel);activeGroupChannel=null;}
@@ -1249,7 +1305,7 @@ async function openConversation(id){
 }
 function nearBottomNow(){const el=$("messages");return el.scrollHeight-el.scrollTop-el.clientHeight<110;}
 function scrollBottom(){const el=$("messages");requestAnimationFrame(()=>{el.scrollTop=el.scrollHeight;});}
-async function loadMessages(scroll){const c=conversations.find(x=>x.id===activeConversation);const table=c?.isGroup?"chat_group_messages":"direct_messages";const filter=c?.isGroup?"group_id":"conversation_id";const type=c?.isGroup?"group":"direct";const {data,error}=await sb.from(table).select("id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size").eq(filter,activeConversation).order("created_at",{ascending:true}).limit(200);if(error){$("messages").textContent=error.message;return;}const hiddenResult=await sb.from("chat_message_hidden").select("message_id").eq("user_id",user.id).eq("message_type",type);if(hiddenResult.error)console.warn("Message hide settings unavailable:",hiddenResult.error.message);const hiddenIds=new Set((hiddenResult.data||[]).map(row=>row.message_id));$("messages").innerHTML="";seen.clear();(data||[]).filter(message=>!hiddenIds.has(message.id)).forEach(appendMessage);if(scroll)scrollBottom();}
+async function loadMessages(scroll){if(messageSelectionMode)toggleMessageSelectionMode(false);const c=conversations.find(x=>x.id===activeConversation);const table=c?.isGroup?"chat_group_messages":"direct_messages";const filter=c?.isGroup?"group_id":"conversation_id";const type=c?.isGroup?"group":"direct";const {data,error}=await sb.from(table).select("id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size").eq(filter,activeConversation).order("created_at",{ascending:true}).limit(200);if(error){$("messages").textContent=error.message;return;}const hiddenResult=await sb.from("chat_message_hidden").select("message_id").eq("user_id",user.id).eq("message_type",type);if(hiddenResult.error)console.warn("Message hide settings unavailable:",hiddenResult.error.message);const hiddenIds=new Set((hiddenResult.data||[]).map(row=>row.message_id));$("messages").innerHTML="";seen.clear();(data||[]).filter(message=>!hiddenIds.has(message.id)).forEach(appendMessage);if(scroll)scrollBottom();}
 function appendMessage(m){
   if(seen.has(m.id))return;
   seen.add(m.id);
@@ -1280,10 +1336,20 @@ function appendMessage(m){
   time.textContent=new Date(m.created_at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
   row.append(time);
   row.dataset.messageId=m.id;
-  const tools=document.createElement("div");tools.className="message-tools";
-  const options=document.createElement("button");options.type="button";options.className="message-tool-btn";options.textContent="Message options";options.setAttribute("aria-label","Message options");
-  options.onclick=()=>showMessageOptions(m);
-  tools.append(options);row.append(tools);
+  row._chatMessage=m;
+  const indicator=document.createElement("button");
+  indicator.type="button";
+  indicator.className="message-select-indicator";
+  indicator.setAttribute("aria-label","Select message");
+  indicator.textContent=selectedMessages.has(m.id)?"✓":"";
+  indicator.addEventListener("click",event=>{event.preventDefault();event.stopPropagation();toggleMessageSelection(m,row);});
+  row.append(indicator);
+  row.addEventListener("click",event=>{
+    if(!messageSelectionMode)return;
+    if(event.target.closest("a,button,input,video,audio"))return;
+    toggleMessageSelection(m,row);
+  });
+  if(messageSelectionMode&&selectedMessages.has(m.id))row.classList.add("selected-message");
   $("messages").append(row);
 }
 async function renderMessageAttachment(message,holder){
@@ -1318,20 +1384,79 @@ function removeMessageFromView(messageId){
   if(!messageId)return;
   const row=document.querySelector(`[data-message-id="${messageId}"]`);if(row)row.remove();
   seen.delete(messageId);
+  selectedMessages.delete(messageId);
+  if(messageSelectionMode)updateMessageSelectionUI();
 }
 function messageTableInfo(message){
   const c=conversations.find(item=>item.id===activeConversation);
   return c?.isGroup?{table:"chat_group_messages",type:"group",field:"group_id"}:{table:"direct_messages",type:"direct",field:"conversation_id"};
 }
-function showMessageOptions(message){
-  const own=message.sender_id===user.id;
-  const hasText=!!message.content;
-  modal("Message options",`${hasText&&own?`<button class="secondary" id="editMessage" type="button">Edit message</button>`:""}<button class="secondary" id="hideMessage" type="button">Delete for me</button>${own?`<button class="secondary board-danger" id="unsendMessage" type="button">Unsend for everyone</button>`:""}<div class="modal-actions"><button class="secondary" id="cancelModal">Close</button></div><p class="small muted">Unsend removes your message for everyone. Delete for me only hides it from your account.</p>`);
-  $("cancelModal").onclick=closeModal;
-  if(hasText&&own)$("editMessage").onclick=()=>editOwnMessage(message);
-  $("hideMessage").onclick=()=>hideMessageForMe(message);
-  if(own)$("unsendMessage").onclick=()=>unsendMessage(message);
+function updateMessageSelectionUI(){
+  const items=[...selectedMessages.values()];
+  const owned=items.filter(message=>message.sender_id===user.id);
+  const editAllowed=items.length===1&&owned.length===1&&!!items[0].content;
+  const toolbar=$("messageSelectionToolbar");
+  if(toolbar)toolbar.classList.toggle("hidden",!messageSelectionMode);
+  const count=$("messageSelectionCount");if(count)count.textContent=`${items.length} selected`;
+  const edit=$("selectionEditBtn");if(edit)edit.disabled=!editAllowed;
+  const del=$("selectionDeleteBtn");if(del){del.disabled=items.length===0;del.textContent=items.length>1?`Delete for me (${items.length})`:"Delete for me";}
+  const unsend=$("selectionUnsendBtn");if(unsend){unsend.disabled=owned.length===0;unsend.textContent=owned.length>1?`Unsend (${owned.length})`:"Unsend";}
 }
+function toggleMessageSelectionMode(force){
+  const next=typeof force==="boolean"?force:!messageSelectionMode;
+  messageSelectionMode=next;
+  if(!next)selectedMessages.clear();
+  $("messages")?.classList.toggle("selection-mode",next);
+  $("selectMessagesBtn").classList.toggle("active",next);
+  $("selectMessagesBtn").textContent=next?"Cancel":"Select";
+  $("selectMessagesBtn").title=next?"Cancel message selection":"Select messages";
+  $("selectMessagesBtn").setAttribute("aria-pressed",String(next));
+  document.querySelectorAll("#messages .message-row").forEach(row=>{
+    const messageId=row.dataset.messageId;
+    row.classList.toggle("selected-message",next&&selectedMessages.has(messageId));
+    const marker=row.querySelector(".message-select-indicator");
+    if(marker)marker.textContent=next&&selectedMessages.has(messageId)?"✓":"";
+  });
+  updateMessageSelectionUI();
+}
+function toggleMessageSelection(message,row){
+  if(!messageSelectionMode)return;
+  if(selectedMessages.has(message.id))selectedMessages.delete(message.id);
+  else selectedMessages.set(message.id,message);
+  const selected=selectedMessages.has(message.id);
+  row.classList.toggle("selected-message",selected);
+  const marker=row.querySelector(".message-select-indicator");if(marker)marker.textContent=selected?"✓":"";
+  updateMessageSelectionUI();
+}
+async function deleteSelectedForMe(){
+  const items=[...selectedMessages.values()];if(!items.length)return;
+  const info=messageTableInfo(items[0]);
+  const rows=items.map(message=>({user_id:user.id,message_id:message.id,message_type:info.type}));
+  const {error}=await sb.from("chat_message_hidden").upsert(rows,{onConflict:"user_id,message_type,message_id",ignoreDuplicates:true});
+  if(error){alert("Could not delete selected messages for you: "+error.message);return;}
+  const ids=items.map(message=>message.id);
+  toggleMessageSelectionMode(false);
+  ids.forEach(removeMessageFromView);
+  await loadConversations();
+}
+async function unsendSelectedForEveryone(){
+  const items=[...selectedMessages.values()];
+  const owned=items.filter(message=>message.sender_id===user.id);
+  if(!owned.length)return;
+  if(!confirm(`Unsend ${owned.length} message${owned.length===1?"":"s"} for everyone? Messages sent by other people will not be unsent.`))return;
+  const info=messageTableInfo(owned[0]);
+  const ids=owned.map(message=>message.id);
+  const {data,error}=await sb.from(info.table).delete().in("id",ids).eq("sender_id",user.id).select("id");
+  if(error){alert("Could not unsend selected messages: "+error.message);return;}
+  const removed=new Set((data||[]).map(row=>row.id));
+  if(!removed.size){alert("Chatly could not unsend those messages. You can only unsend your own messages.");return;}
+  const paths=owned.filter(message=>removed.has(message.id)&&message.attachment_path).map(message=>message.attachment_path);
+  if(paths.length){const {error:storageError}=await sb.storage.from("chat-media").remove(paths);if(storageError)console.warn("Messages removed but some attachment cleanup failed:",storageError.message);}
+  toggleMessageSelectionMode(false);
+  [...removed].forEach(removeMessageFromView);
+  await loadConversations();
+}
+
 async function hideMessageForMe(message){
   const info=messageTableInfo(message);
   const {error}=await sb.from("chat_message_hidden").insert({user_id:user.id,message_id:message.id,message_type:info.type});
@@ -1403,6 +1528,15 @@ function refreshPreview(id,m){const c=conversations.find(x=>x.id===id);if(c){c.l
 $("messageForm").onsubmit=async e=>{e.preventDefault();const content=$("messageInput").value.trim();if(!content||!activeConversation)return;const c=conversations.find(x=>x.id===activeConversation);const table=c?.isGroup?"chat_group_messages":"direct_messages";const field=c?.isGroup?"group_id":"conversation_id";const btn=$("messageForm").querySelector("button");btn.disabled=true;const {error}=await sb.from(table).insert({[field]:activeConversation,sender_id:user.id,content});btn.disabled=false;if(error){alert("Message could not send: "+error.message);return;}$("messageInput").value="";$("messageInput").style.height="auto";};
 $("messageInput").addEventListener("input",()=>{const el=$("messageInput");el.style.height="auto";el.style.height=Math.min(el.scrollHeight,120)+"px";});
 $("messageInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("messageForm").requestSubmit();}});
+$("selectMessagesBtn").onclick=()=>toggleMessageSelectionMode();
+$("selectionCancelBtn").onclick=()=>toggleMessageSelectionMode(false);
+$("selectionEditBtn").onclick=()=>{
+  const items=[...selectedMessages.values()];
+  if(items.length!==1||items[0].sender_id!==user.id||!items[0].content)return;
+  const message=items[0];toggleMessageSelectionMode(false);editOwnMessage(message);
+};
+$("selectionDeleteBtn").onclick=deleteSelectedForMe;
+$("selectionUnsendBtn").onclick=unsendSelectedForEveryone;
 $("videoCallBtn").onclick=()=>{const c=conversations.find(x=>x.id===activeConversation);if(c?.isGroup)startGroupCall(c);else startVideoCall();};
 const GROUP_CALL_MAX_PARTICIPANTS=6;
 function groupCallStatus(message){const el=$("groupCallStatus");if(el)el.textContent=message||"";}

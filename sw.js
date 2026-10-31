@@ -1,4 +1,4 @@
-const CACHE_NAME = "chatly-group-calls-screen-share-message-board-v3-incall";
+const CACHE_NAME = "chatly-group-calls-message-selection-20261031";
 const STATIC_ASSETS = [
   "./manifest.webmanifest",
   "./icon.svg",

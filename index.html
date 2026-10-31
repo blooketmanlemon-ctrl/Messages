@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <title>Chatly</title>
-<meta name="chatly-build" content="chatly-push-notifications-2026-10-31">
+<meta name="chatly-build" content="chatly-push-notifications-custom-sounds-2026-10-31">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -214,6 +214,11 @@ body.dark .call-avatar{background:#35445c;color:#fff}
 .sound-setting{display:flex;align-items:center;gap:10px;padding:10px 0;color:var(--text);font-size:14px}
 .sound-setting input{width:18px;height:18px;accent-color:var(--blue)}
 .sound-test-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sound-choice-block{display:grid;gap:7px;padding:8px 0 12px}
+.sound-choice-row{display:flex;gap:8px;align-items:center}
+.sound-choice-row .field{flex:1;min-width:0;margin:0}
+.sound-choice-row button{flex:none}
+.sound-platform-note{margin:3px 0 0;line-height:1.4}
 .call-action:disabled{opacity:.45}
 @media(max-width:600px){.message-attachment img,.message-attachment video{max-height:300px}}
 
@@ -460,6 +465,16 @@ let callSignalChannel=null,callState=null;
 let activeGroupChannel=null,groupMembershipChannel=null;
 let groupCallState=null,groupCallSignalChannel=null,pendingGroupInvite=null;
 let soundEnabled=localStorage.getItem("chatly-sounds")!=="off",audioContextInstance=null,ringtoneInterval=null,messageSoundChannel=null,pendingChatSounds=[],playedMessageSoundIds=new Set();
+const MESSAGE_SOUND_OPTIONS={
+  classic:"Classic", soft:"Soft", pop:"Pop", bell:"Bell", digital:"Digital", chime:"Chime"
+};
+const CALL_RINGTONE_OPTIONS={
+  classic:"Classic ring", gentle:"Gentle", bright:"Bright", digital:"Digital ring", pulse:"Pulse", bell:"Bell ring"
+};
+let messageSoundChoice=localStorage.getItem("chatly-message-sound")||"classic";
+let callRingtoneChoice=localStorage.getItem("chatly-call-ringtone")||"classic";
+if(!MESSAGE_SOUND_OPTIONS[messageSoundChoice])messageSoundChoice="classic";
+if(!CALL_RINGTONE_OPTIONS[callRingtoneChoice])callRingtoneChoice="classic";
 const nickKey="chatly-v2-nicknames";
 // Public VAPID key is safe to ship in the website. The matching private key
 // stays only in Supabase Edge Function Secrets.
@@ -609,20 +624,49 @@ function scheduleChatTone(ctx,frequency,start,duration,volume=0.055){
   osc.start(start);
   osc.stop(start+duration+0.02);
 }
-function playChatSoundNow(ctx,kind){
+function playSoundSequence(ctx,sequence,baseTime,volumeScale=1){
+  for(const tone of sequence){
+    const [frequency,offset,duration,volume=0.055,wave="sine"] = tone;
+    const osc=ctx.createOscillator(),gain=ctx.createGain();
+    osc.type=wave;
+    osc.frequency.setValueAtTime(frequency,baseTime+offset);
+    gain.gain.setValueAtTime(0.0001,baseTime+offset);
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.0002,volume*volumeScale),baseTime+offset+0.018);
+    gain.gain.setValueAtTime(Math.max(0.0002,volume*volumeScale),baseTime+offset+Math.max(0.025,duration-0.035));
+    gain.gain.exponentialRampToValueAtTime(0.0001,baseTime+offset+duration);
+    osc.connect(gain);gain.connect(ctx.destination);
+    osc.start(baseTime+offset);osc.stop(baseTime+offset+duration+0.02);
+  }
+}
+function getMessageSoundSequence(choice){
+  const presets={
+    classic:[[740,0,.11,.055],[988,.13,.15,.055]],
+    soft:[[587,0,.13,.035],[784,.16,.18,.032]],
+    pop:[[520,0,.075,.05,"triangle"],[880,.085,.11,.045,"sine"]],
+    bell:[[1046,0,.24,.05],[1318,.12,.28,.04]],
+    digital:[[660,0,.075,.045,"square"],[880,.09,.075,.04,"square"],[1046,.18,.12,.04,"square"]],
+    chime:[[784,0,.18,.045],[1046,.14,.23,.04],[1318,.32,.28,.035]]
+  };
+  return presets[choice]||presets.classic;
+}
+function getCallRingtoneSequence(choice,kind){
+  const presets={
+    classic:[[659,0,.28,.06],[784,.33,.28,.06],[988,.66,.24,.05]],
+    gentle:[[523,0,.36,.045],[659,.43,.36,.045],[784,.86,.42,.04]],
+    bright:[[880,0,.22,.055],[1175,.25,.22,.052],[988,.5,.28,.05]],
+    digital:[[440,0,.16,.05,"square"],[660,.2,.16,.05,"square"],[880,.4,.26,.045,"square"]],
+    pulse:[[554,0,.19,.055],[554,.28,.19,.055],[740,.64,.3,.05]],
+    bell:[[988,0,.34,.05],[1318,.38,.4,.045],[1568,.82,.44,.04]]
+  };
+  const selected=presets[choice]||presets.classic;
+  if(kind==="outgoing")return selected.map((tone,index)=>[tone[0]*0.84,index*0.42,0.28,tone[3]||0.05,tone[4]||"sine"]);
+  return selected;
+}
+function playChatSoundNow(ctx,kind,forcedChoice=null){
   if(!ctx||ctx.state!=="running")return false;
   const now=ctx.currentTime+0.025;
-  if(kind==="message"){
-    scheduleChatTone(ctx,740,now,0.11,0.055);
-    scheduleChatTone(ctx,988,now+0.13,0.15,0.055);
-  }else if(kind==="incoming"){
-    scheduleChatTone(ctx,659,now,0.28,0.06);
-    scheduleChatTone(ctx,784,now+0.33,0.28,0.06);
-    scheduleChatTone(ctx,988,now+0.66,0.24,0.05);
-  }else if(kind==="outgoing"){
-    scheduleChatTone(ctx,440,now,0.36,0.05);
-    scheduleChatTone(ctx,480,now+0.41,0.36,0.05);
-  }
+  if(kind==="message")playSoundSequence(ctx,getMessageSoundSequence(forcedChoice||messageSoundChoice),now);
+  else if(kind==="incoming"||kind==="outgoing")playSoundSequence(ctx,getCallRingtoneSequence(forcedChoice||callRingtoneChoice,kind),now);
   return true;
 }
 function playChatSound(kind){
@@ -2357,8 +2401,15 @@ function profileModal(){
     <input class="field" id="displayNameInput" maxlength="32" value="${esc(profile.display_name||profile.username)}">
     <label class="small muted">Profile picture</label>
     <input class="field" id="avatarFile" type="file" accept="image/*">
-    <label class="sound-setting"><input id="soundEnabledInput" type="checkbox" ${soundEnabled?"checked":""}><span>Play message sounds and call ringtones while Chatly is open</span></label>
-    <div class="sound-test-row"><button type="button" class="secondary" id="testSoundsButton">Test sound</button><span class="small muted" id="testSoundStatus">Tap to check audio.</span></div>
+    <label class="sound-setting"><input id="soundEnabledInput" type="checkbox" ${soundEnabled?"checked":""}><span>Play sounds and ringtones while Chatly is open</span></label>
+    <div class="sound-choice-block">
+      <label class="small muted" for="messageSoundSelect">Message sound</label>
+      <div class="sound-choice-row"><select class="field" id="messageSoundSelect">${Object.entries(MESSAGE_SOUND_OPTIONS).map(([value,label])=>`<option value="${value}" ${messageSoundChoice===value?"selected":""}>${label}</option>`).join("")}</select><button type="button" class="secondary" id="previewMessageSound">Preview</button></div>
+      <label class="small muted" for="callRingtoneSelect">Incoming-call ringtone</label>
+      <div class="sound-choice-row"><select class="field" id="callRingtoneSelect">${Object.entries(CALL_RINGTONE_OPTIONS).map(([value,label])=>`<option value="${value}" ${callRingtoneChoice===value?"selected":""}>${label}</option>`).join("")}</select><button type="button" class="secondary" id="previewCallRingtone">Preview</button></div>
+      <div class="small muted" id="testSoundStatus" aria-live="polite">Choose a sound and tap Preview.</div>
+      <p class="small muted sound-platform-note">These choices customize sounds while Chatly is open. Background push alerts use the device's notification sound, which the browser controls.</p>
+    </div>
     <div class="push-settings-block"><strong>Push notifications</strong><p class="small muted">Get message alerts and incoming-call notifications when Chatly is in the background.</p><button class="secondary" id="pushNotificationsBtn" type="button">Enable notifications</button><div class="small muted" id="pushNotificationStatus" aria-live="polite">Checking notification support…</div></div>
     <label class="small muted">Appearance</label>
     <div class="theme-row"><button class="theme-choice ${!dark?"selected":""}" id="lightTheme">☀ Light</button><button class="theme-choice ${dark?"selected":""}" id="darkTheme">☾ Dark</button></div>
@@ -2372,13 +2423,25 @@ function profileModal(){
     localStorage.setItem("chatly-sounds",soundEnabled?"on":"off");
     if(!soundEnabled){pendingChatSounds.length=0;stopCallRingtone();}
   };
-  $("testSoundsButton").onclick=async()=>{
-    soundEnabled=true;$("soundEnabledInput").checked=true;localStorage.setItem("chatly-sounds","on");
-    $("testSoundStatus").textContent="Playing…";
-    const ready=await unlockChatAudio();
-    if(ready){playChatSoundNow(audioContextInstance,"message");$("testSoundStatus").textContent="Sounds are working!";}
-    else{$("testSoundStatus").textContent="Your browser blocked audio. Tap again or check device sound.";}
+  $("messageSoundSelect").onchange=()=>{
+    messageSoundChoice=$("messageSoundSelect").value;
+    localStorage.setItem("chatly-message-sound",messageSoundChoice);
   };
+  $("callRingtoneSelect").onchange=()=>{
+    callRingtoneChoice=$("callRingtoneSelect").value;
+    localStorage.setItem("chatly-call-ringtone",callRingtoneChoice);
+  };
+  async function previewChatSound(kind){
+    soundEnabled=true;$("soundEnabledInput").checked=true;localStorage.setItem("chatly-sounds","on");
+    $("testSoundStatus").textContent="Playing preview…";
+    const ready=await unlockChatAudio();
+    if(ready){
+      playChatSoundNow(audioContextInstance,kind,kind==="message"?messageSoundChoice:callRingtoneChoice);
+      $("testSoundStatus").textContent=kind==="message"?"Message sound preview played.":"Call ringtone preview played.";
+    }else{$("testSoundStatus").textContent="Your browser blocked audio. Tap Preview again or check device sound.";}
+  }
+  $("previewMessageSound").onclick=()=>previewChatSound("message");
+  $("previewCallRingtone").onclick=()=>previewChatSound("incoming");
   $("pushNotificationsBtn").onclick=async()=>{
     const button=$("pushNotificationsBtn");button.disabled=true;
     try{
@@ -2403,7 +2466,7 @@ function profileModal(){
       }
       const {data,error}=await sb.from("profiles").update({display_name:display,avatar_url}).eq("id",user.id).select().single();
       if(error)throw error;profile=data;$("myName").textContent=display;setAvatar($("myAvatar"),avatar_url,display);
-      soundEnabled=$("soundEnabledInput").checked;localStorage.setItem("chatly-sounds",soundEnabled?"on":"off");if(!soundEnabled)pendingChatSounds.length=0;
+      soundEnabled=$("soundEnabledInput").checked;messageSoundChoice=$("messageSoundSelect").value;callRingtoneChoice=$("callRingtoneSelect").value;localStorage.setItem("chatly-sounds",soundEnabled?"on":"off");localStorage.setItem("chatly-message-sound",messageSoundChoice);localStorage.setItem("chatly-call-ringtone",callRingtoneChoice);if(!soundEnabled){pendingChatSounds.length=0;stopCallRingtone();}
       closeModal();
     }catch(err){alert("Could not save profile: "+err.message);}
   };

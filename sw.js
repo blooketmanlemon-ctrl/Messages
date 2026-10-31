@@ -1,4 +1,4 @@
-const CACHE_NAME = "chatly-push-notifications-20261031";
+const CACHE_NAME = "chatly-custom-sounds-20261031";
 const STATIC_ASSETS = [
   "./manifest.webmanifest",
   "./icon.svg",

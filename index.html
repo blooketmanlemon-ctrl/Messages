@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <title>Chatly</title>
-<meta name="chatly-build" content="chatly-read-receipts-swipe-v2-2026-10-31">
+<meta name="chatly-build" content="chatly-conversation-wide-timestamps-v3-2026-10-31">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -480,6 +480,56 @@ body.chatly-reduce-motion *,body.chatly-reduce-motion *::before,body.chatly-redu
 }
 </style>
 
+
+<style id="chatly-conversation-wide-timestamp-reveal-v3">
+/* Pull the message thread right to reveal one aligned timestamp gutter for EVERY message. */
+#messages.messages {
+  --chatly-timestamp-progress: 0;
+  --chatly-timestamp-gutter: 0px;
+  touch-action: pan-y pinch-zoom;
+  transition: padding-right 230ms cubic-bezier(.22,.75,.25,1);
+}
+#messages.messages.timestamp-dragging { transition: none !important; }
+#messages.messages.timestamp-reveal-mode {
+  padding-right: calc(clamp(14px,4vw,54px) + var(--chatly-timestamp-gutter,0px)) !important;
+}
+#messages .message-row { transition: transform 210ms cubic-bezier(.22,.75,.25,1); }
+#messages .message-row .message-timestamp {
+  position: absolute !important;
+  top: 50% !important;
+  left: calc(100% + 8px) !important;
+  right: auto !important;
+  z-index: 3;
+  margin: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-50%) translateX(-6px);
+  transition: opacity 150ms ease, transform 210ms cubic-bezier(.22,.75,.25,1), visibility 0s linear 230ms;
+  white-space: nowrap;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 5px 7px;
+  box-shadow: 0 2px 8px #0000000a;
+}
+#messages.timestamp-reveal-mode .message-row .message-timestamp {
+  opacity: var(--chatly-timestamp-progress,1);
+  visibility: visible;
+  transform: translateY(-50%) translateX(0);
+  transition: opacity 90ms linear, transform 100ms linear, visibility 0s;
+}
+@media (max-width:720px) {
+  #messages.messages.timestamp-reveal-mode {
+    padding-right: calc(12px + var(--chatly-timestamp-gutter,0px)) !important;
+  }
+}
+@media (prefers-reduced-motion:reduce) {
+  #messages.messages, #messages .message-row, #messages .message-row .message-timestamp {
+    transition-duration: 1ms !important;
+  }
+}
+</style>
 </head>
 <body>
 <div id="auth" class="auth">
@@ -1892,35 +1942,69 @@ function scanVisibleMessagesForRead(){
   }
 }
 const readVisibilityTimers=new Map();
-function revealMessageTimestamp(row){
-  if(!row)return;
-  row.classList.add("timestamp-revealed");
-  clearTimeout(row._chatTimestampTimer);
-  row._chatTimestampTimer=setTimeout(()=>row.classList.remove("timestamp-revealed"),4500);
+function finishConversationTimestampReveal(swipe){
+  if(!swipe||!swipe.revealed)return;
+  const root=swipe.root;
+  if(!root)return;
+  root.classList.remove("timestamp-dragging");
+  root.style.setProperty("--chatly-timestamp-progress","0");
+  root.style.setProperty("--chatly-timestamp-gutter","0px");
+  clearTimeout(root._chatlyTimestampResetTimer);
+  // Keep the reveal class during the CSS return animation, then fully reset it.
+  root._chatlyTimestampResetTimer=setTimeout(()=>{
+    root.classList.remove("timestamp-reveal-mode");
+  },260);
 }
 function setupMessageSwipeGestures(){
   const root=$("messages");
   if(!root||root.dataset.swipeGesturesBound)return;
   root.dataset.swipeGesturesBound="1";
+  root.style.setProperty("--chatly-timestamp-progress","0");
+  root.style.setProperty("--chatly-timestamp-gutter","0px");
+
+  // Start from anywhere in the message thread, not one message row.
   root.addEventListener("pointerdown",event=>{
-    const row=event.target?.closest?.(".message-row");
-    if(!row||messageSelectionMode||event.target.closest("button,input,textarea,a,video,audio"))return;
+    if(messageSelectionMode)return;
     if(event.pointerType==="mouse"&&event.button!==0)return;
-    activeMessageSwipe={row,pointerId:event.pointerId,x:event.clientX,y:event.clientY};
+    if(event.target?.closest?.("button,input,textarea,a,video,audio,select,[contenteditable='true']"))return;
+    clearTimeout(root._chatlyTimestampResetTimer);
+    root.classList.remove("timestamp-reveal-mode","timestamp-dragging");
+    root.style.setProperty("--chatly-timestamp-progress","0");
+    root.style.setProperty("--chatly-timestamp-gutter","0px");
+    activeMessageSwipe={root,pointerId:event.pointerId,x:event.clientX,y:event.clientY,revealed:false,horizontal:false};
   },{passive:true});
-  document.addEventListener("pointerup",event=>{
+
+  document.addEventListener("pointermove",event=>{
     const swipe=activeMessageSwipe;
     if(!swipe||swipe.pointerId!==event.pointerId)return;
-    activeMessageSwipe=null;
-    if(!swipe.row.isConnected||messageSelectionMode)return;
-    const dx=event.clientX-swipe.x,dy=event.clientY-swipe.y;
-    if(dx>24&&Math.abs(dy)<Math.max(56,dx*0.9))revealMessageTimestamp(swipe.row);
-    else if(dx< -22&&Math.abs(dy)<Math.max(56,Math.abs(dx)*0.9)){
-      swipe.row.classList.remove("timestamp-revealed");
-      clearTimeout(swipe.row._chatTimestampTimer);
+    if(!swipe.root?.isConnected||messageSelectionMode){activeMessageSwipe=null;return;}
+    const dx=event.clientX-swipe.x;
+    const dy=event.clientY-swipe.y;
+
+    // Let normal vertical scrolling win. Only a clear rightward horizontal drag reveals times.
+    if(!swipe.horizontal){
+      if(Math.abs(dy)>12&&Math.abs(dy)>Math.max(8,dx)*1.15){activeMessageSwipe=null;return;}
+      if(dx>8&&dx>Math.abs(dy)*1.2){
+        swipe.horizontal=true;
+        swipe.revealed=true;
+        swipe.root.classList.add("timestamp-reveal-mode","timestamp-dragging");
+      }else return;
     }
+
+    const progress=Math.max(0,Math.min(1,dx/86));
+    swipe.root.style.setProperty("--chatly-timestamp-progress",progress.toFixed(3));
+    swipe.root.style.setProperty("--chatly-timestamp-gutter",`${Math.round(progress*86)}px`);
   },{passive:true});
-  document.addEventListener("pointercancel",()=>{activeMessageSwipe=null;},{passive:true});
+
+  const finish=(event)=>{
+    const swipe=activeMessageSwipe;
+    if(!swipe)return;
+    if(event&&swipe.pointerId!==event.pointerId)return;
+    activeMessageSwipe=null;
+    finishConversationTimestampReveal(swipe);
+  };
+  document.addEventListener("pointerup",finish,{passive:true});
+  document.addEventListener("pointercancel",finish,{passive:true});
 }
 function setupMessageReadObserver(conversationId,messageType){
   if(messageReadObserver){messageReadObserver.disconnect();messageReadObserver=null;}

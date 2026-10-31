@@ -43,3 +43,12 @@ PUSH NOTIFICATIONS (NEW)
 Push alerts use the device's normal notification sound. A web app cannot guarantee
 continuous native-style call ringing or CallKit UI while fully closed; that needs
 a native iOS app. See CHATLY-PUSH-SETUP.txt for the full installation notes.
+
+
+SCREEN-SHARE + SETTINGS UPDATE
+- Improved screen sharing uses the browser's standard getDisplayMedia API with more compatible capture constraints, safer sender selection, partial-failure rollback for group calls, and clearer browser permission errors.
+- Important: screen capture is only available where the browser/OS exposes getDisplayMedia. Some iPadOS browser/PWA combinations do not expose it; no website code can override an OS-level limitation. Use an updated Safari/desktop browser that supports screen capture.
+- Settings dialog now scrolls on desktop and iPad/mobile, including safe-area handling.
+- Added accent colors, chat wallpapers, text size, bubble shape, compact/comfortable spacing, Enter-to-send preference, and reduced-motion option.
+- Preferences are stored locally per device.
+- No SQL changes, Metered changes, or Supabase Edge Function redeployment required.

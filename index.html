@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <title>Chatly</title>
-<meta name="chatly-build" content="chatly-push-notifications-custom-sounds-2026-10-31">
+<meta name="chatly-build" content="chatly-screen-share-settings-customization-2026-10-31">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -313,6 +313,70 @@ body.dark .blocked-notice{background:#35202a;border-color:#653342;color:#fecdd3}
 .push-settings-block p{margin:0;line-height:1.4}
 #pushNotificationStatus{line-height:1.4}
 </style>
+<style id="chatly-settings-scroll-and-personalization">
+/* Keep long settings dialogs fully usable on small screens and iPad. */
+.modal-back{
+  display:flex !important;
+  align-items:flex-start !important;
+  justify-content:center !important;
+  overflow-y:auto !important;
+  overflow-x:hidden !important;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  touch-action:pan-y;
+  padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom)) !important;
+}
+.modal{
+  width:min(520px,100%) !important;
+  max-height:calc(100vh - 24px);
+  max-height:calc(100dvh - max(12px,env(safe-area-inset-top)) - max(12px,env(safe-area-inset-bottom)));
+  min-height:0;
+  overflow-y:auto !important;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  margin:auto 0 !important;
+  padding:clamp(16px,3vw,23px);
+  scrollbar-gutter:stable;
+}
+.modal-actions{
+  position:sticky;
+  bottom:-1px;
+  z-index:2;
+  background:var(--panel);
+  padding:12px 0 2px;
+  border-top:1px solid var(--line);
+}
+.settings-section{display:grid;gap:9px;padding:13px 0;border-top:1px solid var(--line)}
+.settings-section:first-of-type{border-top:0;padding-top:0}
+.settings-section-title{font-size:11px;text-transform:uppercase;letter-spacing:.11em;font-weight:850;color:var(--muted)}
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.settings-control{display:grid;gap:5px;min-width:0}
+.settings-control .field{padding:10px 12px}
+.settings-help{font-size:11px;line-height:1.45;color:var(--muted);margin:0}
+.settings-toggle{display:flex;align-items:center;gap:10px;min-height:38px;font-size:13px}
+.settings-toggle input{width:18px;height:18px;accent-color:var(--blue);flex:none}
+.settings-color-preview{width:13px;height:13px;border-radius:50%;display:inline-block;vertical-align:-2px;margin-right:6px;border:1px solid #0002}
+#messages{background:var(--chatly-message-wallpaper,var(--panel));}
+body.chatly-text-small .bubble{font-size:13px}
+body.chatly-text-normal .bubble{font-size:15px}
+body.chatly-text-large .bubble{font-size:17px}
+body.chatly-layout-compact .messages{gap:4px;padding-top:12px;padding-bottom:12px}
+body.chatly-layout-compact .bubble{padding:8px 12px}
+body.chatly-layout-spacious .messages{gap:9px}
+body.chatly-bubbles-classic .bubble{border-radius:12px}
+body.chatly-bubbles-rounded .bubble{border-radius:20px}
+body.chatly-bubbles-pill .bubble{border-radius:25px}
+body.chatly-reduce-motion *,body.chatly-reduce-motion *::before,body.chatly-reduce-motion *::after{
+  scroll-behavior:auto !important;animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;
+}
+@media(max-width:560px){
+  .modal-back{padding: max(8px,env(safe-area-inset-top)) 8px max(8px,env(safe-area-inset-bottom)) !important;}
+  .modal{max-height:calc(100dvh - 16px);border-radius:18px;}
+  .settings-grid{grid-template-columns:1fr}
+}
+</style>
+
 </head>
 <body>
 <div id="auth" class="auth">
@@ -1211,40 +1275,90 @@ async function flipPrivateCamera(){
   }catch(error){alert("Could not flip the camera: "+(error.message||error));}
 }
 
+function getChatlyVideoSender(pc,preferred=null){
+  if(preferred)return preferred;
+  if(!pc)return null;
+  return pc.getSenders?.().find(sender=>sender.track?.kind==="video")
+    ||pc.getTransceivers?.().find(transceiver=>transceiver.receiver?.track?.kind==="video")?.sender
+    ||null;
+}
+async function requestChatlyScreenCapture(){
+  if(!window.isSecureContext)throw new Error("Screen sharing requires Chatly to be opened over HTTPS.");
+  const mediaDevices=navigator.mediaDevices;
+  const capture=mediaDevices?.getDisplayMedia?.bind(mediaDevices)
+    ||navigator.getDisplayMedia?.bind(navigator);
+  if(!capture){
+    throw new Error("This browser does not provide screen sharing. Update your browser and try Chatly in Safari or a desktop browser that supports screen capture. Some iPad browser/PWA versions do not expose this feature.");
+  }
+  try{
+    // The simple constraints are the most compatible across Chromium, Firefox and Safari.
+    const displayStream=await capture({video:true,audio:false});
+    const track=displayStream?.getVideoTracks?.()[0];
+    if(!track){displayStream?.getTracks?.().forEach(item=>item.stop());throw new Error("The screen picker did not provide a video track.");}
+    try{track.contentHint="detail";}catch{}
+    return displayStream;
+  }catch(error){
+    if(error?.name==="AbortError")throw error;
+    if(error?.name==="NotAllowedError"||error?.name==="PermissionDeniedError"){
+      throw new Error("Screen sharing was cancelled or blocked. Tap Share screen again and choose a screen, window, or browser tab.");
+    }
+    if(error?.name==="InvalidStateError"){
+      throw new Error("The browser needs Chatly to be the active page. Close other dialogs and tap Share screen again.");
+    }
+    if(error?.name==="NotReadableError"){
+      throw new Error("The device could not start screen capture. Close another screen-recording session and try again.");
+    }
+    throw new Error(error?.message||"The browser could not start screen capture.");
+  }
+}
+
 async function startPrivateScreenShare(){
   const call=callState;
-  if(!call?.pc||!call.localStream)return;
-  if(!navigator.mediaDevices?.getDisplayMedia){alert("Screen sharing isn't supported by this browser or device. Try a desktop browser with Chatly open over HTTPS.");return;}
+  if(!call?.pc||!call.localStream){alert("Join the active call before sharing your screen.");return;}
+  let displayStream=null;
   try{
-    const displayStream=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:{ideal:15,max:24}},audio:false});
+    // getDisplayMedia must be called immediately from the user's button gesture.
+    displayStream=await requestChatlyScreenCapture();
+    if(callState?.id!==call.id){displayStream.getTracks().forEach(track=>track.stop());return;}
     const screenTrack=displayStream.getVideoTracks()[0];
-    const sender=call.pc.getSenders().find(item=>item.track?.kind==="video")||call.videoSender;
-    if(!screenTrack||!sender)throw new Error("The call's video track isn't ready to share.");
-    await sender.replaceTrack(screenTrack);
+    const sender=getChatlyVideoSender(call.pc,call.videoSender);
+    if(!screenTrack||!sender){displayStream.getTracks().forEach(track=>track.stop());throw new Error("The call's video sender is not ready yet. Try again after the call connects.");}
+    try{await sender.replaceTrack(screenTrack);}
+    catch(error){displayStream.getTracks().forEach(track=>track.stop());throw new Error("Your browser couldn't switch the call from camera to screen. Try sharing a browser tab or lower-resolution screen, then try again. Details: "+(error.message||error));}
     call.videoSender=sender;call.screenStream=displayStream;call.screenTrack=screenTrack;
-    $("localVideo").srcObject=displayStream;$("localVideo").classList.remove("hidden");$("localVideo").play().catch(()=>{});
+    const localVideo=$("localVideo");
+    localVideo.srcObject=displayStream;localVideo.classList.remove("hidden");localVideo.muted=true;
+    await localVideo.play().catch(()=>{});
     $("localCameraOff").classList.remove("visible");
     $("shareScreenCall").textContent="Stop sharing";$("shareScreenCall").classList.add("share-active");
     $("callStatus").textContent="You're sharing your screen.";
-    if(call.peerUserId)sendCallSignal("camera",call,{enabled:true,sharing:true}).catch(()=>{});
-    screenTrack.onended=()=>stopPrivateScreenShare();
-  }catch(error){if(error.name!=="AbortError")alert("Could not share your screen: "+(error.message||error));}
+    if(call.peerUserId)sendCallSignal("camera",call,{enabled:true,sharing:true}).catch(error=>console.warn("Could not sync screen-share state:",error));
+    screenTrack.onended=()=>{if(callState?.id===call.id)stopPrivateScreenShare();};
+  }catch(error){
+    displayStream?.getTracks?.().forEach(track=>{track.onended=null;track.stop();});
+    if(error.name!=="AbortError")alert("Could not share your screen: "+(error.message||error));
+  }
 }
 async function stopPrivateScreenShare(){
   const call=callState;if(!call?.screenStream)return;
   const display=call.screenStream,track=call.localStream?.getVideoTracks?.()[0];
   call.screenStream=null;call.screenTrack=null;
-  if(call.videoSender)try{await call.videoSender.replaceTrack(track||null);}catch(error){console.warn("Could not restore camera after screen share:",error);}
+  const sender=getChatlyVideoSender(call.pc,call.videoSender);
+  if(sender){
+    try{await sender.replaceTrack(track||null);}
+    catch(error){console.warn("Could not restore camera after screen share:",error);$("callStatus").textContent="Screen sharing stopped, but camera could not be restored. Toggle your camera off and on.";}
+  }
   display.getTracks().forEach(item=>{item.onended=null;item.stop();});
   $("localVideo").srcObject=call.localStream;
   const cameraEnabled=!!track&&track.enabled;
   $("localVideo").classList.toggle("hidden",!cameraEnabled);
   $("localCameraOff").classList.toggle("visible",!cameraEnabled);
   $("shareScreenCall").textContent="Share screen";$("shareScreenCall").classList.remove("share-active");
-  $("callStatus").textContent="Screen sharing stopped.";
-  if(call.peerUserId)sendCallSignal("camera",call,{enabled:cameraEnabled,sharing:false}).catch(()=>{});
+  if(callState?.id===call.id){
+    $("callStatus").textContent="Screen sharing stopped.";
+    if(call.peerUserId)sendCallSignal("camera",call,{enabled:cameraEnabled,sharing:false}).catch(()=>{});
+  }
 }
-
 async function handleCallSignal(change){
   const row=change?.new;
   if(!row||row.to_user!==user?.id||row.from_user===user?.id)return;
@@ -1824,7 +1938,7 @@ $("messageForm").onsubmit=async e=>{
   $("messageInput").value="";$("messageInput").style.height="auto";
 };
 $("messageInput").addEventListener("input",()=>{const el=$("messageInput");el.style.height="auto";el.style.height=Math.min(el.scrollHeight,120)+"px";});
-$("messageInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("messageForm").requestSubmit();}});
+$("messageInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey&&(sendWithEnter||e.ctrlKey||e.metaKey)){e.preventDefault();$("messageForm").requestSubmit();}});
 $("selectMessagesBtn").onclick=()=>toggleMessageSelectionMode();
 $("selectionCancelBtn").onclick=()=>toggleMessageSelectionMode(false);
 $("selectionEditBtn").onclick=()=>{
@@ -2215,44 +2329,61 @@ async function flipGroupCamera(){
 }
 
 async function startGroupScreenShare(){
-  const state=groupCallState;if(!state?.localStream)return;
-  if(!navigator.mediaDevices?.getDisplayMedia){alert("Screen sharing isn't supported by this browser or device. Try a desktop browser with Chatly open over HTTPS.");return;}
+  const state=groupCallState;if(!state?.localStream){alert("Join the group call before sharing your screen.");return;}
+  let displayStream=null;const replaced=[];
   try{
-    const displayStream=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:{ideal:15,max:24}},audio:false});
-    const screenTrack=displayStream.getVideoTracks()[0];if(!screenTrack)throw new Error("No screen video track was provided.");
-    const replacements=[];
+    displayStream=await requestChatlyScreenCapture();
+    if(groupCallState?.id!==state.id||state.closing){displayStream.getTracks().forEach(track=>track.stop());return;}
+    const screenTrack=displayStream.getVideoTracks()[0];
+    if(!screenTrack)throw new Error("The screen picker did not provide a video track.");
+    // Set this before replacing senders so any peer created during this operation
+    // starts with the screen track rather than the camera track.
+    state.screenStream=displayStream;state.screenTrack=screenTrack;
     for(const [peerId,peer] of state.peers){
-      const sender=peer.videoSender||peer.pc?.getSenders().find(item=>item.track?.kind==="video");
-      if(sender){await sender.replaceTrack(screenTrack);peer.videoSender=sender;replacements.push({peerId,sender});}
+      if(!peer.pc)continue;
+      const sender=getChatlyVideoSender(peer.pc,peer.videoSender);
+      if(!sender)throw new Error("The video connection to "+peer.name+" is not ready. Try again in a moment.");
+      const previousTrack=sender.track;
+      await sender.replaceTrack(screenTrack);
+      peer.videoSender=sender;
+      replaced.push({peerId,sender,previousTrack});
     }
-    state.screenStream=displayStream;state.screenTrack=screenTrack;state.screenSenders=replacements;
-    const localVideo=$(groupCallTileId(user.id)+"-video");if(localVideo){localVideo.srcObject=displayStream;localVideo.classList.remove("hidden");localVideo.play().catch(()=>{});}
+    state.screenSenders=replaced;
+    const localVideo=$(groupCallTileId(user.id)+"-video");
+    if(localVideo){localVideo.srcObject=displayStream;localVideo.classList.remove("hidden");localVideo.play().catch(()=>{});}
     $(groupCallTileId(user.id)+"-avatar")?.classList.add("hidden");
-    const localLabel=$(groupCallTileId(user.id))?.querySelector(".group-call-tile-name");if(localLabel)localLabel.textContent=displayName(profile)+" (You · Sharing screen)";
+    const localLabel=$(groupCallTileId(user.id))?.querySelector(".group-call-tile-name");
+    if(localLabel)localLabel.textContent=displayName(profile)+" (You · Sharing screen)";
     $("groupShareScreen").textContent="Stop sharing";$("groupShareScreen").classList.add("share-active");
     groupCallStatus("You're sharing your screen with the group.");
-    for(const peerId of state.peers.keys())sendGroupCallSignal("camera",state,peerId,{enabled:true,sharing:true}).catch(()=>{});
-    screenTrack.onended=()=>stopGroupScreenShare();
-  }catch(error){if(error.name!=="AbortError")alert("Could not share your screen: "+(error.message||error));}
+    for(const peerId of state.peers.keys())sendGroupCallSignal("camera",state,peerId,{enabled:true,sharing:true}).catch(error=>console.warn("Could not sync group screen-share state:",error));
+    screenTrack.onended=()=>{if(groupCallState?.id===state.id)stopGroupScreenShare();};
+  }catch(error){
+    // Roll back any peers already switched if one peer fails.
+    for(const item of replaced){try{await item.sender.replaceTrack(item.previousTrack||state.localStream.getVideoTracks()[0]||null);}catch(rollbackError){console.warn("Could not roll back a partial screen share:",rollbackError);}}
+    if(state.screenStream===displayStream){state.screenStream=null;state.screenTrack=null;state.screenSenders=[];}
+    displayStream?.getTracks?.().forEach(track=>{track.onended=null;track.stop();});
+    if(error.name!=="AbortError")alert("Could not share your screen: "+(error.message||error));
+  }
 }
 async function stopGroupScreenShare(){
   const state=groupCallState;if(!state?.screenStream)return;
   const display=state.screenStream;state.screenStream=null;state.screenTrack=null;
   const camera=state.localStream?.getVideoTracks?.()[0];
-  const replacements=[];
   for(const [peerId,peer] of state.peers){
-    const sender=peer.videoSender||peer.pc?.getSenders().find(item=>item.track?.kind==="video");
-    if(sender){try{await sender.replaceTrack(camera||null);}catch(error){console.warn("Could not restore group camera:",error);}replacements.push(peerId);}
+    const sender=getChatlyVideoSender(peer.pc,peer.videoSender);
+    if(sender){try{await sender.replaceTrack(camera||null);peer.videoSender=sender;}catch(error){console.warn("Could not restore group camera:",error);}}
   }
   display.getTracks().forEach(track=>{track.onended=null;track.stop();});
-  const localVideo=$(groupCallTileId(user.id)+"-video");if(localVideo){localVideo.srcObject=state.localStream;localVideo.classList.toggle("hidden",!camera?.enabled);localVideo.play().catch(()=>{});}
+  const localVideo=$(groupCallTileId(user.id)+"-video");
+  if(localVideo){localVideo.srcObject=state.localStream;localVideo.classList.toggle("hidden",!camera?.enabled);localVideo.play().catch(()=>{});}
   $(groupCallTileId(user.id)+"-avatar")?.classList.toggle("hidden",!!camera?.enabled);
-  const localLabel=$(groupCallTileId(user.id))?.querySelector(".group-call-tile-name");if(localLabel)localLabel.textContent=displayName(profile)+" (You)";
+  const localLabel=$(groupCallTileId(user.id))?.querySelector(".group-call-tile-name");
+  if(localLabel)localLabel.textContent=displayName(profile)+" (You)";
   $("groupShareScreen").textContent="Share screen";$("groupShareScreen").classList.remove("share-active");
-  for(const peerId of replacements)sendGroupCallSignal("camera",state,peerId,{enabled:!!camera?.enabled,sharing:false}).catch(()=>{});
+  for(const peerId of state.peers.keys())sendGroupCallSignal("camera",state,peerId,{enabled:!!camera?.enabled,sharing:false}).catch(()=>{});
   groupCallStatus("Screen sharing stopped.");
 }
-
 $("groupShareScreen").onclick=()=>groupCallState?.screenStream?stopGroupScreenShare():startGroupScreenShare();
 $("groupFlipCamera").onclick=flipGroupCamera;
 $("groupCallChatToggle").onclick=()=>toggleInCallChat("group");
@@ -2396,25 +2527,55 @@ function closeModal(){$("modalRoot").innerHTML="";}
 $("settings").onclick=profileModal;
 function profileModal(){
   const dark=document.body.classList.contains("dark");
-  modal("Customize Chatly",`<div class="avatar avatar-preview" id="profilePreview"></div>
-    <label class="small muted">Display name</label>
-    <input class="field" id="displayNameInput" maxlength="32" value="${esc(profile.display_name||profile.username)}">
-    <label class="small muted">Profile picture</label>
-    <input class="field" id="avatarFile" type="file" accept="image/*">
-    <label class="sound-setting"><input id="soundEnabledInput" type="checkbox" ${soundEnabled?"checked":""}><span>Play sounds and ringtones while Chatly is open</span></label>
-    <div class="sound-choice-block">
-      <label class="small muted" for="messageSoundSelect">Message sound</label>
-      <div class="sound-choice-row"><select class="field" id="messageSoundSelect">${Object.entries(MESSAGE_SOUND_OPTIONS).map(([value,label])=>`<option value="${value}" ${messageSoundChoice===value?"selected":""}>${label}</option>`).join("")}</select><button type="button" class="secondary" id="previewMessageSound">Preview</button></div>
-      <label class="small muted" for="callRingtoneSelect">Incoming-call ringtone</label>
-      <div class="sound-choice-row"><select class="field" id="callRingtoneSelect">${Object.entries(CALL_RINGTONE_OPTIONS).map(([value,label])=>`<option value="${value}" ${callRingtoneChoice===value?"selected":""}>${label}</option>`).join("")}</select><button type="button" class="secondary" id="previewCallRingtone">Preview</button></div>
-      <div class="small muted" id="testSoundStatus" aria-live="polite">Choose a sound and tap Preview.</div>
-      <p class="small muted sound-platform-note">These choices customize sounds while Chatly is open. Background push alerts use the device's notification sound, which the browser controls.</p>
+  const accent=localStorage.getItem("chatly-accent")||"blue";
+  const wallpaper=localStorage.getItem("chatly-wallpaper")||"plain";
+  const textSize=localStorage.getItem("chatly-text-size")||"normal";
+  const layout=localStorage.getItem("chatly-layout")||"spacious";
+  const bubbleShape=localStorage.getItem("chatly-bubble-shape")||"rounded";
+  const reducedMotion=localStorage.getItem("chatly-reduce-motion")==="on";
+  modal("Customize Chatly",`<div class="settings-section">
+      <div class="settings-section-title">Your profile</div>
+      <div class="avatar avatar-preview" id="profilePreview"></div>
+      <label class="small muted" for="displayNameInput">Display name</label>
+      <input class="field" id="displayNameInput" maxlength="32" value="${esc(profile.display_name||profile.username)}">
+      <label class="small muted" for="avatarFile">Profile picture</label>
+      <input class="field" id="avatarFile" type="file" accept="image/*">
     </div>
-    <div class="push-settings-block"><strong>Push notifications</strong><p class="small muted">Get message alerts and incoming-call notifications when Chatly is in the background.</p><button class="secondary" id="pushNotificationsBtn" type="button">Enable notifications</button><div class="small muted" id="pushNotificationStatus" aria-live="polite">Checking notification support…</div></div>
-    <label class="small muted">Appearance</label>
-    <div class="theme-row"><button class="theme-choice ${!dark?"selected":""}" id="lightTheme">☀ Light</button><button class="theme-choice ${dark?"selected":""}" id="darkTheme">☾ Dark</button></div>
-    <button class="secondary" id="manageBlockedPeopleBtn" type="button">Manage blocked people</button>
-    <div class="modal-actions"><button class="secondary" id="cancelModal">Cancel</button><button class="primary" id="saveProfile">Save</button></div>`);
+    <div class="settings-section">
+      <div class="settings-section-title">Sounds</div>
+      <label class="settings-toggle"><input id="soundEnabledInput" type="checkbox" ${soundEnabled?"checked":""}><span>Play sounds and ringtones while Chatly is open</span></label>
+      <div class="sound-choice-block">
+        <label class="small muted" for="messageSoundSelect">Message sound</label>
+        <div class="sound-choice-row"><select class="field" id="messageSoundSelect">${Object.entries(MESSAGE_SOUND_OPTIONS).map(([value,label])=>`<option value="${value}" ${messageSoundChoice===value?"selected":""}>${label}</option>`).join("")}</select><button type="button" class="secondary" id="previewMessageSound">Preview</button></div>
+        <label class="small muted" for="callRingtoneSelect">Incoming-call ringtone</label>
+        <div class="sound-choice-row"><select class="field" id="callRingtoneSelect">${Object.entries(CALL_RINGTONE_OPTIONS).map(([value,label])=>`<option value="${value}" ${callRingtoneChoice===value?"selected":""}>${label}</option>`).join("")}</select><button type="button" class="secondary" id="previewCallRingtone">Preview</button></div>
+        <div class="small muted" id="testSoundStatus" aria-live="polite">Choose a sound and tap Preview.</div>
+        <p class="small muted sound-platform-note">Custom sounds play while Chatly is open. Background push alerts use the device's notification sound.</p>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Appearance</div>
+      <label class="small muted">Theme</label>
+      <div class="theme-row"><button class="theme-choice ${!dark?"selected":""}" id="lightTheme" type="button">☀ Light</button><button class="theme-choice ${dark?"selected":""}" id="darkTheme" type="button">☾ Dark</button></div>
+      <div class="settings-grid">
+        <label class="settings-control"><span class="small muted">Accent color</span><select class="field" id="accentColorSelect">${Object.entries(CHATLY_ACCENTS).map(([key,value])=>`<option value="${key}" ${accent===key?"selected":""}>${value.label}</option>`).join("")}</select></label>
+        <label class="settings-control"><span class="small muted">Chat wallpaper</span><select class="field" id="chatWallpaperSelect">${Object.entries(CHATLY_WALLPAPERS).map(([key,value])=>`<option value="${key}" ${wallpaper===key?"selected":""}>${value.label}</option>`).join("")}</select></label>
+        <label class="settings-control"><span class="small muted">Message text size</span><select class="field" id="messageTextSizeSelect"><option value="small" ${textSize==="small"?"selected":""}>Small</option><option value="normal" ${textSize==="normal"?"selected":""}>Normal</option><option value="large" ${textSize==="large"?"selected":""}>Large</option></select></label>
+        <label class="settings-control"><span class="small muted">Bubble shape</span><select class="field" id="bubbleShapeSelect"><option value="classic" ${bubbleShape==="classic"?"selected":""}>Classic</option><option value="rounded" ${bubbleShape==="rounded"?"selected":""}>Rounded</option><option value="pill" ${bubbleShape==="pill"?"selected":""}>Pill</option></select></label>
+      </div>
+      <label class="small muted" for="chatLayoutSelect">Message spacing</label>
+      <select class="field" id="chatLayoutSelect"><option value="spacious" ${layout==="spacious"?"selected":""}>Comfortable</option><option value="compact" ${layout==="compact"?"selected":""}>Compact</option></select>
+      <label class="settings-toggle"><input id="sendWithEnterInput" type="checkbox" ${sendWithEnter?"checked":""}><span>Press Enter to send (turn off to use Ctrl/⌘ + Enter)</span></label>
+      <label class="settings-toggle"><input id="reduceMotionInput" type="checkbox" ${reducedMotion?"checked":""}><span>Reduce animations</span></label>
+      <p class="settings-help">Appearance choices are saved on this device. Change them whenever you like.</p>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Notifications & privacy</div>
+      <div class="push-settings-block"><strong>Push notifications</strong><p class="small muted">Get message alerts and incoming-call notifications when Chatly is in the background.</p><button class="secondary" id="pushNotificationsBtn" type="button">Enable notifications</button><div class="small muted" id="pushNotificationStatus" aria-live="polite">Checking notification support…</div></div>
+      <button class="secondary" id="manageBlockedPeopleBtn" type="button">Manage blocked people</button>
+    </div>
+    <div class="modal-actions"><button class="secondary" id="cancelModal" type="button">Close</button><button class="primary" id="saveProfile" type="button">Save profile</button></div>`);
+  const modalElement=document.querySelector("#modalBack .modal");if(modalElement)modalElement.classList.add("settings-modal");
   setAvatar($("profilePreview"),profile.avatar_url,profile.display_name||profile.username);
   $("cancelModal").onclick=closeModal;
   $("manageBlockedPeopleBtn").onclick=manageBlockedPeople;
@@ -2423,32 +2584,28 @@ function profileModal(){
     localStorage.setItem("chatly-sounds",soundEnabled?"on":"off");
     if(!soundEnabled){pendingChatSounds.length=0;stopCallRingtone();}
   };
-  $("messageSoundSelect").onchange=()=>{
-    messageSoundChoice=$("messageSoundSelect").value;
-    localStorage.setItem("chatly-message-sound",messageSoundChoice);
-  };
-  $("callRingtoneSelect").onchange=()=>{
-    callRingtoneChoice=$("callRingtoneSelect").value;
-    localStorage.setItem("chatly-call-ringtone",callRingtoneChoice);
-  };
+  $("messageSoundSelect").onchange=()=>{messageSoundChoice=$("messageSoundSelect").value;localStorage.setItem("chatly-message-sound",messageSoundChoice);};
+  $("callRingtoneSelect").onchange=()=>{callRingtoneChoice=$("callRingtoneSelect").value;localStorage.setItem("chatly-call-ringtone",callRingtoneChoice);};
   async function previewChatSound(kind){
     soundEnabled=true;$("soundEnabledInput").checked=true;localStorage.setItem("chatly-sounds","on");
     $("testSoundStatus").textContent="Playing preview…";
     const ready=await unlockChatAudio();
-    if(ready){
-      playChatSoundNow(audioContextInstance,kind,kind==="message"?messageSoundChoice:callRingtoneChoice);
-      $("testSoundStatus").textContent=kind==="message"?"Message sound preview played.":"Call ringtone preview played.";
-    }else{$("testSoundStatus").textContent="Your browser blocked audio. Tap Preview again or check device sound.";}
+    if(ready){playChatSoundNow(audioContextInstance,kind,kind==="message"?messageSoundChoice:callRingtoneChoice);$("testSoundStatus").textContent=kind==="message"?"Message sound preview played.":"Call ringtone preview played.";}
+    else $("testSoundStatus").textContent="Your browser blocked audio. Tap Preview again or check device sound.";
   }
   $("previewMessageSound").onclick=()=>previewChatSound("message");
   $("previewCallRingtone").onclick=()=>previewChatSound("incoming");
+  $("accentColorSelect").onchange=()=>applyChatlyAccent($("accentColorSelect").value);
+  $("chatWallpaperSelect").onchange=()=>applyChatlyWallpaper($("chatWallpaperSelect").value);
+  $("messageTextSizeSelect").onchange=()=>applyChatlyTextSize($("messageTextSizeSelect").value);
+  $("chatLayoutSelect").onchange=()=>applyChatlyLayout($("chatLayoutSelect").value);
+  $("bubbleShapeSelect").onchange=()=>applyChatlyBubbleShape($("bubbleShapeSelect").value);
+  $("sendWithEnterInput").onchange=()=>{sendWithEnter=$("sendWithEnterInput").checked;localStorage.setItem("chatly-send-enter",sendWithEnter?"on":"off");};
+  $("reduceMotionInput").onchange=()=>applyChatlyReducedMotion($("reduceMotionInput").checked);
   $("pushNotificationsBtn").onclick=async()=>{
     const button=$("pushNotificationsBtn");button.disabled=true;
-    try{
-      if(button.dataset.enabled==="true")await disableChatlyPushNotifications();
-      else await enableChatlyPushNotifications();
-      await refreshPushSettingsUI();
-    }catch(error){$("pushNotificationStatus").textContent=error.message||"Could not change notification settings.";}
+    try{if(button.dataset.enabled==="true")await disableChatlyPushNotifications();else await enableChatlyPushNotifications();await refreshPushSettingsUI();}
+    catch(error){$("pushNotificationStatus").textContent=error.message||"Could not change notification settings.";}
     finally{button.disabled=false;}
   };
   refreshPushSettingsUI();
@@ -2466,13 +2623,16 @@ function profileModal(){
       }
       const {data,error}=await sb.from("profiles").update({display_name:display,avatar_url}).eq("id",user.id).select().single();
       if(error)throw error;profile=data;$("myName").textContent=display;setAvatar($("myAvatar"),avatar_url,display);
-      soundEnabled=$("soundEnabledInput").checked;messageSoundChoice=$("messageSoundSelect").value;callRingtoneChoice=$("callRingtoneSelect").value;localStorage.setItem("chatly-sounds",soundEnabled?"on":"off");localStorage.setItem("chatly-message-sound",messageSoundChoice);localStorage.setItem("chatly-call-ringtone",callRingtoneChoice);if(!soundEnabled){pendingChatSounds.length=0;stopCallRingtone();}
+      soundEnabled=$("soundEnabledInput").checked;messageSoundChoice=$("messageSoundSelect").value;callRingtoneChoice=$("callRingtoneSelect").value;
+      localStorage.setItem("chatly-sounds",soundEnabled?"on":"off");localStorage.setItem("chatly-message-sound",messageSoundChoice);localStorage.setItem("chatly-call-ringtone",callRingtoneChoice);
+      if(!soundEnabled){pendingChatSounds.length=0;stopCallRingtone();}
       closeModal();
     }catch(err){alert("Could not save profile: "+err.message);}
   };
 }
 function setTheme(dark){document.body.classList.toggle("dark",dark);localStorage.setItem("chatly-theme",dark?"dark":"light");$("lightTheme")?.classList.toggle("selected",!dark);$("darkTheme")?.classList.toggle("selected",dark);}
 setTheme(localStorage.getItem("chatly-theme")==="dark");
+applySavedChatlyCustomizations();
 $("signOut").onclick=async()=>{await finishCall(false);await cleanupGroupCall(false);if(callSignalChannel)await sb.removeChannel(callSignalChannel);if(groupCallSignalChannel)await sb.removeChannel(groupCallSignalChannel);if(blockChannel)await sb.removeChannel(blockChannel);await sb.auth.signOut();};
 window.addEventListener("pagehide",()=>{if(callState)stopCallMedia(callState);});
 if("serviceWorker"in navigator&&location.protocol!=="file:"){

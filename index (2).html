@@ -1,0 +1,996 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f5f6fa">
+<meta name="description" content="Chatly — your personal messages.">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<title>Chatly</title>
+<meta name="chatly-build" content="chatly-sounds-call-controls-logo-2026-10-31">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<style>
+:root{color-scheme:light;--bg:#f4f5f9;--panel:#fff;--soft:#f0f1f6;--line:#e7e8ef;--text:#20212a;--muted:#858997;--blue:#1685f8;--blue2:#0878ed;--bubble:#e9eaf0;--shadow:0 12px 40px #1d2a4510}
+*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);background:var(--bg)}button,input,textarea{font:inherit}button{cursor:pointer;border:0}button:disabled{opacity:.5;cursor:not-allowed}.hidden{display:none!important}.muted{color:var(--muted)}.small{font-size:12px}
+.auth{min-height:100dvh;display:grid;place-items:center;padding:22px;background:radial-gradient(ellipse at 50% 0,#dcecff 0,transparent 55%),var(--bg)}.auth-card{width:min(420px,100%);background:var(--panel);padding:30px;border-radius:25px;box-shadow:var(--shadow)}.brand{font-weight:850;font-size:31px;letter-spacing:-1.6px}.brand span{color:var(--blue)}.auth-card h1{margin:18px 0 5px;font-size:25px}.auth-card p{line-height:1.5}.stack{display:grid;gap:11px;margin-top:20px}.field{width:100%;border:1px solid var(--line);background:var(--soft);padding:13px 15px;border-radius:13px;outline:none;color:var(--text)}.field:focus{border-color:var(--blue);box-shadow:0 0 0 3px #1685f81a}.primary{background:var(--blue);color:#fff;padding:13px 17px;border-radius:13px;font-weight:700}.primary:hover{background:var(--blue2)}.text-btn{background:transparent;color:var(--blue);font-weight:650;padding:8px}
+.app{height:100dvh;display:grid;grid-template-columns:340px minmax(0,1fr);max-width:1500px;margin:auto;background:var(--panel);box-shadow:var(--shadow);overflow:hidden}.list-pane{border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0;background:var(--panel)}.list-head{padding:24px 20px 15px;display:flex;align-items:center;gap:10px}.list-head .brand{font-size:27px}.list-head .spacer{flex:1}.round-btn{width:38px;height:38px;border-radius:50%;background:var(--soft);color:var(--text);font-size:19px;display:grid;place-items:center}.search-wrap{padding:0 16px 13px}.search{width:100%;border:0;border-radius:12px;background:var(--soft);padding:11px 13px;outline:none;color:var(--text)}.list-label{padding:9px 20px 7px;color:var(--muted);font-size:11px;text-transform:uppercase;font-weight:800;letter-spacing:.1em}.conversation-list{overflow:auto;flex:1;overscroll-behavior:contain}.conversation{display:flex;align-items:center;gap:12px;padding:12px 17px;cursor:pointer;border-left:3px solid transparent}.conversation:hover{background:#f7f8fb}.conversation.active{background:#eef5ff;border-left-color:var(--blue)}.avatar{width:48px;height:48px;border-radius:50%;background:#dceaff;color:#176bc0;display:grid;place-items:center;font-weight:800;flex:none;overflow:hidden}.avatar img{width:100%;height:100%;object-fit:cover}.conv-copy{min-width:0;flex:1;border-bottom:1px solid var(--line);padding:2px 0 12px}.conv-top{display:flex;align-items:center;gap:8px}.conv-name{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}.conv-time{font-size:11px;color:var(--muted);white-space:nowrap}.conv-preview{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:4px}.profile-footer{border-top:1px solid var(--line);padding:12px 15px;display:flex;align-items:center;gap:10px}.profile-footer .avatar{width:38px;height:38px}.profile-copy{min-width:0;flex:1}.profile-name{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.profile-actions{display:flex;gap:4px}
+.chat-pane{display:flex;flex-direction:column;min-width:0;background:var(--panel);position:relative}.empty{height:100%;display:grid;place-items:center;text-align:center;padding:25px;color:var(--muted)}.empty-icon{width:76px;height:76px;border-radius:25px;background:#eaf3ff;color:var(--blue);display:grid;place-items:center;font-size:36px;margin:0 auto 18px}.chat-head{height:72px;flex:none;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 22px}.chat-head .avatar{width:42px;height:42px}.chat-person{font-weight:750}.chat-status{font-size:12px;color:var(--muted);margin-top:3px}.chat-head .spacer{flex:1}.messages{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:22px clamp(14px,4vw,54px);display:flex;flex-direction:column;gap:7px;scrollbar-gutter:stable}.day-divider{text-align:center;color:var(--muted);font-size:11px;margin:12px 0 16px}.message-row{display:flex;flex-direction:column;max-width:min(72%,620px);align-self:flex-start;gap:3px}.message-row.mine{align-self:flex-end;align-items:flex-end}.bubble{background:var(--bubble);padding:10px 15px;border-radius:20px 20px 20px 6px;line-height:1.42;white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px}.mine .bubble{background:var(--blue);color:white;border-radius:20px 20px 6px 20px}.message-time{font-size:10px;color:var(--muted);padding:0 7px}.composer-area{padding:12px clamp(12px,4vw,48px) max(15px,env(safe-area-inset-bottom));border-top:1px solid var(--line);display:flex;align-items:flex-end;gap:9px}.composer{flex:1;display:flex;align-items:flex-end;gap:8px;background:var(--soft);border:1px solid var(--line);border-radius:23px;padding:7px 9px 7px 15px}.composer textarea{resize:none;max-height:120px;min-height:34px;flex:1;border:0;outline:0;background:transparent;color:var(--text);padding:7px 0;line-height:1.35}.send{width:38px;height:38px;border-radius:50%;background:var(--blue);color:#fff;font-size:17px;flex:none}.attach{background:transparent;color:var(--blue);font-size:22px;padding:4px}.mobile-back{display:none}
+.modal-back{position:fixed;inset:0;background:#11182766;display:grid;place-items:center;padding:18px;z-index:5}.modal{width:min(430px,100%);background:var(--panel);border-radius:22px;padding:23px;box-shadow:0 20px 80px #0003;display:grid;gap:13px}.modal h2{margin:0 0 3px}.modal-actions{display:flex;justify-content:flex-end;gap:8px}.secondary{background:var(--soft);color:var(--text);padding:11px 15px;border-radius:12px}.avatar-preview{width:76px;height:76px;border-radius:50%;margin:auto}.theme-row{display:flex;gap:8px}.theme-choice{flex:1;padding:10px;border-radius:12px;border:2px solid var(--line);background:var(--panel);color:var(--text)}.theme-choice.selected{border-color:var(--blue)}
+body.dark{--bg:#111318;--panel:#1b1d24;--soft:#282b34;--line:#333640;--text:#f2f3f7;--muted:#a1a5b1;--bubble:#30343e;--shadow:0 12px 40px #0003}body.dark .conversation:hover{background:#252832}body.dark .conversation.active{background:#1c3553}body.dark .empty-icon{background:#1d3551}body.dark .auth{background:radial-gradient(ellipse at 50% 0,#1b3554 0,transparent 55%),var(--bg)}
+@media(max-width:720px){.app{grid-template-columns:1fr}.list-pane{grid-column:1;grid-row:1}.chat-pane{display:none;grid-column:1;grid-row:1}.app.chat-open .list-pane{display:none}.app.chat-open .chat-pane{display:flex}.list-head{padding:16px 17px 12px}.list-head .brand{font-size:25px}.chat-head{height:64px;padding:0 13px}.mobile-back{display:grid}.messages{padding:16px 12px}.message-row{max-width:86%}.composer-area{padding:9px 10px max(12px,env(safe-area-inset-bottom))}.profile-footer{padding-bottom:max(12px,env(safe-area-inset-bottom))}}
+</style>
+<style id="chatly-independent-scroll-fix">
+
+/* Chatly independent scrolling layout fix */
+html,
+body {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+
+body {
+  position: fixed;
+  inset: 0;
+}
+
+#app.app {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  max-height: 100%;
+  max-width: 1500px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+
+#app .list-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+#app .conversation-list {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  height: 0;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+#app .chat-pane {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  align-content: stretch;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden !important;
+}
+
+#app #emptyState {
+  grid-column: 1;
+  grid-row: 1 / -1;
+  min-height: 0;
+  height: auto;
+  overflow: auto;
+}
+
+#app #chatHead {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+
+#app #messages {
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  width: 100%;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overflow-anchor: none;
+}
+
+#app #messageForm {
+  grid-column: 1;
+  grid-row: 3;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+}
+
+#app #chatHead,
+#app #messageForm {
+  flex: none;
+}
+
+@media (max-width: 720px) {
+  #app.app {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #app:not(.chat-open) .chat-pane {
+    display: none;
+  }
+
+  #app.chat-open .list-pane {
+    display: none;
+  }
+
+  #app.chat-open .chat-pane {
+    display: grid;
+  }
+}
+
+</style>
+
+<style id="chatly-video-call-styles">
+.call-head-btn{color:var(--blue);font-size:18px}
+.call-overlay{position:fixed;inset:0;z-index:50;background:#070b14ed;display:grid;place-items:center;padding:16px;color:#fff}
+.call-panel{width:min(920px,100%);height:min(760px,calc(100dvh - 32px));min-height:420px;background:#111827;border:1px solid #344054;border-radius:24px;box-shadow:0 24px 90px #0008;display:flex;flex-direction:column;overflow:hidden}
+.call-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 20px;border-bottom:1px solid #ffffff16}
+.call-brand{font-size:20px;font-weight:850;letter-spacing:-.7px}.call-brand span{color:#60a5fa}.call-brand small{font-size:10px;letter-spacing:.14em;color:#aab4c4;margin-left:8px}
+.call-secure-note{font-size:11px;color:#b9c3d2;text-align:right}
+.call-stage{position:relative;flex:1;min-height:220px;margin:14px 14px 0;border-radius:18px;overflow:hidden;background:#050914;display:grid;place-items:center}
+#remoteVideo{width:100%;height:100%;max-height:100%;object-fit:contain;background:#050914}
+#localVideo{position:absolute;right:14px;bottom:14px;width:min(23%,190px);height:auto;aspect-ratio:4/3;object-fit:cover;background:#182235;border:2px solid #ffffffbd;border-radius:13px;box-shadow:0 8px 28px #0008;z-index:2}
+#localVideo.hidden{display:none!important}
+.local-label{position:absolute;right:22px;bottom:20px;z-index:3;font-size:10px;color:#fff;background:#0009;padding:3px 7px;border-radius:20px;pointer-events:none}
+.call-placeholder{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;background:radial-gradient(ellipse at center,#1e3453 0,#0b1220 65%)}
+.call-placeholder.hidden{display:none!important}
+.call-avatar{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;background:#dceaff;color:#176bc0;font-size:31px;font-weight:800;overflow:hidden}
+.call-placeholder-title{font-size:19px;font-weight:750}.call-placeholder-sub{font-size:13px;color:#b9c3d2}
+.call-details{text-align:center;padding:15px 12px 4px}.call-peer-name{font-size:20px;font-weight:800}.call-status{font-size:13px;color:#b9c3d2;margin-top:4px;min-height:18px}
+.call-actions{display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 16px 20px}
+.call-action{min-width:112px;padding:12px 18px;border-radius:999px;font-weight:750;color:#fff;background:#344054}
+.call-action.accept{background:#168a58}.call-action.decline,.call-action.end{background:#dc3545}.call-action.neutral{background:#344054}
+.call-action:focus-visible{outline:3px solid #93c5fd;outline-offset:3px}
+@media(max-width:600px){
+ .call-overlay{padding:0}
+ .call-panel{width:100%;height:100dvh;max-height:100dvh;min-height:0;border-radius:0;border:0}
+ .call-panel-head{padding:14px 15px}.call-secure-note{max-width:48%}
+ .call-stage{margin:8px 8px 0;min-height:180px;border-radius:14px}
+ #localVideo{width:30%;right:9px;bottom:9px}
+ .local-label{right:15px;bottom:15px}
+ .call-details{padding-top:12px}.call-actions{gap:8px;padding:12px 10px max(16px,env(safe-area-inset-bottom))}
+ .call-action{min-width:96px;padding:11px 13px}
+}
+</style>
+
+
+<style id="chatly-media-sounds-styles">
+.attach-button{width:34px;height:34px;flex:none;border-radius:50%;background:transparent;color:var(--blue);font-size:26px;line-height:1;display:grid;place-items:center;padding:0}
+.attach-button:hover{background:#1685f812}
+.message-attachment{display:grid;gap:6px;max-width:min(100%,520px);min-width:0}
+.message-attachment img,.message-attachment video{display:block;width:auto;max-width:min(100%,520px);max-height:420px;border-radius:14px;background:#111;object-fit:contain}
+.message-attachment audio{display:block;max-width:min(100%,340px);width:100%}
+.message-attachment a{display:inline-flex;align-items:center;gap:8px;max-width:100%;overflow-wrap:anywhere;padding:10px 13px;background:var(--soft);border:1px solid var(--line);border-radius:12px;color:var(--blue);text-decoration:none;font-weight:650}
+.attachment-caption{font-size:11px;color:var(--muted);overflow-wrap:anywhere}
+.upload-status{position:absolute;left:clamp(18px,4vw,54px);bottom:calc(100% - 5px);max-width:calc(100% - 36px);font-size:11px;color:var(--muted);padding:2px 8px;background:var(--panel);border-radius:6px;min-height:0;z-index:2}
+#messageForm{position:relative}
+.sound-setting{display:flex;align-items:center;gap:10px;padding:10px 0;color:var(--text);font-size:14px}
+.sound-setting input{width:18px;height:18px;accent-color:var(--blue)}
+.sound-test-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.call-action:disabled{opacity:.45}
+@media(max-width:600px){.message-attachment img,.message-attachment video{max-height:300px}}
+</style>
+
+</head>
+<body>
+<div id="auth" class="auth">
+  <section class="auth-card">
+    <div class="brand">chat<span>ly</span></div>
+    <h1 id="authTitle">Your conversations, together.</h1>
+    <p class="muted" id="authSubtitle">Sign in to your Chatly account.</p>
+    <form id="authForm" class="stack">
+      <input class="field" id="email" type="email" placeholder="Email address" autocomplete="email" required>
+      <input class="field hidden" id="username" placeholder="Username (3–24 characters)" minlength="3" maxlength="24" autocomplete="username">
+      <input class="field" id="password" type="password" placeholder="Password (at least 6 characters)" minlength="6" autocomplete="current-password" required>
+      <button class="primary" id="authSubmit">Sign in</button>
+    </form>
+    <p class="small muted" style="text-align:center;margin:17px 0 0"><span id="switchText">New to Chatly?</span> <a href="#" id="authSwitch" style="color:var(--blue);font-weight:700">Create an account</a></p>
+    <p id="authError" class="small" style="color:#d84a5b"></p>
+  </section>
+</div>
+<div id="app" class="app hidden">
+  <aside class="list-pane">
+    <header class="list-head"><div class="brand">chat<span>ly</span></div><div class="spacer"></div><button class="round-btn" id="newChat" title="New message">＋</button></header>
+    <div class="search-wrap"><input class="search" id="searchChats" placeholder="Search conversations"></div>
+    <div class="list-label">Messages</div>
+    <div class="conversation-list" id="conversationList"><div class="empty">Your conversations will appear here.</div></div>
+    <footer class="profile-footer">
+      <div class="avatar" id="myAvatar">?</div>
+      <div class="profile-copy"><div class="profile-name" id="myName">Your profile</div><div class="small muted">Your account</div></div>
+      <div class="profile-actions"><button class="round-btn" id="settings" title="Customize">⚙</button><button class="round-btn" id="signOut" title="Sign out">↪</button></div>
+    </footer>
+  </aside>
+  <main class="chat-pane" id="chatPane">
+    <section class="empty" id="emptyState"><div><div class="empty-icon">✉</div><h2 style="color:var(--text)">Your messages</h2><p>Choose a conversation or start a new one.</p><button class="primary" id="emptyNewChat">New message</button></div></section>
+    <header class="chat-head hidden" id="chatHead">
+      <button class="round-btn mobile-back" id="backToChats" aria-label="Back">‹</button>
+      <div class="avatar" id="chatAvatar">?</div>
+      <div><div class="chat-person" id="chatName"></div><div class="chat-status" id="chatStatus">Chatly message</div></div>
+      <div class="spacer"></div>
+      <button class="round-btn call-head-btn" id="videoCallBtn" title="Start video call" aria-label="Start video call">📹</button>
+      <button class="round-btn" id="renameContact" title="Rename contact">✎</button>
+    </header>
+    <section class="messages hidden" id="messages" aria-live="polite"></section>
+    <form class="composer-area hidden" id="messageForm">
+      <div class="upload-status" id="uploadStatus" aria-live="polite"></div>
+      <div class="composer"><button class="attach-button" type="button" id="attachButton" title="Attach a photo, video, audio, or file" aria-label="Attach file">＋</button><input id="chatFileInput" class="hidden" type="file" multiple accept="image/*,video/*,audio/*,.pdf,.txt,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip"><textarea id="messageInput" rows="1" maxlength="4000" placeholder="iMessage"></textarea><button class="send" type="submit" aria-label="Send">↑</button></div>
+    </form>
+  </main>
+</div>
+<div id="modalRoot"></div>
+<div id="callOverlay" class="call-overlay hidden" role="dialog" aria-modal="true" aria-label="Chatly video call">
+  <section class="call-panel">
+    <header class="call-panel-head">
+      <div class="call-brand">chat<span>ly</span> <small>VIDEO CALL</small></div>
+      <div class="call-secure-note">Camera and microphone are only used during a call.</div>
+    </header>
+    <div class="call-stage">
+      <video id="remoteVideo" autoplay playsinline></video>
+      <div class="call-placeholder" id="callPlaceholder">
+        <div class="call-avatar" id="callAvatar">?</div>
+        <div class="call-placeholder-title" id="callPeerLarge">Video call</div>
+        <div class="call-placeholder-sub" id="callPlaceholderSub">Waiting for video…</div>
+      </div>
+      <video id="localVideo" autoplay muted playsinline></video>
+      <div class="local-label">You</div>
+    </div>
+    <div class="call-details">
+      <div class="call-peer-name" id="callPeerName">Chatly user</div>
+      <div class="call-status" id="callStatus">Starting call…</div>
+    </div>
+    <div class="call-actions hidden" id="callIncomingActions">
+      <button class="call-action decline" id="declineCall">Decline</button>
+      <button class="call-action accept" id="acceptCall">Accept</button>
+    </div>
+    <div class="call-actions hidden" id="callOutgoingActions">
+      <button class="call-action neutral" id="toggleMicRinging" disabled>Mute mic</button>
+      <button class="call-action neutral" id="toggleCameraRinging" disabled>Camera off</button>
+      <button class="call-action end" id="cancelCall">Cancel call</button>
+    </div>
+    <div class="call-actions hidden" id="callActiveActions">
+      <button class="call-action neutral" id="toggleMic">Mute mic</button>
+      <button class="call-action neutral" id="toggleCamera">Camera off</button>
+      <button class="call-action end" id="endCall">End call</button>
+    </div>
+    <div class="call-actions hidden" id="callEndedActions">
+      <button class="call-action neutral" id="closeCall">Close</button>
+    </div>
+  </section>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://rfivnjnvliqpehdkqqap.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_ifYAMrdUhuyX-iOZULuP4w_nZx6oQtl";
+const $=id=>document.getElementById(id);
+let sb,user,profile,mode="login",activeConversation=null,activeContact=null,liveChannel=null,seen=new Set(),conversations=[];
+let callSignalChannel=null,callState=null;
+let soundEnabled=localStorage.getItem("chatly-sounds")!=="off",audioContextInstance=null,ringtoneInterval=null,messageSoundChannel=null,pendingChatSounds=[],playedMessageSoundIds=new Set();
+const nickKey="chatly-v2-nicknames";
+function esc(s=""){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function initials(s="U"){return (s.trim()[0]||"U").toUpperCase();}
+function setAvatar(el,url,name){el.innerHTML=url?`<img src="${esc(url)}" alt="">`:esc(initials(name));}
+function nickname(id,fallback){try{return JSON.parse(localStorage.getItem(nickKey)||"{}")[id]||fallback}catch{return fallback}}
+function saveNickname(id,name){let all={};try{all=JSON.parse(localStorage.getItem(nickKey)||"{}")}catch{}all[id]=name;localStorage.setItem(nickKey,JSON.stringify(all));}
+function toast(s){const el=$("chatStatus");if(el)el.textContent=s;}
+
+function getChatAudioContext(){
+  const AudioCtx=window.AudioContext||window.webkitAudioContext;
+  if(!AudioCtx)return null;
+  if(!audioContextInstance||audioContextInstance.state==="closed"){
+    audioContextInstance=new AudioCtx({latencyHint:"interactive"});
+  }
+  return audioContextInstance;
+}
+async function unlockChatAudio(){
+  const ctx=getChatAudioContext();
+  if(!ctx)return false;
+  try{
+    if(ctx.state!=="running")await ctx.resume();
+  }catch(error){
+    console.warn("Chatly audio could not be unlocked:",error);
+  }
+  if(ctx.state==="running"){
+    const queued=pendingChatSounds.splice(0);
+    for(const item of queued){
+      if(Date.now()-item.at<12000)playChatSoundNow(ctx,item.kind);
+    }
+    return true;
+  }
+  return false;
+}
+function scheduleChatTone(ctx,frequency,start,duration,volume=0.055){
+  const osc=ctx.createOscillator(),gain=ctx.createGain();
+  osc.type="sine";
+  osc.frequency.setValueAtTime(frequency,start);
+  gain.gain.setValueAtTime(0.0001,start);
+  gain.gain.exponentialRampToValueAtTime(Math.max(0.0002,volume),start+0.018);
+  gain.gain.setValueAtTime(Math.max(0.0002,volume),start+Math.max(0.02,duration-0.035));
+  gain.gain.exponentialRampToValueAtTime(0.0001,start+duration);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start+duration+0.02);
+}
+function playChatSoundNow(ctx,kind){
+  if(!ctx||ctx.state!=="running")return false;
+  const now=ctx.currentTime+0.025;
+  if(kind==="message"){
+    scheduleChatTone(ctx,740,now,0.11,0.055);
+    scheduleChatTone(ctx,988,now+0.13,0.15,0.055);
+  }else if(kind==="incoming"){
+    scheduleChatTone(ctx,659,now,0.28,0.06);
+    scheduleChatTone(ctx,784,now+0.33,0.28,0.06);
+    scheduleChatTone(ctx,988,now+0.66,0.24,0.05);
+  }else if(kind==="outgoing"){
+    scheduleChatTone(ctx,440,now,0.36,0.05);
+    scheduleChatTone(ctx,480,now+0.41,0.36,0.05);
+  }
+  return true;
+}
+function playChatSound(kind){
+  if(!soundEnabled)return false;
+  const ctx=audioContextInstance;
+  if(ctx&&ctx.state==="running")return playChatSoundNow(ctx,kind);
+  // Browsers require a user gesture before first playback. Keep only a few
+  // recent notifications; they play after the user unlocks sound in Chatly.
+  if(!pendingChatSounds.some(item=>item.kind===kind)){
+    pendingChatSounds.push({kind,at:Date.now()});
+    if(pendingChatSounds.length>3)pendingChatSounds.shift();
+  }
+  if(ctx&&ctx.state==="suspended"){
+    ctx.resume().then(()=>{
+      if(ctx.state==="running"){
+        const queued=pendingChatSounds.splice(0);
+        for(const item of queued){
+          if(Date.now()-item.at<12000)playChatSoundNow(ctx,item.kind);
+        }
+      }
+    }).catch(()=>{});
+  }
+  return false;
+}
+function stopCallRingtone(){
+  if(ringtoneInterval){clearInterval(ringtoneInterval);ringtoneInterval=null;}
+}
+function startCallRingtone(kind){
+  stopCallRingtone();
+  playChatSound(kind);
+  ringtoneInterval=setInterval(()=>playChatSound(kind),kind==="incoming"?1900:2200);
+}
+async function unlockChatAudioFromGesture(){
+  if(soundEnabled)await unlockChatAudio();
+}
+["pointerdown","touchend","keydown"].forEach(type=>{
+  document.addEventListener(type,unlockChatAudioFromGesture,{capture:true,passive:true});
+});
+document.addEventListener("visibilitychange",()=>{
+  if(!document.hidden&&soundEnabled&&audioContextInstance?.state==="suspended"){
+    // The next tap resumes audio if the browser suspended it in the background.
+    pendingChatSounds.length=Math.min(pendingChatSounds.length,2);
+  }
+});
+function messagePreview(message){
+  if(!message)return "Start a conversation";
+  if(message.content)return message.content;
+  const type=message.attachment_type||"";
+  if(type.startsWith("image/"))return "📷 Photo";
+  if(type.startsWith("video/"))return "🎥 Video";
+  if(type.startsWith("audio/"))return "🎵 Audio";
+  return "📎 "+(message.attachment_name||"File");
+}
+
+function messagePreview(message){
+  if(!message)return "Start a conversation";
+  if(message.content)return message.content;
+  const type=message.attachment_type||"";
+  if(type.startsWith("image/"))return "📷 Photo";
+  if(type.startsWith("video/"))return "🎥 Video";
+  if(type.startsWith("audio/"))return "🎵 Audio";
+  return "📎 "+(message.attachment_name||"File");
+}
+
+function callDisplayName(id){
+  const conversation=conversations.find(c=>c.otherId===id);
+  if(conversation)return nickname(id,displayName(conversation.person));
+  return "Chatly user";
+}
+function setCallStatus(message){$("callStatus").textContent=message||"";}
+function setCallPhase(phase){
+  if(!callState)return;
+  callState.phase=phase;
+  if(phase!=="incoming"&&phase!=="outgoing")stopCallRingtone();
+  $("callOverlay").classList.remove("hidden");
+  $("callIncomingActions").classList.toggle("hidden",phase!=="incoming");
+  $("callOutgoingActions").classList.toggle("hidden",phase!=="outgoing");
+  $("callActiveActions").classList.toggle("hidden",phase!=="connecting"&&phase!=="connected");
+  $("callEndedActions").classList.toggle("hidden",phase!=="ended");
+  $("callPeerName").textContent=callState.peerName||"Chatly user";
+  $("callPeerLarge").textContent=callState.peerName||"Chatly user";
+  $("callAvatar").textContent=initials(callState.peerName||"U");
+  $("callPlaceholder").classList.toggle("hidden",!!callState.remoteVideoReady);
+  $("localVideo").classList.toggle("hidden",!callState.localStream);
+}
+function showCallEnded(message){
+  if(!callState)return;
+  stopCallRingtone();
+  if(callState.ringTimer)clearTimeout(callState.ringTimer);
+  if(callState.disconnectTimer)clearTimeout(callState.disconnectTimer);
+  stopCallMedia(callState);
+  callState.phase="ended";
+  $("callOverlay").classList.remove("hidden");
+  $("callIncomingActions").classList.add("hidden");
+  $("callOutgoingActions").classList.add("hidden");
+  $("callActiveActions").classList.add("hidden");
+  $("callEndedActions").classList.remove("hidden");
+  $("callStatus").textContent=message;
+  $("localVideo").classList.add("hidden");
+  $("remoteVideo").classList.add("hidden");
+  $("callPlaceholder").classList.remove("hidden");
+  $("callPlaceholderSub").textContent=message;
+}
+function stopCallMedia(call){
+  if(!call)return;
+  try{call.pc?.close()}catch{}
+  call.pc=null;
+  if(call.localStream)call.localStream.getTracks().forEach(track=>track.stop());
+  if(call.remoteStream)call.remoteStream.getTracks().forEach(track=>track.stop());
+  $("localVideo").srcObject=null;
+  $("remoteVideo").srcObject=null;
+  $("localVideo").classList.add("hidden");
+  $("remoteVideo").classList.add("hidden");
+}
+async function sendCallSignal(type,call,payload={}){
+  if(!sb||!user||!call)throw new Error("Chatly is not connected.");
+  const {error}=await sb.from("call_signals").insert({
+    conversation_id:call.conversationId,
+    call_id:call.id,
+    from_user:user.id,
+    to_user:call.peerUserId,
+    signal_type:type,
+    payload
+  });
+  if(error)throw error;
+}
+async function finishCall(sendSignal=false,signalType="hangup"){
+  const call=callState;
+  if(!call)return;
+  callState=null;
+  stopCallRingtone();
+  if(call.ringTimer)clearTimeout(call.ringTimer);
+  if(call.disconnectTimer)clearTimeout(call.disconnectTimer);
+  stopCallMedia(call);
+  $("callOverlay").classList.add("hidden");
+  if(sendSignal){
+    try{await sendCallSignal(signalType,call,{})}
+    catch(error){console.warn("Could not send call ending signal:",error)}
+  }
+}
+function showCallNotice(message){
+  if(!callState)return;
+  showCallEnded(message);
+}
+async function getCallMedia(call){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+    throw new Error("Camera and microphone require a secure HTTPS page and a supported browser.");
+  }
+  let stream;
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({
+      audio:true,
+      video:{width:{ideal:1280},height:{ideal:720},facingMode:"user"}
+    });
+  }catch(error){
+    if(error.name==="NotAllowedError"||error.name==="PermissionDeniedError"){
+      throw new Error("Camera or microphone access was blocked. Allow both permissions in your browser and try again.");
+    }
+    if(error.name==="NotFoundError"||error.name==="DevicesNotFoundError"){
+      throw new Error("No camera or microphone was found on this device.");
+    }
+    throw new Error(error.message||"Could not access the camera and microphone.");
+  }
+  call.localStream=stream;
+  $("localVideo").srcObject=stream;
+  $("localVideo").classList.remove("hidden");
+  $("localVideo").muted=true;
+  $("localVideo").play().catch(()=>{});
+  refreshCallControls();
+  return stream;
+}
+function createCallPeerConnection(call){
+  const pc=new RTCPeerConnection({
+    iceServers:[
+      {urls:"stun:stun.l.google.com:19302"},
+      {urls:"stun:stun1.l.google.com:19302"}
+    ]
+  });
+  call.pc=pc;
+  call.remoteStream=new MediaStream();
+  $("remoteVideo").srcObject=call.remoteStream;
+  $("remoteVideo").classList.remove("hidden");
+  $("callPlaceholder").classList.remove("hidden");
+  pc.ontrack=event=>{
+    const tracks=event.streams?.[0]?.getTracks()||[event.track];
+    for(const track of tracks){
+      if(!call.remoteStream.getTracks().some(existing=>existing.id===track.id)){
+        call.remoteStream.addTrack(track);
+      }
+      if(track.kind==="video"){
+        track.onunmute=()=>{
+          call.remoteVideoReady=true;
+          $("callPlaceholder").classList.add("hidden");
+        };
+        track.onmute=()=>{
+          call.remoteVideoReady=false;
+          $("callPlaceholder").classList.remove("hidden");
+          $("callPlaceholderSub").textContent="Their camera is off";
+        };
+        if(!track.muted){
+          call.remoteVideoReady=true;
+          $("callPlaceholder").classList.add("hidden");
+        }
+      }
+    }
+    $("remoteVideo").srcObject=call.remoteStream;
+    $("remoteVideo").play().catch(()=>{});
+  };
+  pc.onicecandidate=event=>{
+    if(!event.candidate||callState?.id!==call.id)return;
+    const candidate=event.candidate.toJSON?event.candidate.toJSON():event.candidate;
+    if(call.role==="caller"&&!call.offerSent){
+      call.localCandidates.push(candidate);
+      return;
+    }
+    sendCallSignal("ice",call,{candidate}).catch(error=>console.warn("ICE signal failed:",error));
+  };
+  pc.onconnectionstatechange=()=>{
+    if(callState?.id!==call.id)return;
+    if(pc.connectionState==="connected"){
+      if(call.disconnectTimer)clearTimeout(call.disconnectTimer);
+      call.disconnectTimer=null;
+      setCallPhase("connected");
+      setCallStatus("Connected");
+    }else if(pc.connectionState==="connecting"){
+      setCallPhase("connecting");
+      setCallStatus("Connecting video…");
+    }else if(pc.connectionState==="disconnected"){
+      setCallStatus("Reconnecting…");
+      if(call.disconnectTimer)clearTimeout(call.disconnectTimer);
+      call.disconnectTimer=setTimeout(()=>{
+        if(callState?.id===call.id&&call.pc?.connectionState==="disconnected"){
+          showCallNotice("Connection lost.");
+        }
+      },10000);
+    }else if(pc.connectionState==="failed"){
+      showCallNotice("The connection failed. Try again.");
+    }
+  };
+  return pc;
+}
+async function flushRemoteCandidates(call){
+  if(!call.pc||!call.remoteDescriptionSet)return;
+  const queued=call.pendingCandidates.splice(0);
+  for(const candidate of queued){
+    try{await call.pc.addIceCandidate(new RTCIceCandidate(candidate))}
+    catch(error){console.warn("Could not add a call network candidate:",error)}
+  }
+}
+async function receiveCallCandidate(call,candidate){
+  if(!candidate)return;
+  if(!call.pc||!call.remoteDescriptionSet){
+    call.pendingCandidates.push(candidate);
+    return;
+  }
+  try{await call.pc.addIceCandidate(new RTCIceCandidate(candidate))}
+  catch(error){console.warn("Could not add a call network candidate:",error)}
+}
+async function startVideoCall(){
+  if(!activeConversation)return;
+  if(callState){alert("You are already in a call.");return;}
+  const conversation=conversations.find(c=>c.id===activeConversation);
+  if(!conversation){alert("Open a conversation before starting a video call.");return;}
+  const call={
+    id:crypto.randomUUID(),
+    conversationId:conversation.id,
+    peerUserId:conversation.otherId,
+    peerName:nickname(conversation.otherId,displayName(conversation.person)),
+    role:"caller",
+    phase:"outgoing",
+    localStream:null,
+    remoteStream:null,
+    remoteDescriptionSet:false,
+    pendingCandidates:[],
+    localCandidates:[],
+    offerSent:false,
+    remoteVideoReady:false
+  };
+  callState=call;
+  $("callPlaceholderSub").textContent="Calling…";
+  $("callAvatar").textContent=initials(call.peerName);
+  $("remoteVideo").classList.add("hidden");
+  $("localVideo").classList.add("hidden");
+  setCallPhase("outgoing");
+  setCallStatus("Allow camera and microphone access to start.");
+  try{
+    const stream=await getCallMedia(call);
+    if(callState?.id!==call.id)return;
+    const pc=createCallPeerConnection(call);
+    stream.getTracks().forEach(track=>pc.addTrack(track,stream));
+    const offer=await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    await sendCallSignal("offer",call,{description:pc.localDescription});
+    call.offerSent=true;
+    const buffered=call.localCandidates.splice(0);
+    for(const candidate of buffered){
+      await sendCallSignal("ice",call,{candidate});
+    }
+    if(callState?.id!==call.id)return;
+    setCallStatus("Ringing… waiting for them to answer.");
+    startCallRingtone("outgoing");
+    call.ringTimer=setTimeout(()=>{
+      if(callState?.id===call.id&&callState.phase==="outgoing"){
+        sendCallSignal("cancel",call,{}).catch(()=>{});
+        showCallNotice("No answer.");
+      }
+    },45000);
+  }catch(error){
+    if(callState?.id===call.id)await finishCall(false);
+    alert("Could not start the video call: "+(error.message||error));
+  }
+}
+async function acceptIncomingCall(){
+  const call=callState;
+  if(!call||call.phase!=="incoming")return;
+  if(call.ringTimer)clearTimeout(call.ringTimer);
+  stopCallRingtone();
+  setCallPhase("connecting");
+  setCallStatus("Connecting…");
+  try{
+    const stream=await getCallMedia(call);
+    if(callState?.id!==call.id)return;
+    const pc=createCallPeerConnection(call);
+    stream.getTracks().forEach(track=>pc.addTrack(track,stream));
+    if(!call.offerDescription)throw new Error("The caller's offer was missing. Ask them to call again.");
+    await pc.setRemoteDescription(new RTCSessionDescription(call.offerDescription));
+    call.remoteDescriptionSet=true;
+    await flushRemoteCandidates(call);
+    const answer=await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    await sendCallSignal("answer",call,{description:pc.localDescription});
+    setCallPhase("connecting");
+    setCallStatus("Connecting video…");
+  }catch(error){
+    try{await sendCallSignal("reject",call,{reason:error.message||"Could not accept"})}catch{}
+    if(callState?.id===call.id)await finishCall(false);
+    alert("Could not accept the video call: "+(error.message||error));
+  }
+}
+async function rejectIncomingCall(){
+  const call=callState;
+  if(!call||call.phase!=="incoming")return;
+  await finishCall(true,"reject");
+}
+async function handleCallSignal(change){
+  const row=change?.new;
+  if(!row||row.to_user!==user?.id||row.from_user===user?.id)return;
+  const incomingPayload=row.payload||{};
+  if(row.signal_type==="offer"){
+    if(callState){
+      const busyCall={id:row.call_id,conversationId:row.conversation_id,peerUserId:row.from_user};
+      sendCallSignal("busy",busyCall,{}).catch(error=>console.warn(error));
+      return;
+    }
+    const call={
+      id:row.call_id,
+      conversationId:row.conversation_id,
+      peerUserId:row.from_user,
+      peerName:callDisplayName(row.from_user),
+      role:"callee",
+      phase:"incoming",
+      offerDescription:incomingPayload.description,
+      localStream:null,
+      remoteStream:null,
+      remoteDescriptionSet:false,
+      pendingCandidates:[],
+      localCandidates:[],
+      remoteVideoReady:false
+    };
+    callState=call;
+    $("callPlaceholderSub").textContent="Incoming video call";
+    $("callAvatar").textContent=initials(call.peerName);
+    $("remoteVideo").classList.add("hidden");
+    $("localVideo").classList.add("hidden");
+    setCallPhase("incoming");
+    setCallStatus("Incoming video call");
+    startCallRingtone("incoming");
+    return;
+  }
+  if(!callState||callState.id!==row.call_id){
+    return;
+  }
+  const call=callState;
+  if(row.signal_type==="ice"){
+    await receiveCallCandidate(call,incomingPayload.candidate);
+  }else if(row.signal_type==="answer"&&call.role==="caller"){
+    try{
+      if(!call.pc||call.remoteDescriptionSet)return;
+      await call.pc.setRemoteDescription(new RTCSessionDescription(incomingPayload.description));
+      call.remoteDescriptionSet=true;
+      await flushRemoteCandidates(call);
+      if(call.ringTimer)clearTimeout(call.ringTimer);
+      setCallPhase("connecting");
+      setCallStatus("Connecting video…");
+    }catch(error){
+      showCallNotice("Could not connect the answer: "+error.message);
+    }
+  }else if(row.signal_type==="reject"){
+    showCallNotice("The call was declined.");
+  }else if(row.signal_type==="busy"){
+    showCallNotice("They are already in another call.");
+  }else if(row.signal_type==="cancel"){
+    showCallNotice("The caller cancelled the call.");
+  }else if(row.signal_type==="hangup"){
+    showCallNotice("The other person ended the call.");
+  }
+}
+function subscribeToCallSignals(){
+  if(!sb||!user||callSignalChannel)return;
+  callSignalChannel=sb.channel("chatly-call-signals-"+user.id)
+    .on("postgres_changes",{
+      event:"INSERT",
+      schema:"public",
+      table:"call_signals",
+      filter:"to_user=eq."+user.id
+    },handleCallSignal)
+    .subscribe(status=>{
+      if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"){
+        console.warn("Chatly call signal subscription:",status);
+      }
+    });
+}
+function refreshCallControls(){
+  const call=callState;
+  if(!call)return;
+  const audio=call.localStream?.getAudioTracks?.()[0]||null;
+  const video=call.localStream?.getVideoTracks?.()[0]||null;
+  for(const id of ["toggleMic","toggleMicRinging"]){
+    const button=$(id);
+    button.disabled=!audio;
+    button.textContent=audio?.enabled?"Mute mic":"Unmute mic";
+    button.setAttribute("aria-pressed",String(!!audio&&!audio.enabled));
+  }
+  for(const id of ["toggleCamera","toggleCameraRinging"]){
+    const button=$(id);
+    button.disabled=!video;
+    button.textContent=video?.enabled?"Camera off":"Camera on";
+    button.setAttribute("aria-pressed",String(!!video&&!video.enabled));
+  }
+}
+
+function showError(s){$("authError").textContent=s||"";}
+function setMode(next){mode=next;$("authTitle").textContent=mode==="login"?"Your conversations, together.":"Join Chatly."; $("authSubtitle").textContent=mode==="login"?"Sign in to your Chatly account.":"Create an account to start messaging."; $("username").classList.toggle("hidden",mode==="login");$("username").required=mode==="signup";$("authSubmit").textContent=mode==="login"?"Sign in":"Create account";$("switchText").textContent=mode==="login"?"New to Chatly?":"Already have an account?";$("authSwitch").textContent=mode==="login"?"Create an account":"Sign in";showError("");}
+$("authSwitch").onclick=e=>{e.preventDefault();setMode(mode==="login"?"signup":"login")};
+async function start(){sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);const {data:{session}}=await sb.auth.getSession();if(session)await enter(session.user);sb.auth.onAuthStateChange(async(event,session)=>{if(event==="SIGNED_IN"&&session&&!user)await enter(session.user);if(event==="SIGNED_OUT")location.reload()});}
+$("authForm").onsubmit=async e=>{e.preventDefault();showError("");try{const email=$("email").value.trim(),password=$("password").value;if(mode==="signup"){const username=$("username").value.trim();if(!/^[a-zA-Z0-9_]{3,24}$/.test(username))throw Error("Username must be 3–24 letters, numbers, or underscores.");const {data,error}=await sb.auth.signUp({email,password,options:{data:{username}}});if(error)throw error;if(data.session)await enter(data.user);else showError("Check your email to confirm your account, then sign in.");}else{const {data,error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;await enter(data.user)}}catch(err){showError(err.message||"Something went wrong.")}};
+async function enter(authUser){user=authUser;const {data,error}=await sb.from("profiles").select("*").eq("id",user.id).single();if(error)throw error;profile=data;$("auth").classList.add("hidden");$("app").classList.remove("hidden");$("myName").textContent=profile.display_name||profile.username;setAvatar($("myAvatar"),profile.avatar_url,profile.display_name||profile.username);await loadConversations();subscribeToCallSignals();subscribeToMessageSounds();}
+function displayName(p){return p?.display_name||p?.username||"Chatly user";}
+async function loadConversations(){const {data,error}=await sb.from("conversations").select("id,user_one,user_two,created_at").or(`user_one.eq.${user.id},user_two.eq.${user.id}`).order("created_at",{ascending:false});if(error){$("conversationList").innerHTML=`<div class="empty">Could not load messages: ${esc(error.message)}</div>`;return;}const rows=data||[];const ids=[...new Set(rows.map(c=>c.user_one===user.id?c.user_two:c.user_one))];let profiles={};if(ids.length){const r=await sb.from("profiles").select("id,username,display_name,avatar_url").in("id",ids);if(r.error){console.error(r.error)}else for(const p of r.data||[])profiles[p.id]=p;}conversations=[];for(const c of rows){const other=c.user_one===user.id?c.user_two:c.user_one;const p=profiles[other];if(!p)continue;const {data:last}=await sb.from("direct_messages").select("content,created_at,sender_id,attachment_name,attachment_type,attachment_path").eq("conversation_id",c.id).order("created_at",{ascending:false}).limit(1).maybeSingle();conversations.push({...c,otherId:other,person:p,last});}renderConversations();}
+function renderConversations(){const q=$("searchChats").value.trim().toLowerCase();const list=conversations.filter(c=>nickname(c.otherId,displayName(c.person)).toLowerCase().includes(q));$("conversationList").innerHTML=list.length?list.map(c=>{const n=nickname(c.otherId,displayName(c.person));const preview=c.last?(c.last.sender_id===user.id?"You: ":"")+messagePreview(c.last):"Start a conversation";const time=c.last?new Date(c.last.created_at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"";return `<div class="conversation ${activeConversation===c.id?"active":""}" data-conv="${c.id}"><div class="avatar" data-avatar="${c.otherId}">${c.person.avatar_url?`<img src="${esc(c.person.avatar_url)}" alt="">`:esc(initials(n))}</div><div class="conv-copy"><div class="conv-top"><span class="conv-name">${esc(n)}</span><span class="conv-time">${time}</span></div><div class="conv-preview">${esc(preview)}</div></div></div>`}).join(""):'<div class="empty"><div><p>No conversations yet.</p><button class="primary" id="listNewChat">Start a chat</button></div></div>';$("conversationList").querySelectorAll("[data-conv]").forEach(el=>el.onclick=()=>openConversation(el.dataset.conv));const btn=$("listNewChat");if(btn)btn.onclick=newChatModal;}
+async function newChatModal(){modal("Start a new chat",`<p class="muted small">Enter someone's exact Chatly username.</p><input class="field" id="findUsername" placeholder="Username"><p class="small" id="findError" style="color:#d84a5b"></p><div class="modal-actions"><button class="secondary" id="cancelModal">Cancel</button><button class="primary" id="findPerson">Find person</button></div>`);$("cancelModal").onclick=closeModal;$("findPerson").onclick=async()=>{const name=$("findUsername").value.trim();if(!name)return;$("findError").textContent="Searching…";const {data,error}=await sb.from("profiles").select("id,username,display_name,avatar_url").ilike("username",name).maybeSingle();if(error){$("findError").textContent=error.message;return;}if(!data){$("findError").textContent="No user found with that exact username.";return;}if(data.id===user.id){$("findError").textContent="That's your own username.";return;}const {data:cid,error:ce}=await sb.rpc("chatly_get_or_create_conversation",{p_other_user:data.id});if(ce){$("findError").textContent=ce.message;return;}closeModal();await loadConversations();await openConversation(cid);};}
+async function openConversation(id){const c=conversations.find(x=>x.id===id);if(!c)return;activeConversation=id;activeContact=c.person;seen=new Set();$("app").classList.add("chat-open");$("emptyState").classList.add("hidden");$("chatHead").classList.remove("hidden");$("messages").classList.remove("hidden");$("messageForm").classList.remove("hidden");const name=nickname(c.otherId,displayName(c.person));$("chatName").textContent=name;setAvatar($("chatAvatar"),c.person.avatar_url,name);renderConversations();if(liveChannel){sb.removeChannel(liveChannel);liveChannel=null;}await loadMessages(true);liveChannel=sb.channel("dm-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"direct_messages",filter:"conversation_id=eq."+id},async payload=>{const nearBottom=nearBottomNow();const {data}=await sb.from("direct_messages").select("id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size").eq("id",payload.new.id).single();if(data){playIncomingMessageSound(data);appendMessage(data);if(nearBottom||data.sender_id===user.id)scrollBottom();refreshPreview(id,data);}}).subscribe();}
+function nearBottomNow(){const el=$("messages");return el.scrollHeight-el.scrollTop-el.clientHeight<110;}
+function scrollBottom(){const el=$("messages");requestAnimationFrame(()=>{el.scrollTop=el.scrollHeight;});}
+async function loadMessages(scroll){const {data,error}=await sb.from("direct_messages").select("id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size").eq("conversation_id",activeConversation).order("created_at",{ascending:true}).limit(200);if(error){$("messages").textContent=error.message;return;}$("messages").innerHTML="";seen.clear();(data||[]).forEach(appendMessage);if(scroll)scrollBottom();}
+function appendMessage(m){
+  if(seen.has(m.id))return;
+  seen.add(m.id);
+  const row=document.createElement("div");
+  row.className="message-row"+(m.sender_id===user.id?" mine":"");
+  if(m.content){
+    const bubble=document.createElement("div");
+    bubble.className="bubble";
+    bubble.textContent=m.content;
+    row.append(bubble);
+  }
+  if(m.attachment_path){
+    const holder=document.createElement("div");
+    holder.className="message-attachment";
+    const loading=document.createElement("div");
+    loading.className="attachment-caption";
+    loading.textContent="Loading attachment…";
+    holder.append(loading);
+    row.append(holder);
+    renderMessageAttachment(m,holder).catch(error=>{
+      holder.textContent="Could not load attachment: "+(error.message||"unknown error");
+    });
+  }
+  const time=document.createElement("div");
+  time.className="message-time";
+  time.textContent=new Date(m.created_at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+  row.append(time);
+  $("messages").append(row);
+}
+async function renderMessageAttachment(message,holder){
+  const {data,error}=await sb.storage.from("chat-media").createSignedUrl(message.attachment_path,3600);
+  if(error)throw error;
+  const url=data.signedUrl;
+  holder.innerHTML="";
+  const type=message.attachment_type||"application/octet-stream";
+  const caption=document.createElement("div");
+  caption.className="attachment-caption";
+  caption.textContent=message.attachment_name||"Attachment";
+  if(type.startsWith("image/")){
+    const image=document.createElement("img");
+    image.src=url;image.alt=message.attachment_name||"Shared image";image.loading="lazy";
+    holder.append(image,caption);
+  }else if(type.startsWith("video/")){
+    const video=document.createElement("video");
+    video.src=url;video.controls=true;video.playsInline=true;video.preload="metadata";
+    holder.append(video,caption);
+  }else if(type.startsWith("audio/")){
+    const audio=document.createElement("audio");
+    audio.src=url;audio.controls=true;audio.preload="metadata";
+    holder.append(audio,caption);
+  }else{
+    const link=document.createElement("a");
+    link.href=url;link.target="_blank";link.rel="noopener noreferrer";
+    link.textContent="📎 "+(message.attachment_name||"Download file");
+    holder.append(link,caption);
+  }
+}
+async function uploadChatFiles(fileList){
+  if(!activeConversation||!user)return;
+  const files=Array.from(fileList||[]);
+  if(!files.length)return;
+  const attachButton=$("attachButton");
+  attachButton.disabled=true;
+  try{
+    for(const file of files){
+      if(file.size>50*1024*1024)throw new Error(file.name+" is larger than the 50 MB limit.");
+      $("uploadStatus").textContent="Uploading "+file.name+"…";
+      const safeName=(file.name||"file").replace(/[^a-zA-Z0-9._-]/g,"_").slice(-100);
+      const path=activeConversation+"/"+user.id+"/"+crypto.randomUUID()+"-"+safeName;
+      const fileType=file.type||"application/octet-stream";
+      const {error:uploadError}=await sb.storage.from("chat-media").upload(path,file,{
+        cacheControl:"3600",upsert:false,contentType:fileType
+      });
+      if(uploadError)throw uploadError;
+      const {error:messageError}=await sb.from("direct_messages").insert({
+        conversation_id:activeConversation,
+        sender_id:user.id,
+        content:"",
+        attachment_path:path,
+        attachment_name:file.name||"Attachment",
+        attachment_type:fileType,
+        attachment_size:file.size
+      });
+      if(messageError){
+        await sb.storage.from("chat-media").remove([path]);
+        throw messageError;
+      }
+    }
+    $("uploadStatus").textContent=files.length===1?"Attachment sent.":files.length+" attachments sent.";
+    setTimeout(()=>{if($("uploadStatus"))$("uploadStatus").textContent="";},2500);
+  }catch(error){
+    $("uploadStatus").textContent="Upload failed.";
+    alert("Could not upload attachment: "+(error.message||error));
+  }finally{
+    attachButton.disabled=false;
+    $("chatFileInput").value="";
+  }
+}
+
+function refreshPreview(id,m){const c=conversations.find(x=>x.id===id);if(c){c.last=m;renderConversations();}}
+$("messageForm").onsubmit=async e=>{e.preventDefault();const content=$("messageInput").value.trim();if(!content||!activeConversation)return;const btn=$("messageForm").querySelector("button");btn.disabled=true;const {error}=await sb.from("direct_messages").insert({conversation_id:activeConversation,sender_id:user.id,content});btn.disabled=false;if(error){alert("Message could not send: "+error.message);return;}$("messageInput").value="";$("messageInput").style.height="auto";};
+$("messageInput").addEventListener("input",()=>{const el=$("messageInput");el.style.height="auto";el.style.height=Math.min(el.scrollHeight,120)+"px";});
+$("messageInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("messageForm").requestSubmit();}});
+$("videoCallBtn").onclick=startVideoCall;
+$("attachButton").onclick=()=>$("chatFileInput").click();
+$("chatFileInput").onchange=event=>uploadChatFiles(event.target.files);
+function playIncomingMessageSound(message){
+  if(!message||message.sender_id===user?.id)return;
+  if(message.id&&playedMessageSoundIds.has(message.id))return;
+  if(message.id){
+    playedMessageSoundIds.add(message.id);
+    if(playedMessageSoundIds.size>150)playedMessageSoundIds.clear();
+  }
+  playChatSound("message");
+}
+function subscribeToMessageSounds(){
+  if(!sb||!user||messageSoundChannel)return;
+  messageSoundChannel=sb.channel("chatly-message-sounds-"+user.id)
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"direct_messages"},payload=>{
+      const message=payload?.new;
+      if(message&&conversations.some(c=>c.id===message.conversation_id))playIncomingMessageSound(message);
+    }).subscribe(status=>{
+      if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("Chatly message sounds:",status);
+    });
+}
+$("acceptCall").onclick=acceptIncomingCall;
+$("declineCall").onclick=rejectIncomingCall;
+$("cancelCall").onclick=()=>finishCall(true,"cancel");
+$("endCall").onclick=()=>finishCall(true,callState?.phase==="outgoing"?"cancel":"hangup");
+$("closeCall").onclick=()=>finishCall(false);
+function toggleCallMicrophone(){
+  const track=callState?.localStream?.getAudioTracks?.()[0];
+  if(track){track.enabled=!track.enabled;refreshCallControls();}
+}
+function toggleCallCamera(){
+  const track=callState?.localStream?.getVideoTracks?.()[0];
+  if(track){track.enabled=!track.enabled;refreshCallControls();}
+}
+$("toggleMic").onclick=toggleCallMicrophone;
+$("toggleMicRinging").onclick=toggleCallMicrophone;
+$("toggleCamera").onclick=toggleCallCamera;
+$("toggleCameraRinging").onclick=toggleCallCamera;
+$("searchChats").oninput=renderConversations;
+$("newChat").onclick=newChatModal;$("emptyNewChat").onclick=newChatModal;
+$("backToChats").onclick=()=>{$("app").classList.remove("chat-open");};
+$("renameContact").onclick=()=>{const c=conversations.find(x=>x.id===activeConversation);if(!c)return;const old=nickname(c.otherId,displayName(c.person));modal("Rename contact",`<input class="field" id="nicknameInput" maxlength="32" value="${esc(old)}"><div class="modal-actions"><button class="secondary" id="cancelModal">Cancel</button><button class="primary" id="saveNickname">Save</button></div>`);$("cancelModal").onclick=closeModal;$("saveNickname").onclick=()=>{const val=$("nicknameInput").value.trim();if(val)saveNickname(c.otherId,val);closeModal();$("chatName").textContent=val||displayName(c.person);renderConversations();};};
+function modal(title,body){$("modalRoot").innerHTML=`<div class="modal-back" id="modalBack"><section class="modal"><h2>${esc(title)}</h2>${body}</section></div>`;$("modalBack").onclick=e=>{if(e.target.id==="modalBack")closeModal();};}
+function closeModal(){$("modalRoot").innerHTML="";}
+$("settings").onclick=profileModal;
+function profileModal(){const dark=document.body.classList.contains("dark");modal("Customize Chatly",`<div class="avatar avatar-preview" id="profilePreview"></div><label class="small muted">Display name</label><input class="field" id="displayNameInput" maxlength="32" value="${esc(profile.display_name||profile.username)}"><label class="small muted">Profile picture</label><input class="field" id="avatarFile" type="file" accept="image/*"><label class="sound-setting"><input id="soundEnabledInput" type="checkbox" ${soundEnabled?"checked":""}><span>Play message sounds and call ringtones</span></label><div class="sound-test-row"><button type="button" class="secondary" id="testSoundsButton">Test sound</button><span class="small muted" id="testSoundStatus">Tap to check audio.</span></div><label class="small muted">Appearance</label><div class="theme-row"><button class="theme-choice ${!dark?"selected":""}" id="lightTheme">☀ Light</button><button class="theme-choice ${dark?"selected":""}" id="darkTheme">☾ Dark</button></div><div class="modal-actions"><button class="secondary" id="cancelModal">Cancel</button><button class="primary" id="saveProfile">Save</button></div>`);setAvatar($("profilePreview"),profile.avatar_url,profile.display_name||profile.username);$("cancelModal").onclick=closeModal;
+$("soundEnabledInput").onchange=()=>{
+  soundEnabled=$("soundEnabledInput").checked;
+  localStorage.setItem("chatly-sounds",soundEnabled?"on":"off");
+  if(!soundEnabled){pendingChatSounds.length=0;stopCallRingtone();}
+};
+$("testSoundsButton").onclick=async()=>{
+  soundEnabled=true;
+  $("soundEnabledInput").checked=true;
+  localStorage.setItem("chatly-sounds","on");
+  $("testSoundStatus").textContent="Playing…";
+  const ready=await unlockChatAudio();
+  if(ready){
+    playChatSoundNow(audioContextInstance,"message");
+    $("testSoundStatus").textContent="Sounds are working!";
+  }else{
+    $("testSoundStatus").textContent="Your browser blocked audio. Tap again or check device sound.";
+  }
+};
+$("lightTheme").onclick=()=>setTheme(false);$("darkTheme").onclick=()=>setTheme(true);$("saveProfile").onclick=async()=>{try{const display=$("displayNameInput").value.trim()||profile.username;let avatar_url=profile.avatar_url||null;const file=$("avatarFile").files[0];if(file){if(file.size>4*1024*1024)throw Error("Choose an image under 4 MB.");const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"");const path=`${user.id}/${crypto.randomUUID()}.${ext}`;const up=await sb.storage.from("chat-avatars").upload(path,file,{upsert:false,contentType:file.type});if(up.error)throw up.error;avatar_url=sb.storage.from("chat-avatars").getPublicUrl(path).data.publicUrl;}const {data,error}=await sb.from("profiles").update({display_name:display,avatar_url}).eq("id",user.id).select().single();if(error)throw error;profile=data;$("myName").textContent=display;setAvatar($("myAvatar"),avatar_url,display);soundEnabled=$("soundEnabledInput").checked;localStorage.setItem("chatly-sounds",soundEnabled?"on":"off");if(!soundEnabled)pendingChatSounds.length=0;closeModal();}catch(err){alert("Could not save profile: "+err.message);}};}
+function setTheme(dark){document.body.classList.toggle("dark",dark);localStorage.setItem("chatly-theme",dark?"dark":"light");$("lightTheme")?.classList.toggle("selected",!dark);$("darkTheme")?.classList.toggle("selected",dark);}
+setTheme(localStorage.getItem("chatly-theme")==="dark");
+$("signOut").onclick=async()=>{await finishCall(false);if(callSignalChannel)await sb.removeChannel(callSignalChannel);await sb.auth.signOut();};
+window.addEventListener("pagehide",()=>{if(callState)stopCallMedia(callState);});
+if("serviceWorker"in navigator&&location.protocol!=="file:")navigator.serviceWorker.register("./sw.js").catch(()=>{});
+start().catch(err=>{console.error(err);showError(err.message);});
+</script>
+</body>
+</html>

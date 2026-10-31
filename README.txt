@@ -1,76 +1,82 @@
-CHATLY — TURN-RELAY-READY PRIVATE CALL BUILD
+CHATLY — CALL CHAT, CAMERA FLIP, SCREEN SHARING + MESSAGE BOARD UPDATE
+============================================================
 
-WHAT THIS UPDATE DOES
-- Replaces the local-network-only ICE setup with a secure TURN configuration lookup.
-- Chatly requests relay configuration from a Supabase Edge Function named
-  chatly-turn-config. The relay URLs and credentials are kept in Supabase secrets,
-  not in the public GitHub Pages files.
-- Uses the normal WebRTC TURN/TURNS ICE server format. This is compatible with a
-  provider such as Metered when it gives you TURN URLs, a username, and a credential.
-- Caches returned relay settings in memory only. It does not save TURN credentials
-  to localStorage.
-- Keeps group messaging and the existing direct-call signaling/database schema.
+WHAT IS NEW
+- Screen sharing in one-to-one video calls and native in-Chatly group calls.
+- Edit your own text messages.
+- Delete a message for yourself only.
+- Unsend your own messages for everyone.
+- Remove a direct contact from your own conversation list without deleting the other person's copy.
+- Leave a group.
+- Group creators can rename groups and remove group members.
+- Existing Metered TURN relay integration is preserved.
+- In-call text chat in private calls and native group calls.
+- Flip camera control in private and group calls (when another camera is available).
 
-IMPORTANT: THIS IS READY FOR PROVIDER CREDENTIALS, NOT PRE-CONFIGURED
-This ZIP does not include a Metered account, API key, TURN username, or password.
-You must obtain the TURN server details from the provider first. If Metered gives
-an API key only (rather than TURN URLs + username + credential), do not put that key
-in index.html or GitHub. Ask for its temporary credential/API instructions so the
-Edge Function can be adapted to request short-lived credentials securely.
+INSTALLATION
+1. The original CHATLY-GROUPS-SQL.sql should already have been run for group chats.
+2. In Supabase SQL Editor:
+   - If you have NOT run the previous combined migration yet, run the updated
+     CHATLY-GROUP-CALLS-AND-MESSAGE-BOARD-SQL.sql once. It now includes the
+     in-call chat table as well.
+   - If you ALREADY ran the earlier version of that combined migration, run
+     only CHATLY-IN-CALL-CHAT-SQL.sql to add in-call messages. Do not rerun the
+     older CHATLY-GROUP-CALLS-SQL.sql as a separate second migration.
+3. Replace the website files in your GitHub repository with the contents of this
+   ZIP and commit. Keep the supabase/ folder and the existing
+   supabase/functions/chatly-turn-config/index.ts file.
+4. No changes to Metered TURN secrets or the deployed chatly-turn-config Edge
+   Function are needed.
+5. Refresh Chatly on all devices.
 
-SET UP THE TURN PROVIDER
-1. In your TURN provider dashboard, obtain the TURN server URLs, username, and
-   credential. Prefer a TURNS endpoint using TLS/TCP port 443 where offered.
-2. Do not paste a provider secret/API key into the website or this ZIP.
-3. Set these Supabase Edge Function secrets (replace the example values):
+SCREEN SHARING NOTES
+- Uses the browser's built-in getDisplayMedia API. It does not use Jitsi or add
+  another screen-sharing website/service.
+- Requires HTTPS and a browser/device that exposes screen capture. Some mobile
+  browsers, including some iPhone/iPad Safari versions, may not support web screen
+  sharing. Chatly displays an explanation if the API is unavailable.
+- This first version shares screen video only; it does not share system/device audio.
+- The receiving participant sees the shared screen in the existing remote video tile.
+- Stop sharing from Chatly or from the browser's native sharing control.
 
-   supabase secrets set CHATLY_TURN_URLS="turns:YOUR-TURN-HOST:443?transport=tcp,turn:YOUR-TURN-HOST:3478?transport=udp" CHATLY_TURN_USERNAME="YOUR-TURN-USERNAME" CHATLY_TURN_CREDENTIAL="YOUR-TURN-CREDENTIAL"
+MESSAGE BOARD / MODERATION NOTES
+- Delete for me stores a per-user hidden-message record. Other participants still
+  see the message.
+- Unsend for everyone permanently deletes the original sender's message row.
+  Supabase RLS only allows the original sender to unsend or edit it.
+- Remove contact only hides a direct conversation from the current user's list.
+  It does not erase the other user's messages or delete their account. Starting a
+  new chat with that username restores the conversation in the list.
+- Group members can leave. Group creators can rename the group and remove members.
+- Group call capacity remains 6 active participants for this WebRTC mesh build.
 
-   Optional:
-   supabase secrets set CHATLY_TURN_CREDENTIAL_TYPE="password"
+SUPABASE / TURN
+- No SQL changes to the existing Metered secrets or chatly-turn-config Edge
+  Function are needed.
+- Keep the Metered TURN URL, username, and credential in Supabase Edge Function
+  secrets. Do not put TURN passwords or provider API keys in the public website.
 
-   Use the exact URLs and ports supplied by your provider. Do not copy the example
-   host or port unless your provider explicitly gives you those values.
+TESTING / LIMITATIONS
+- JavaScript syntax and ZIP integrity were checked.
+- Real device-to-device screen sharing, database RLS permissions, and multi-person
+  group calling have not been live-tested here. Test with two accounts first.
 
-DEPLOY THE EDGE FUNCTION
-1. Install/use the Supabase CLI and sign in.
-2. Link the CLI to your existing Supabase project:
-   supabase link --project-ref rfivnjnvliqpehdkqqap
-3. From the folder containing the supabase/ directory, deploy:
-   supabase functions deploy chatly-turn-config
-4. Confirm that the secrets above are set in the same Supabase project.
-   JWT verification must remain enabled for this function.
 
-PUBLISH THE WEBSITE
-1. Replace the current Chatly repository files with the files in this ZIP.
-2. Keep the supabase/ folder in the repository (especially
-   supabase/functions/chatly-turn-config/index.ts and supabase/config.toml).
-3. Commit and publish to GitHub Pages.
-4. Refresh Chatly with Ctrl+Shift+R. Both callers need the updated site.
-5. Start a private video call. Chatly will request the TURN configuration when the
-   call is created and will show a clear setup error if the Edge Function/secrets
-   are missing.
+IN-CALL CHAT + CAMERA FLIP UPDATE
+- Private and group calls now include an in-call chat panel.
+- Both call types include a Flip camera control (where the browser exposes another camera).
+- Screen sharing and the existing Metered TURN Edge Function remain included.
+- The in-call chat feature needs the additional chat_call_messages table, RLS policies,
+  and Realtime publication included in the updated SQL migration.
+- No changes to Metered TURN secrets or chatly-turn-config are required.
+- Camera switching and multi-device in-call chat require real-device testing.
 
-DATABASE / SQL
-- NO SQL CHANGE is required for this TURN relay integration.
-- The existing call_signals table and its existing RLS/Realtime policies are still
-  used. Do not rerun or alter your existing SQL just for TURN.
-- The earlier group-chat SQL remains included as CHATLY-GROUPS-SQL.sql. If you
-  already ran it successfully, do not run it again for this update.
+IN-CALL CHAT NOTES
+- Call chat is scoped to the current call ID. Messages are stored in Supabase and shown only to the two private-conversation members or active group-call participants.
+- Call messages are limited to 1,000 characters.
+- If the earlier combined migration was already run, apply the bundled incremental CHATLY-IN-CALL-CHAT-SQL.sql file instead of rerunning the full migration.
 
-CALL SCOPE / LIMITS
-- This config is wired into existing one-to-one WebRTC calls.
-- Group video calls remain paused in this build; adding TURN does not itself create
-  a multiparty group-call system or an SFU.
-- TURN improves connectivity across different networks, but no provider can
-  guarantee calls through every firewall. A school network may block even TLS/443.
-- A fixed TURN username/password is visible to authenticated users who receive it
-  in their browser. Prefer temporary/short-lived TURN credentials if your provider
-  supports them. Never expose an account-wide API key in browser code.
-
-TROUBLESHOOTING
-- “TURN relay is not configured”: check the three Supabase secrets and deploy the
-  Edge Function to the same Supabase project Chatly uses.
-- “Failed to fetch” or function-not-found: check the deployment name and project.
-- ICE connection failure: verify the provider URLs, username, credential, and that
-  at least one TURNS/TCP port 443 endpoint is supported and allowed by the network.
+CAMERA FLIP NOTES
+- Flip camera requests another available video input or switches the facingMode between user and environment.
+- It requires a browser/device that exposes more than one camera or supports facingMode switching. Desktops with one camera may not visibly switch.
+- If screen sharing is active, camera switching updates the camera that will resume after screen sharing stops.

@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <title>Chatly</title>
-<meta name="chatly-build" content="chatly-sounds-call-controls-logo-2026-10-31">
+<meta name="chatly-build" content="chatly-camera-profile-update-2026-10-31">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -167,6 +167,17 @@ body {
 #remoteVideo{width:100%;height:100%;max-height:100%;object-fit:contain;background:#050914}
 #localVideo{position:absolute;right:14px;bottom:14px;width:min(23%,190px);height:auto;aspect-ratio:4/3;object-fit:cover;background:#182235;border:2px solid #ffffffbd;border-radius:13px;box-shadow:0 8px 28px #0008;z-index:2}
 #localVideo.hidden{display:none!important}
+.local-camera-off{position:absolute;right:14px;bottom:14px;width:min(23%,190px);aspect-ratio:4/3;z-index:2;display:none;align-items:center;justify-content:center;background:#fff;border:2px solid #ffffffbd;border-radius:13px;box-shadow:0 8px 28px #0008}
+.local-camera-off.visible{display:flex}
+.local-camera-off .local-camera-avatar{width:clamp(42px,7vw,76px);height:clamp(42px,7vw,76px);border-radius:50%;overflow:hidden;display:grid;place-items:center;background:#dceaff;color:#176bc0;font-size:clamp(18px,3vw,30px);font-weight:800}
+.local-camera-off .local-camera-avatar img{width:100%;height:100%;object-fit:cover}
+body.dark .local-camera-off{background:#202a3a;border-color:#ffffff80}
+body.dark .local-camera-off .local-camera-avatar{background:#35445c;color:#fff}
+.call-placeholder{background:#fff;color:#20212a}
+body.dark .call-placeholder{background:#202a3a;color:#fff}
+body.dark .call-placeholder-sub{color:#c1cada}
+.call-avatar{background:#dceaff;color:#176bc0}
+body.dark .call-avatar{background:#35445c;color:#fff}
 .local-label{position:absolute;right:22px;bottom:20px;z-index:3;font-size:10px;color:#fff;background:#0009;padding:3px 7px;border-radius:20px;pointer-events:none}
 .call-placeholder{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;background:radial-gradient(ellipse at center,#1e3453 0,#0b1220 65%)}
 .call-placeholder.hidden{display:none!important}
@@ -268,6 +279,7 @@ body {
         <div class="call-placeholder-sub" id="callPlaceholderSub">Waiting for video…</div>
       </div>
       <video id="localVideo" autoplay muted playsinline></video>
+      <div class="local-camera-off" id="localCameraOff" aria-label="Your camera is off"><div class="local-camera-avatar" id="localCameraAvatar">?</div></div>
       <div class="local-label">You</div>
     </div>
     <div class="call-details">
@@ -442,9 +454,11 @@ function setCallPhase(phase){
   $("callEndedActions").classList.toggle("hidden",phase!=="ended");
   $("callPeerName").textContent=callState.peerName||"Chatly user";
   $("callPeerLarge").textContent=callState.peerName||"Chatly user";
-  $("callAvatar").textContent=initials(callState.peerName||"U");
-  $("callPlaceholder").classList.toggle("hidden",!!callState.remoteVideoReady);
-  $("localVideo").classList.toggle("hidden",!callState.localStream);
+  setAvatar($("callAvatar"),callState.peerAvatarUrl,callState.peerName||"U");
+  $("callPlaceholder").classList.toggle("hidden",!!callState.remoteVideoReady&&!callState.remoteCameraOff);
+  $("localVideo").classList.toggle("hidden",!callState.localStream||callState.localCameraOff);
+  $("localCameraOff").classList.toggle("visible",!!callState.localCameraOff&&!!callState.localStream);
+  setAvatar($("localCameraAvatar"),profile?.avatar_url,profile?.display_name||profile?.username||"You");
 }
 function showCallEnded(message){
   if(!callState)return;
@@ -473,6 +487,7 @@ function stopCallMedia(call){
   $("localVideo").srcObject=null;
   $("remoteVideo").srcObject=null;
   $("localVideo").classList.add("hidden");
+  $("localCameraOff").classList.remove("visible");
   $("remoteVideo").classList.add("hidden");
 }
 async function sendCallSignal(type,call,payload={}){
@@ -528,6 +543,9 @@ async function getCallMedia(call){
   $("localVideo").srcObject=stream;
   $("localVideo").classList.remove("hidden");
   $("localVideo").muted=true;
+  call.localCameraOff=false;
+  $("localCameraOff").classList.remove("visible");
+  setAvatar($("localCameraAvatar"),profile?.avatar_url,profile?.display_name||profile?.username||"You");
   $("localVideo").play().catch(()=>{});
   refreshCallControls();
   return stream;
@@ -553,16 +571,17 @@ function createCallPeerConnection(call){
       if(track.kind==="video"){
         track.onunmute=()=>{
           call.remoteVideoReady=true;
-          $("callPlaceholder").classList.add("hidden");
+          if(!call.remoteCameraOff)$("callPlaceholder").classList.add("hidden");
         };
         track.onmute=()=>{
           call.remoteVideoReady=false;
           $("callPlaceholder").classList.remove("hidden");
           $("callPlaceholderSub").textContent="Their camera is off";
+          setAvatar($("callAvatar"),call.peerAvatarUrl,call.peerName);
         };
         if(!track.muted){
           call.remoteVideoReady=true;
-          $("callPlaceholder").classList.add("hidden");
+          if(!call.remoteCameraOff)$("callPlaceholder").classList.add("hidden");
         }
       }
     }
@@ -629,6 +648,9 @@ async function startVideoCall(){
     conversationId:conversation.id,
     peerUserId:conversation.otherId,
     peerName:nickname(conversation.otherId,displayName(conversation.person)),
+    peerAvatarUrl:conversation.person?.avatar_url||"",
+    localCameraOff:false,
+    remoteCameraOff:false,
     role:"caller",
     phase:"outgoing",
     localStream:null,
@@ -641,7 +663,7 @@ async function startVideoCall(){
   };
   callState=call;
   $("callPlaceholderSub").textContent="Calling…";
-  $("callAvatar").textContent=initials(call.peerName);
+  setAvatar($("callAvatar"),call.peerAvatarUrl,call.peerName);
   $("remoteVideo").classList.add("hidden");
   $("localVideo").classList.add("hidden");
   setCallPhase("outgoing");
@@ -720,6 +742,9 @@ async function handleCallSignal(change){
       conversationId:row.conversation_id,
       peerUserId:row.from_user,
       peerName:callDisplayName(row.from_user),
+      peerAvatarUrl:conversations.find(c=>c.otherId===row.from_user)?.person?.avatar_url||"",
+      localCameraOff:false,
+      remoteCameraOff:false,
       role:"callee",
       phase:"incoming",
       offerDescription:incomingPayload.description,
@@ -732,7 +757,7 @@ async function handleCallSignal(change){
     };
     callState=call;
     $("callPlaceholderSub").textContent="Incoming video call";
-    $("callAvatar").textContent=initials(call.peerName);
+    setAvatar($("callAvatar"),call.peerAvatarUrl,call.peerName);
     $("remoteVideo").classList.add("hidden");
     $("localVideo").classList.add("hidden");
     setCallPhase("incoming");
@@ -744,7 +769,20 @@ async function handleCallSignal(change){
     return;
   }
   const call=callState;
-  if(row.signal_type==="ice"){
+  if(row.signal_type==="camera"){
+    call.remoteCameraOff=!incomingPayload.enabled;
+    if(call.remoteCameraOff){
+      call.remoteVideoReady=false;
+      $("remoteVideo").classList.add("hidden");
+      $("callPlaceholder").classList.remove("hidden");
+      $("callPlaceholderSub").textContent="Their camera is off";
+      setAvatar($("callAvatar"),call.peerAvatarUrl,call.peerName);
+    }else{
+      $("remoteVideo").classList.remove("hidden");
+      $("callPlaceholderSub").textContent="Waiting for video…";
+      if(call.remoteVideoReady)$("callPlaceholder").classList.add("hidden");
+    }
+  }else if(row.signal_type==="ice"){
     await receiveCallCandidate(call,incomingPayload.candidate);
   }else if(row.signal_type==="answer"&&call.role==="caller"){
     try{
@@ -951,8 +989,19 @@ function toggleCallMicrophone(){
   if(track){track.enabled=!track.enabled;refreshCallControls();}
 }
 function toggleCallCamera(){
-  const track=callState?.localStream?.getVideoTracks?.()[0];
-  if(track){track.enabled=!track.enabled;refreshCallControls();}
+  const call=callState;
+  const track=call?.localStream?.getVideoTracks?.()[0];
+  if(track){
+    track.enabled=!track.enabled;
+    call.localCameraOff=!track.enabled;
+    $("localVideo").classList.toggle("hidden",!track.enabled);
+    $("localCameraOff").classList.toggle("visible",!track.enabled);
+    setAvatar($("localCameraAvatar"),profile?.avatar_url,profile?.display_name||profile?.username||"You");
+    refreshCallControls();
+    if(call.peerUserId){
+      sendCallSignal("camera",call,{enabled:track.enabled}).catch(error=>console.warn("Could not sync camera state:",error));
+    }
+  }
 }
 $("toggleMic").onclick=toggleCallMicrophone;
 $("toggleMicRinging").onclick=toggleCallMicrophone;

@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#f5f6fa">
 <meta name="description" content="Chatly — your personal messages.">
 <title>Chatly</title>
-<meta name="chatly-build" content="scroll-fix-2026-10-30">
+<meta name="chatly-build" content="chatly-media-sounds-2026-10-31">
 <link rel="manifest" href="manifest.webmanifest">
 <style>
 :root{color-scheme:light;--bg:#f4f5f9;--panel:#fff;--soft:#f0f1f6;--line:#e7e8ef;--text:#20212a;--muted:#858997;--blue:#1685f8;--blue2:#0878ed;--bubble:#e9eaf0;--shadow:0 12px 40px #1d2a4510}
@@ -185,6 +185,23 @@ body {
 }
 </style>
 
+
+<style id="chatly-media-sounds-styles">
+.attach-button{width:34px;height:34px;flex:none;border-radius:50%;background:transparent;color:var(--blue);font-size:26px;line-height:1;display:grid;place-items:center;padding:0}
+.attach-button:hover{background:#1685f812}
+.message-attachment{display:grid;gap:6px;max-width:min(100%,520px);min-width:0}
+.message-attachment img,.message-attachment video{display:block;width:auto;max-width:min(100%,520px);max-height:420px;border-radius:14px;background:#111;object-fit:contain}
+.message-attachment audio{display:block;max-width:min(100%,340px);width:100%}
+.message-attachment a{display:inline-flex;align-items:center;gap:8px;max-width:100%;overflow-wrap:anywhere;padding:10px 13px;background:var(--soft);border:1px solid var(--line);border-radius:12px;color:var(--blue);text-decoration:none;font-weight:650}
+.attachment-caption{font-size:11px;color:var(--muted);overflow-wrap:anywhere}
+.upload-status{position:absolute;left:clamp(18px,4vw,54px);bottom:calc(100% - 5px);max-width:calc(100% - 36px);font-size:11px;color:var(--muted);padding:2px 8px;background:var(--panel);border-radius:6px;min-height:0;z-index:2}
+#messageForm{position:relative}
+.sound-setting{display:flex;align-items:center;gap:10px;padding:10px 0;color:var(--text);font-size:14px}
+.sound-setting input{width:18px;height:18px;accent-color:var(--blue)}
+.call-action:disabled{opacity:.45}
+@media(max-width:600px){.message-attachment img,.message-attachment video{max-height:300px}}
+</style>
+
 </head>
 <body>
 <div id="auth" class="auth">
@@ -226,7 +243,8 @@ body {
     </header>
     <section class="messages hidden" id="messages" aria-live="polite"></section>
     <form class="composer-area hidden" id="messageForm">
-      <div class="composer"><textarea id="messageInput" rows="1" maxlength="4000" placeholder="iMessage"></textarea><button class="send" type="submit" aria-label="Send">↑</button></div>
+      <div class="upload-status" id="uploadStatus" aria-live="polite"></div>
+      <div class="composer"><button class="attach-button" type="button" id="attachButton" title="Attach a photo, video, audio, or file" aria-label="Attach file">＋</button><input id="chatFileInput" class="hidden" type="file" multiple accept="image/*,video/*,audio/*,.pdf,.txt,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip"><textarea id="messageInput" rows="1" maxlength="4000" placeholder="iMessage"></textarea><button class="send" type="submit" aria-label="Send">↑</button></div>
     </form>
   </main>
 </div>
@@ -275,6 +293,7 @@ const SUPABASE_ANON_KEY="sb_publishable_ifYAMrdUhuyX-iOZULuP4w_nZx6oQtl";
 const $=id=>document.getElementById(id);
 let sb,user,profile,mode="login",activeConversation=null,activeContact=null,liveChannel=null,seen=new Set(),conversations=[];
 let callSignalChannel=null,callState=null;
+let soundEnabled=localStorage.getItem("chatly-sounds")!=="off",audioContextInstance=null,ringtoneInterval=null,messageSoundChannel=null;
 const nickKey="chatly-v2-nicknames";
 function esc(s=""){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function initials(s="U"){return (s.trim()[0]||"U").toUpperCase();}
@@ -282,6 +301,54 @@ function setAvatar(el,url,name){el.innerHTML=url?`<img src="${esc(url)}" alt="">
 function nickname(id,fallback){try{return JSON.parse(localStorage.getItem(nickKey)||"{}")[id]||fallback}catch{return fallback}}
 function saveNickname(id,name){let all={};try{all=JSON.parse(localStorage.getItem(nickKey)||"{}")}catch{}all[id]=name;localStorage.setItem(nickKey,JSON.stringify(all));}
 function toast(s){const el=$("chatStatus");if(el)el.textContent=s;}
+
+function getChatAudioContext(){
+  const AudioCtx=window.AudioContext||window.webkitAudioContext;
+  if(!AudioCtx)return null;
+  if(!audioContextInstance)audioContextInstance=new AudioCtx();
+  if(audioContextInstance.state==="suspended")audioContextInstance.resume().catch(()=>{});
+  return audioContextInstance;
+}
+function scheduleChatTone(ctx,frequency,start,duration,volume=0.035){
+  const osc=ctx.createOscillator(),gain=ctx.createGain();
+  osc.type="sine";osc.frequency.setValueAtTime(frequency,start);
+  gain.gain.setValueAtTime(0.0001,start);
+  gain.gain.exponentialRampToValueAtTime(Math.max(0.0002,volume),start+0.018);
+  gain.gain.setValueAtTime(Math.max(0.0002,volume),start+Math.max(0.02,duration-0.035));
+  gain.gain.exponentialRampToValueAtTime(0.0001,start+duration);
+  osc.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(start+duration+0.02);
+}
+function playChatSound(kind){
+  if(!soundEnabled)return;
+  const ctx=getChatAudioContext();if(!ctx||ctx.state!=="running")return;
+  const now=ctx.currentTime+0.025;
+  if(kind==="message"){
+    scheduleChatTone(ctx,740,now,0.085,0.025);
+    scheduleChatTone(ctx,988,now+0.105,0.12,0.025);
+  }else if(kind==="incoming"){
+    scheduleChatTone(ctx,660,now,0.32,0.035);
+    scheduleChatTone(ctx,784,now+0.37,0.32,0.035);
+  }else if(kind==="outgoing"){
+    scheduleChatTone(ctx,440,now,0.42,0.03);
+    scheduleChatTone(ctx,480,now+0.46,0.42,0.03);
+  }
+}
+function stopCallRingtone(){if(ringtoneInterval){clearInterval(ringtoneInterval);ringtoneInterval=null;}}
+function startCallRingtone(kind){
+  stopCallRingtone();
+  playChatSound(kind);
+  ringtoneInterval=setInterval(()=>playChatSound(kind),kind==="incoming"?1900:2200);
+}
+document.addEventListener("pointerdown",()=>{if(soundEnabled)getChatAudioContext();},{once:true});
+function messagePreview(message){
+  if(!message)return "Start a conversation";
+  if(message.content)return message.content;
+  const type=message.attachment_type||"";
+  if(type.startsWith("image/"))return "📷 Photo";
+  if(type.startsWith("video/"))return "🎥 Video";
+  if(type.startsWith("audio/"))return "🎵 Audio";
+  return "📎 "+(message.attachment_name||"File");
+}
 
 function callDisplayName(id){
   const conversation=conversations.find(c=>c.otherId===id);
@@ -292,6 +359,7 @@ function setCallStatus(message){$("callStatus").textContent=message||"";}
 function setCallPhase(phase){
   if(!callState)return;
   callState.phase=phase;
+  if(phase!=="incoming"&&phase!=="outgoing")stopCallRingtone();
   $("callOverlay").classList.remove("hidden");
   $("callIncomingActions").classList.toggle("hidden",phase!=="incoming");
   $("callOutgoingActions").classList.toggle("hidden",phase!=="outgoing");
@@ -305,6 +373,7 @@ function setCallPhase(phase){
 }
 function showCallEnded(message){
   if(!callState)return;
+  stopCallRingtone();
   if(callState.ringTimer)clearTimeout(callState.ringTimer);
   if(callState.disconnectTimer)clearTimeout(callState.disconnectTimer);
   stopCallMedia(callState);
@@ -347,6 +416,7 @@ async function finishCall(sendSignal=false,signalType="hangup"){
   const call=callState;
   if(!call)return;
   callState=null;
+  stopCallRingtone();
   if(call.ringTimer)clearTimeout(call.ringTimer);
   if(call.disconnectTimer)clearTimeout(call.disconnectTimer);
   stopCallMedia(call);
@@ -516,6 +586,7 @@ async function startVideoCall(){
     }
     if(callState?.id!==call.id)return;
     setCallStatus("Ringing… waiting for them to answer.");
+    startCallRingtone("outgoing");
     call.ringTimer=setTimeout(()=>{
       if(callState?.id===call.id&&callState.phase==="outgoing"){
         sendCallSignal("cancel",call,{}).catch(()=>{});
@@ -531,6 +602,7 @@ async function acceptIncomingCall(){
   const call=callState;
   if(!call||call.phase!=="incoming")return;
   if(call.ringTimer)clearTimeout(call.ringTimer);
+  stopCallRingtone();
   setCallPhase("connecting");
   setCallStatus("Connecting…");
   try{
@@ -590,6 +662,7 @@ async function handleCallSignal(change){
     $("localVideo").classList.add("hidden");
     setCallPhase("incoming");
     setCallStatus("Incoming video call");
+    startCallRingtone("incoming");
     return;
   }
   if(!callState||callState.id!==row.call_id){
@@ -649,21 +722,131 @@ function setMode(next){mode=next;$("authTitle").textContent=mode==="login"?"Your
 $("authSwitch").onclick=e=>{e.preventDefault();setMode(mode==="login"?"signup":"login")};
 async function start(){sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);const {data:{session}}=await sb.auth.getSession();if(session)await enter(session.user);sb.auth.onAuthStateChange(async(event,session)=>{if(event==="SIGNED_IN"&&session&&!user)await enter(session.user);if(event==="SIGNED_OUT")location.reload()});}
 $("authForm").onsubmit=async e=>{e.preventDefault();showError("");try{const email=$("email").value.trim(),password=$("password").value;if(mode==="signup"){const username=$("username").value.trim();if(!/^[a-zA-Z0-9_]{3,24}$/.test(username))throw Error("Username must be 3–24 letters, numbers, or underscores.");const {data,error}=await sb.auth.signUp({email,password,options:{data:{username}}});if(error)throw error;if(data.session)await enter(data.user);else showError("Check your email to confirm your account, then sign in.");}else{const {data,error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;await enter(data.user)}}catch(err){showError(err.message||"Something went wrong.")}};
-async function enter(authUser){user=authUser;const {data,error}=await sb.from("profiles").select("*").eq("id",user.id).single();if(error)throw error;profile=data;$("auth").classList.add("hidden");$("app").classList.remove("hidden");$("myName").textContent=profile.display_name||profile.username;setAvatar($("myAvatar"),profile.avatar_url,profile.display_name||profile.username);await loadConversations();subscribeToCallSignals();}
+async function enter(authUser){user=authUser;const {data,error}=await sb.from("profiles").select("*").eq("id",user.id).single();if(error)throw error;profile=data;$("auth").classList.add("hidden");$("app").classList.remove("hidden");$("myName").textContent=profile.display_name||profile.username;setAvatar($("myAvatar"),profile.avatar_url,profile.display_name||profile.username);await loadConversations();subscribeToCallSignals();subscribeToMessageSounds();}
 function displayName(p){return p?.display_name||p?.username||"Chatly user";}
-async function loadConversations(){const {data,error}=await sb.from("conversations").select("id,user_one,user_two,created_at").or(`user_one.eq.${user.id},user_two.eq.${user.id}`).order("created_at",{ascending:false});if(error){$("conversationList").innerHTML=`<div class="empty">Could not load messages: ${esc(error.message)}</div>`;return;}const rows=data||[];const ids=[...new Set(rows.map(c=>c.user_one===user.id?c.user_two:c.user_one))];let profiles={};if(ids.length){const r=await sb.from("profiles").select("id,username,display_name,avatar_url").in("id",ids);if(r.error){console.error(r.error)}else for(const p of r.data||[])profiles[p.id]=p;}conversations=[];for(const c of rows){const other=c.user_one===user.id?c.user_two:c.user_one;const p=profiles[other];if(!p)continue;const {data:last}=await sb.from("direct_messages").select("content,created_at,sender_id").eq("conversation_id",c.id).order("created_at",{ascending:false}).limit(1).maybeSingle();conversations.push({...c,otherId:other,person:p,last});}renderConversations();}
-function renderConversations(){const q=$("searchChats").value.trim().toLowerCase();const list=conversations.filter(c=>nickname(c.otherId,displayName(c.person)).toLowerCase().includes(q));$("conversationList").innerHTML=list.length?list.map(c=>{const n=nickname(c.otherId,displayName(c.person));const preview=c.last?(c.last.sender_id===user.id?"You: ":"")+c.last.content:"Start a conversation";const time=c.last?new Date(c.last.created_at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"";return `<div class="conversation ${activeConversation===c.id?"active":""}" data-conv="${c.id}"><div class="avatar" data-avatar="${c.otherId}">${c.person.avatar_url?`<img src="${esc(c.person.avatar_url)}" alt="">`:esc(initials(n))}</div><div class="conv-copy"><div class="conv-top"><span class="conv-name">${esc(n)}</span><span class="conv-time">${time}</span></div><div class="conv-preview">${esc(preview)}</div></div></div>`}).join(""):'<div class="empty"><div><p>No conversations yet.</p><button class="primary" id="listNewChat">Start a chat</button></div></div>';$("conversationList").querySelectorAll("[data-conv]").forEach(el=>el.onclick=()=>openConversation(el.dataset.conv));const btn=$("listNewChat");if(btn)btn.onclick=newChatModal;}
+async function loadConversations(){const {data,error}=await sb.from("conversations").select("id,user_one,user_two,created_at").or(`user_one.eq.${user.id},user_two.eq.${user.id}`).order("created_at",{ascending:false});if(error){$("conversationList").innerHTML=`<div class="empty">Could not load messages: ${esc(error.message)}</div>`;return;}const rows=data||[];const ids=[...new Set(rows.map(c=>c.user_one===user.id?c.user_two:c.user_one))];let profiles={};if(ids.length){const r=await sb.from("profiles").select("id,username,display_name,avatar_url").in("id",ids);if(r.error){console.error(r.error)}else for(const p of r.data||[])profiles[p.id]=p;}conversations=[];for(const c of rows){const other=c.user_one===user.id?c.user_two:c.user_one;const p=profiles[other];if(!p)continue;const {data:last}=await sb.from("direct_messages").select("content,created_at,sender_id,attachment_name,attachment_type,attachment_path").eq("conversation_id",c.id).order("created_at",{ascending:false}).limit(1).maybeSingle();conversations.push({...c,otherId:other,person:p,last});}renderConversations();}
+function renderConversations(){const q=$("searchChats").value.trim().toLowerCase();const list=conversations.filter(c=>nickname(c.otherId,displayName(c.person)).toLowerCase().includes(q));$("conversationList").innerHTML=list.length?list.map(c=>{const n=nickname(c.otherId,displayName(c.person));const preview=c.last?(c.last.sender_id===user.id?"You: ":"")+messagePreview(c.last):"Start a conversation";const time=c.last?new Date(c.last.created_at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"";return `<div class="conversation ${activeConversation===c.id?"active":""}" data-conv="${c.id}"><div class="avatar" data-avatar="${c.otherId}">${c.person.avatar_url?`<img src="${esc(c.person.avatar_url)}" alt="">`:esc(initials(n))}</div><div class="conv-copy"><div class="conv-top"><span class="conv-name">${esc(n)}</span><span class="conv-time">${time}</span></div><div class="conv-preview">${esc(preview)}</div></div></div>`}).join(""):'<div class="empty"><div><p>No conversations yet.</p><button class="primary" id="listNewChat">Start a chat</button></div></div>';$("conversationList").querySelectorAll("[data-conv]").forEach(el=>el.onclick=()=>openConversation(el.dataset.conv));const btn=$("listNewChat");if(btn)btn.onclick=newChatModal;}
 async function newChatModal(){modal("Start a new chat",`<p class="muted small">Enter someone's exact Chatly username.</p><input class="field" id="findUsername" placeholder="Username"><p class="small" id="findError" style="color:#d84a5b"></p><div class="modal-actions"><button class="secondary" id="cancelModal">Cancel</button><button class="primary" id="findPerson">Find person</button></div>`);$("cancelModal").onclick=closeModal;$("findPerson").onclick=async()=>{const name=$("findUsername").value.trim();if(!name)return;$("findError").textContent="Searching…";const {data,error}=await sb.from("profiles").select("id,username,display_name,avatar_url").ilike("username",name).maybeSingle();if(error){$("findError").textContent=error.message;return;}if(!data){$("findError").textContent="No user found with that exact username.";return;}if(data.id===user.id){$("findError").textContent="That's your own username.";return;}const {data:cid,error:ce}=await sb.rpc("chatly_get_or_create_conversation",{p_other_user:data.id});if(ce){$("findError").textContent=ce.message;return;}closeModal();await loadConversations();await openConversation(cid);};}
-async function openConversation(id){const c=conversations.find(x=>x.id===id);if(!c)return;activeConversation=id;activeContact=c.person;seen=new Set();$("app").classList.add("chat-open");$("emptyState").classList.add("hidden");$("chatHead").classList.remove("hidden");$("messages").classList.remove("hidden");$("messageForm").classList.remove("hidden");const name=nickname(c.otherId,displayName(c.person));$("chatName").textContent=name;setAvatar($("chatAvatar"),c.person.avatar_url,name);renderConversations();if(liveChannel){sb.removeChannel(liveChannel);liveChannel=null;}await loadMessages(true);liveChannel=sb.channel("dm-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"direct_messages",filter:"conversation_id=eq."+id},async payload=>{const nearBottom=nearBottomNow();const {data}=await sb.from("direct_messages").select("id,content,created_at,sender_id").eq("id",payload.new.id).single();if(data){appendMessage(data);if(nearBottom||data.sender_id===user.id)scrollBottom();refreshPreview(id,data);}}).subscribe();}
+async function openConversation(id){const c=conversations.find(x=>x.id===id);if(!c)return;activeConversation=id;activeContact=c.person;seen=new Set();$("app").classList.add("chat-open");$("emptyState").classList.add("hidden");$("chatHead").classList.remove("hidden");$("messages").classList.remove("hidden");$("messageForm").classList.remove("hidden");const name=nickname(c.otherId,displayName(c.person));$("chatName").textContent=name;setAvatar($("chatAvatar"),c.person.avatar_url,name);renderConversations();if(liveChannel){sb.removeChannel(liveChannel);liveChannel=null;}await loadMessages(true);liveChannel=sb.channel("dm-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"direct_messages",filter:"conversation_id=eq."+id},async payload=>{const nearBottom=nearBottomNow();const {data}=await sb.from("direct_messages").select("id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size").eq("id",payload.new.id).single();if(data){appendMessage(data);if(nearBottom||data.sender_id===user.id)scrollBottom();refreshPreview(id,data);}}).subscribe();}
 function nearBottomNow(){const el=$("messages");return el.scrollHeight-el.scrollTop-el.clientHeight<110;}
 function scrollBottom(){const el=$("messages");requestAnimationFrame(()=>{el.scrollTop=el.scrollHeight;});}
-async function loadMessages(scroll){const {data,error}=await sb.from("direct_messages").select("id,content,created_at,sender_id").eq("conversation_id",activeConversation).order("created_at",{ascending:true}).limit(200);if(error){$("messages").textContent=error.message;return;}$("messages").innerHTML="";seen.clear();(data||[]).forEach(appendMessage);if(scroll)scrollBottom();}
-function appendMessage(m){if(seen.has(m.id))return;seen.add(m.id);const row=document.createElement("div");row.className="message-row"+(m.sender_id===user.id?" mine":"");const bubble=document.createElement("div");bubble.className="bubble";bubble.textContent=m.content;const time=document.createElement("div");time.className="message-time";time.textContent=new Date(m.created_at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});row.append(bubble,time);$("messages").append(row);}
+async function loadMessages(scroll){const {data,error}=await sb.from("direct_messages").select("id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size").eq("conversation_id",activeConversation).order("created_at",{ascending:true}).limit(200);if(error){$("messages").textContent=error.message;return;}$("messages").innerHTML="";seen.clear();(data||[]).forEach(appendMessage);if(scroll)scrollBottom();}
+function appendMessage(m){
+  if(seen.has(m.id))return;
+  seen.add(m.id);
+  const row=document.createElement("div");
+  row.className="message-row"+(m.sender_id===user.id?" mine":"");
+  if(m.content){
+    const bubble=document.createElement("div");
+    bubble.className="bubble";
+    bubble.textContent=m.content;
+    row.append(bubble);
+  }
+  if(m.attachment_path){
+    const holder=document.createElement("div");
+    holder.className="message-attachment";
+    const loading=document.createElement("div");
+    loading.className="attachment-caption";
+    loading.textContent="Loading attachment…";
+    holder.append(loading);
+    row.append(holder);
+    renderMessageAttachment(m,holder).catch(error=>{
+      holder.textContent="Could not load attachment: "+(error.message||"unknown error");
+    });
+  }
+  const time=document.createElement("div");
+  time.className="message-time";
+  time.textContent=new Date(m.created_at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+  row.append(time);
+  $("messages").append(row);
+}
+async function renderMessageAttachment(message,holder){
+  const {data,error}=await sb.storage.from("chat-media").createSignedUrl(message.attachment_path,3600);
+  if(error)throw error;
+  const url=data.signedUrl;
+  holder.innerHTML="";
+  const type=message.attachment_type||"application/octet-stream";
+  const caption=document.createElement("div");
+  caption.className="attachment-caption";
+  caption.textContent=message.attachment_name||"Attachment";
+  if(type.startsWith("image/")){
+    const image=document.createElement("img");
+    image.src=url;image.alt=message.attachment_name||"Shared image";image.loading="lazy";
+    holder.append(image,caption);
+  }else if(type.startsWith("video/")){
+    const video=document.createElement("video");
+    video.src=url;video.controls=true;video.playsInline=true;video.preload="metadata";
+    holder.append(video,caption);
+  }else if(type.startsWith("audio/")){
+    const audio=document.createElement("audio");
+    audio.src=url;audio.controls=true;audio.preload="metadata";
+    holder.append(audio,caption);
+  }else{
+    const link=document.createElement("a");
+    link.href=url;link.target="_blank";link.rel="noopener noreferrer";
+    link.textContent="📎 "+(message.attachment_name||"Download file");
+    holder.append(link,caption);
+  }
+}
+async function uploadChatFiles(fileList){
+  if(!activeConversation||!user)return;
+  const files=Array.from(fileList||[]);
+  if(!files.length)return;
+  const attachButton=$("attachButton");
+  attachButton.disabled=true;
+  try{
+    for(const file of files){
+      if(file.size>50*1024*1024)throw new Error(file.name+" is larger than the 50 MB limit.");
+      $("uploadStatus").textContent="Uploading "+file.name+"…";
+      const safeName=(file.name||"file").replace(/[^a-zA-Z0-9._-]/g,"_").slice(-100);
+      const path=activeConversation+"/"+user.id+"/"+crypto.randomUUID()+"-"+safeName;
+      const fileType=file.type||"application/octet-stream";
+      const {error:uploadError}=await sb.storage.from("chat-media").upload(path,file,{
+        cacheControl:"3600",upsert:false,contentType:fileType
+      });
+      if(uploadError)throw uploadError;
+      const {error:messageError}=await sb.from("direct_messages").insert({
+        conversation_id:activeConversation,
+        sender_id:user.id,
+        content:"",
+        attachment_path:path,
+        attachment_name:file.name||"Attachment",
+        attachment_type:fileType,
+        attachment_size:file.size
+      });
+      if(messageError){
+        await sb.storage.from("chat-media").remove([path]);
+        throw messageError;
+      }
+    }
+    $("uploadStatus").textContent=files.length===1?"Attachment sent.":files.length+" attachments sent.";
+    setTimeout(()=>{if($("uploadStatus"))$("uploadStatus").textContent="";},2500);
+  }catch(error){
+    $("uploadStatus").textContent="Upload failed.";
+    alert("Could not upload attachment: "+(error.message||error));
+  }finally{
+    attachButton.disabled=false;
+    $("chatFileInput").value="";
+  }
+}
+
 function refreshPreview(id,m){const c=conversations.find(x=>x.id===id);if(c){c.last=m;renderConversations();}}
 $("messageForm").onsubmit=async e=>{e.preventDefault();const content=$("messageInput").value.trim();if(!content||!activeConversation)return;const btn=$("messageForm").querySelector("button");btn.disabled=true;const {error}=await sb.from("direct_messages").insert({conversation_id:activeConversation,sender_id:user.id,content});btn.disabled=false;if(error){alert("Message could not send: "+error.message);return;}$("messageInput").value="";$("messageInput").style.height="auto";};
 $("messageInput").addEventListener("input",()=>{const el=$("messageInput");el.style.height="auto";el.style.height=Math.min(el.scrollHeight,120)+"px";});
 $("messageInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("messageForm").requestSubmit();}});
 $("videoCallBtn").onclick=startVideoCall;
+$("attachButton").onclick=()=>$("chatFileInput").click();
+$("chatFileInput").onchange=event=>uploadChatFiles(event.target.files);
+function subscribeToMessageSounds(){
+  if(!sb||!user||messageSoundChannel)return;
+  messageSoundChannel=sb.channel("chatly-message-sounds-"+user.id)
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"direct_messages"},payload=>{
+      const message=payload?.new;
+      if(message&&message.sender_id!==user.id&&conversations.some(c=>c.id===message.conversation_id))playChatSound("message");
+    }).subscribe(status=>{
+      if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("Chatly message sounds:",status);
+    });
+}
 $("acceptCall").onclick=acceptIncomingCall;
 $("declineCall").onclick=rejectIncomingCall;
 $("cancelCall").onclick=()=>finishCall(true,"cancel");
@@ -684,7 +867,7 @@ $("renameContact").onclick=()=>{const c=conversations.find(x=>x.id===activeConve
 function modal(title,body){$("modalRoot").innerHTML=`<div class="modal-back" id="modalBack"><section class="modal"><h2>${esc(title)}</h2>${body}</section></div>`;$("modalBack").onclick=e=>{if(e.target.id==="modalBack")closeModal();};}
 function closeModal(){$("modalRoot").innerHTML="";}
 $("settings").onclick=profileModal;
-function profileModal(){const dark=document.body.classList.contains("dark");modal("Customize Chatly",`<div class="avatar avatar-preview" id="profilePreview"></div><label class="small muted">Display name</label><input class="field" id="displayNameInput" maxlength="32" value="${esc(profile.display_name||profile.username)}"><label class="small muted">Profile picture</label><input class="field" id="avatarFile" type="file" accept="image/*"><label class="small muted">Appearance</label><div class="theme-row"><button class="theme-choice ${!dark?"selected":""}" id="lightTheme">☀ Light</button><button class="theme-choice ${dark?"selected":""}" id="darkTheme">☾ Dark</button></div><div class="modal-actions"><button class="secondary" id="cancelModal">Cancel</button><button class="primary" id="saveProfile">Save</button></div>`);setAvatar($("profilePreview"),profile.avatar_url,profile.display_name||profile.username);$("cancelModal").onclick=closeModal;$("lightTheme").onclick=()=>setTheme(false);$("darkTheme").onclick=()=>setTheme(true);$("saveProfile").onclick=async()=>{try{const display=$("displayNameInput").value.trim()||profile.username;let avatar_url=profile.avatar_url||null;const file=$("avatarFile").files[0];if(file){if(file.size>4*1024*1024)throw Error("Choose an image under 4 MB.");const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"");const path=`${user.id}/${crypto.randomUUID()}.${ext}`;const up=await sb.storage.from("chat-avatars").upload(path,file,{upsert:false,contentType:file.type});if(up.error)throw up.error;avatar_url=sb.storage.from("chat-avatars").getPublicUrl(path).data.publicUrl;}const {data,error}=await sb.from("profiles").update({display_name:display,avatar_url}).eq("id",user.id).select().single();if(error)throw error;profile=data;$("myName").textContent=display;setAvatar($("myAvatar"),avatar_url,display);closeModal();}catch(err){alert("Could not save profile: "+err.message);}};}
+function profileModal(){const dark=document.body.classList.contains("dark");modal("Customize Chatly",`<div class="avatar avatar-preview" id="profilePreview"></div><label class="small muted">Display name</label><input class="field" id="displayNameInput" maxlength="32" value="${esc(profile.display_name||profile.username)}"><label class="small muted">Profile picture</label><input class="field" id="avatarFile" type="file" accept="image/*"><label class="sound-setting"><input id="soundEnabledInput" type="checkbox" ${soundEnabled?"checked":""}><span>Play message sounds and call ringtones</span></label><label class="small muted">Appearance</label><div class="theme-row"><button class="theme-choice ${!dark?"selected":""}" id="lightTheme">☀ Light</button><button class="theme-choice ${dark?"selected":""}" id="darkTheme">☾ Dark</button></div><div class="modal-actions"><button class="secondary" id="cancelModal">Cancel</button><button class="primary" id="saveProfile">Save</button></div>`);setAvatar($("profilePreview"),profile.avatar_url,profile.display_name||profile.username);$("cancelModal").onclick=closeModal;$("lightTheme").onclick=()=>setTheme(false);$("darkTheme").onclick=()=>setTheme(true);$("saveProfile").onclick=async()=>{try{const display=$("displayNameInput").value.trim()||profile.username;let avatar_url=profile.avatar_url||null;const file=$("avatarFile").files[0];if(file){if(file.size>4*1024*1024)throw Error("Choose an image under 4 MB.");const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"");const path=`${user.id}/${crypto.randomUUID()}.${ext}`;const up=await sb.storage.from("chat-avatars").upload(path,file,{upsert:false,contentType:file.type});if(up.error)throw up.error;avatar_url=sb.storage.from("chat-avatars").getPublicUrl(path).data.publicUrl;}const {data,error}=await sb.from("profiles").update({display_name:display,avatar_url}).eq("id",user.id).select().single();if(error)throw error;profile=data;$("myName").textContent=display;setAvatar($("myAvatar"),avatar_url,display);soundEnabled=$("soundEnabledInput").checked;localStorage.setItem("chatly-sounds",soundEnabled?"on":"off");closeModal();}catch(err){alert("Could not save profile: "+err.message);}};}
 function setTheme(dark){document.body.classList.toggle("dark",dark);localStorage.setItem("chatly-theme",dark?"dark":"light");$("lightTheme")?.classList.toggle("selected",!dark);$("darkTheme")?.classList.toggle("selected",dark);}
 setTheme(localStorage.getItem("chatly-theme")==="dark");
 $("signOut").onclick=async()=>{await finishCall(false);if(callSignalChannel)await sb.removeChannel(callSignalChannel);await sb.auth.signOut();};

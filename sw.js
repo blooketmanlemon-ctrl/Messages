@@ -1,4 +1,4 @@
-const CACHE_NAME = "chatly-video-calls-20261031";
+const CACHE_NAME = "chatly-media-sounds-20261031";
 const STATIC_ASSETS = ["./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", (event) => {

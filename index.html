@@ -608,6 +608,9 @@ const $=id=>document.getElementById(id);
 let sb,user,profile,mode="login",activeConversation=null,activeContact=null,liveChannel=null,seen=new Set(),conversations=[];
 let supabaseInitPromise=null;
 let supabaseAuthListenerBound=false;
+// Settings preference state (persisted per device).
+let sendWithEnter=localStorage.getItem("chatly-send-enter")!=="off";
+
 
 // Load Supabase JS from a fallback CDN if the primary script is unavailable.
 function loadSupabaseSdk(){
@@ -2667,7 +2670,77 @@ function manageGroupMembers(group){
 }
 function modal(title,body){$("modalRoot").innerHTML=`<div class="modal-back" id="modalBack"><section class="modal"><h2>${esc(title)}</h2>${body}</section></div>`;$("modalBack").onclick=e=>{if(e.target.id==="modalBack")closeModal();};}
 function closeModal(){$("modalRoot").innerHTML="";}
-$("settings").onclick=profileModal;
+const CHATLY_ACCENTS={
+  blue:{label:"Ocean blue",color:"#1685f8",hover:"#0878ed"},
+  purple:{label:"Violet",color:"#8b5cf6",hover:"#7c3aed"},
+  pink:{label:"Rose pink",color:"#ec4899",hover:"#db2777"},
+  teal:{label:"Teal",color:"#0d9488",hover:"#0f766e"},
+  orange:{label:"Sunset orange",color:"#f97316",hover:"#ea580c"},
+  green:{label:"Fresh green",color:"#16a34a",hover:"#15803d"}
+};
+const CHATLY_WALLPAPERS={
+  plain:{label:"Plain",background:"var(--panel)"},
+  mist:{label:"Blue mist",background:"linear-gradient(145deg,rgba(22,133,248,.10),rgba(148,163,184,.08)),var(--panel)"},
+  sunset:{label:"Sunset",background:"linear-gradient(145deg,rgba(249,115,22,.13),rgba(236,72,153,.09)),var(--panel)"},
+  lavender:{label:"Lavender",background:"linear-gradient(145deg,rgba(139,92,246,.13),rgba(217,70,239,.07)),var(--panel)"},
+  dots:{label:"Soft dots",background:"radial-gradient(circle at 1px 1px,rgba(120,130,150,.13) 1px,transparent 1.5px) 0 0/17px 17px,var(--panel)"}
+};
+function applyChatlyAccent(key){
+  const choice=CHATLY_ACCENTS[key]||CHATLY_ACCENTS.blue;
+  document.documentElement.style.setProperty("--blue",choice.color);
+  document.documentElement.style.setProperty("--blue2",choice.hover);
+  localStorage.setItem("chatly-accent",CHATLY_ACCENTS[key]?key:"blue");
+}
+function applyChatlyWallpaper(key){
+  const choice=CHATLY_WALLPAPERS[key]||CHATLY_WALLPAPERS.plain;
+  document.documentElement.style.setProperty("--chatly-message-wallpaper",choice.background);
+  localStorage.setItem("chatly-wallpaper",CHATLY_WALLPAPERS[key]?key:"plain");
+}
+function applyChatlyTextSize(value){
+  const allowed=["small","normal","large"];
+  const selected=allowed.includes(value)?value:"normal";
+  document.body.classList.remove("chatly-text-small","chatly-text-normal","chatly-text-large");
+  document.body.classList.add(`chatly-text-${selected}`);
+  localStorage.setItem("chatly-text-size",selected);
+}
+function applyChatlyLayout(value){
+  const selected=value==="compact"?"compact":"spacious";
+  document.body.classList.remove("chatly-layout-compact","chatly-layout-spacious");
+  document.body.classList.add(`chatly-layout-${selected}`);
+  localStorage.setItem("chatly-layout",selected);
+}
+function applyChatlyBubbleShape(value){
+  const selected=["classic","rounded","pill"].includes(value)?value:"rounded";
+  document.body.classList.remove("chatly-bubbles-classic","chatly-bubbles-rounded","chatly-bubbles-pill");
+  document.body.classList.add(`chatly-bubbles-${selected}`);
+  localStorage.setItem("chatly-bubble-shape",selected);
+}
+function applyChatlyReducedMotion(enabled){
+  document.body.classList.toggle("chatly-reduce-motion",!!enabled);
+  localStorage.setItem("chatly-reduce-motion",enabled?"on":"off");
+}
+function applySavedChatlyCustomizations(){
+  applyChatlyAccent(localStorage.getItem("chatly-accent")||"blue");
+  applyChatlyWallpaper(localStorage.getItem("chatly-wallpaper")||"plain");
+  applyChatlyTextSize(localStorage.getItem("chatly-text-size")||"normal");
+  applyChatlyLayout(localStorage.getItem("chatly-layout")||"spacious");
+  applyChatlyBubbleShape(localStorage.getItem("chatly-bubble-shape")||"rounded");
+  applyChatlyReducedMotion(localStorage.getItem("chatly-reduce-motion")==="on");
+  sendWithEnter=localStorage.getItem("chatly-send-enter")!=="off";
+}
+
+$("settings").onclick=()=>{
+  try{
+    if(!sb||!sb.auth||!user||!profile){
+      alert("Chatly is still loading your account. Please wait a moment and try Settings again.");
+      return;
+    }
+    profileModal();
+  }catch(error){
+    console.error("Chatly settings could not open:",error);
+    alert("Settings could not open: "+(error?.message||String(error)));
+  }
+};
 function profileModal(){
   const dark=document.body.classList.contains("dark");
   const accent=localStorage.getItem("chatly-accent")||"blue";
@@ -2680,7 +2753,7 @@ function profileModal(){
       <div class="settings-section-title">Your profile</div>
       <div class="avatar avatar-preview" id="profilePreview"></div>
       <label class="small muted" for="displayNameInput">Display name</label>
-      <input class="field" id="displayNameInput" maxlength="32" value="${esc(profile.display_name||profile.username)}">
+      <input class="field" id="displayNameInput" maxlength="32" value="${esc(profile?.display_name||profile?.username||"")}">
       <label class="small muted" for="avatarFile">Profile picture</label>
       <input class="field" id="avatarFile" type="file" accept="image/*">
     </div>
@@ -2742,7 +2815,7 @@ function profileModal(){
     }
   }
   if(modalBackdrop)modalBackdrop.classList.add("settings-modal-backdrop");
-  setAvatar($("profilePreview"),profile.avatar_url,profile.display_name||profile.username);
+  setAvatar($("profilePreview"),profile?.avatar_url,profile?.display_name||profile?.username||"You");
   $("cancelModal").onclick=closeModal;
   $("manageBlockedPeopleBtn").onclick=manageBlockedPeople;
   $("soundEnabledInput").onchange=()=>{

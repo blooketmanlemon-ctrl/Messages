@@ -1,4 +1,4 @@
-const CACHE_NAME = "chatly-login-supabase-fix-20261031-v1";
+const CACHE_NAME = "chatly-settings-modal-login-fix-20261031-v2";
 const STATIC_ASSETS = [
   "./manifest.webmanifest",
   "./icon.svg",

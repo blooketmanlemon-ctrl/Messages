@@ -52,3 +52,5 @@ SCREEN-SHARE + SETTINGS UPDATE
 - Added accent colors, chat wallpapers, text size, bubble shape, compact/comfortable spacing, Enter-to-send preference, and reduced-motion option.
 - Preferences are stored locally per device.
 - No SQL changes, Metered changes, or Supabase Edge Function redeployment required.
+
+Icon sizing update: the Chatly artwork inside the app icons has been enlarged slightly (2.5%) while preserving each icon canvas size. The service-worker cache version was bumped so the updated icons refresh after deployment.

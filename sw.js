@@ -1,4 +1,4 @@
-const CACHE_NAME = "chatly-settings-modal-login-fix-20261031-v2";
+const CACHE_NAME = "chatly-settings-open-fix-icon-size-20261031-v3";
 const STATIC_ASSETS = [
   "./manifest.webmanifest",
   "./icon.svg",

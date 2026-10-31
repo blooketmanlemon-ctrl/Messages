@@ -1,4 +1,4 @@
-const CACHE_NAME = "chatly-custom-sounds-screen-share-settings-20261031";
+const CACHE_NAME = "chatly-settings-scroll-fix-20261031";
 const STATIC_ASSETS = [
   "./manifest.webmanifest",
   "./icon.svg",

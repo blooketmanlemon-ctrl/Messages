@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <title>Chatly</title>
-<meta name="chatly-build" content="chatly-screen-share-settings-customization-2026-10-31">
+<meta name="chatly-build" content="chatly-settings-scroll-hard-fix-2026-10-31">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -374,6 +374,91 @@ body.chatly-reduce-motion *,body.chatly-reduce-motion *::before,body.chatly-redu
   .modal-back{padding: max(8px,env(safe-area-inset-top)) 8px max(8px,env(safe-area-inset-bottom)) !important;}
   .modal{max-height:calc(100dvh - 16px);border-radius:18px;}
   .settings-grid{grid-template-columns:1fr}
+}
+</style>
+
+
+<style id="chatly-settings-scroll-hard-fix">
+/* Dedicated, independently scrollable settings viewport for desktop and iPad. */
+#modalRoot:has(.settings-modal-backdrop){
+  position:relative;
+  z-index:1000;
+}
+.settings-modal-backdrop{
+  position:fixed !important;
+  inset:0 !important;
+  width:100%;
+  height:100vh !important;
+  height:100dvh !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  overflow:hidden !important;
+  overscroll-behavior:none !important;
+  padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom)) !important;
+  touch-action:pan-y;
+}
+.settings-modal{
+  display:flex !important;
+  flex:0 1 520px !important;
+  flex-direction:column !important;
+  width:min(520px,100%) !important;
+  height:auto !important;
+  max-height:calc(100vh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+  max-height:calc(100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+  min-height:0 !important;
+  overflow:hidden !important;
+  overscroll-behavior:contain;
+  margin:0 !important;
+  padding:16px clamp(14px,3vw,22px) 12px !important;
+  gap:10px !important;
+  box-sizing:border-box !important;
+}
+.settings-modal > h2{
+  flex:0 0 auto !important;
+  margin:0 !important;
+  padding:2px 0 10px !important;
+}
+.settings-scroll-body{
+  display:block !important;
+  flex:1 1 auto !important;
+  width:100%;
+  min-width:0;
+  min-height:0 !important;
+  max-height:none !important;
+  overflow-x:hidden !important;
+  overflow-y:auto !important;
+  overscroll-behavior-y:contain !important;
+  -webkit-overflow-scrolling:touch !important;
+  touch-action:pan-y !important;
+  scrollbar-gutter:stable;
+  padding:0 5px 14px 0;
+  margin:0;
+}
+.settings-modal .settings-section{min-width:0}
+.settings-modal .modal-actions{
+  position:relative !important;
+  inset:auto !important;
+  flex:0 0 auto !important;
+  display:flex !important;
+  justify-content:flex-end;
+  gap:8px;
+  padding:10px 0 2px !important;
+  margin:0 !important;
+  border-top:1px solid var(--line);
+  background:var(--panel);
+  z-index:2;
+}
+.settings-scroll-body::-webkit-scrollbar{width:7px}
+.settings-scroll-body::-webkit-scrollbar-thumb{background:var(--line);border-radius:99px}
+@media(max-width:720px){
+  .settings-modal-backdrop{align-items:flex-start !important;padding-top:max(8px,env(safe-area-inset-top)) !important;padding-bottom:max(8px,env(safe-area-inset-bottom)) !important}
+  .settings-modal{width:100% !important;max-height:calc(100vh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;max-height:calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;border-radius:18px !important}
+  .settings-scroll-body{padding-right:3px;padding-bottom:18px;overscroll-behavior-y:contain}
+}
+@media(hover:none){
+  .settings-scroll-body{scrollbar-width:none}
+  .settings-scroll-body::-webkit-scrollbar{display:none}
 }
 </style>
 
@@ -2575,7 +2660,30 @@ function profileModal(){
       <button class="secondary" id="manageBlockedPeopleBtn" type="button">Manage blocked people</button>
     </div>
     <div class="modal-actions"><button class="secondary" id="cancelModal" type="button">Close</button><button class="primary" id="saveProfile" type="button">Save profile</button></div>`);
-  const modalElement=document.querySelector("#modalBack .modal");if(modalElement)modalElement.classList.add("settings-modal");
+  const modalElement=document.querySelector("#modalBack .modal");
+  const modalBackdrop=document.querySelector("#modalBack");
+  if(modalElement){
+    modalElement.classList.add("settings-modal");
+    modalElement.setAttribute("role","dialog");
+    modalElement.setAttribute("aria-modal","true");
+    modalElement.setAttribute("aria-label","Customize Chatly");
+    const modalTitle=modalElement.querySelector("h2");
+    const modalActions=modalElement.querySelector(".modal-actions");
+    if(modalTitle && modalActions && !modalElement.querySelector(".settings-scroll-body")){
+      const scrollBody=document.createElement("div");
+      scrollBody.className="settings-scroll-body";
+      scrollBody.setAttribute("role","region");
+      scrollBody.setAttribute("aria-label","Chatly settings options");
+      let current=modalTitle.nextElementSibling;
+      while(current && current!==modalActions){
+        const next=current.nextElementSibling;
+        scrollBody.appendChild(current);
+        current=next;
+      }
+      modalActions.before(scrollBody);
+    }
+  }
+  if(modalBackdrop)modalBackdrop.classList.add("settings-modal-backdrop");
   setAvatar($("profilePreview"),profile.avatar_url,profile.display_name||profile.username);
   $("cancelModal").onclick=closeModal;
   $("manageBlockedPeopleBtn").onclick=manageBlockedPeople;

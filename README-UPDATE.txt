@@ -56,3 +56,10 @@ SCREEN-SHARE + SETTINGS UPDATE
 Icon sizing update: the Chatly artwork inside the app icons has been enlarged slightly (2.5%) while preserving each icon canvas size. The service-worker cache version was bumped so the updated icons refresh after deployment.
 
 Icon update: app artwork was inset into an iPadOS squircle-safe area; icon files remain 192x192/512x512.
+
+
+APP ICON UPDATE (NEW)
+- Replaced icon-192.png, icon-512.png, apple-touch-icon.png, and icon.svg with the new glossy Messages-inspired Chatly speech-bubble artwork.
+- The artwork fills the square icon canvas so iPadOS can apply its rounded app-icon mask cleanly.
+- Updated the service-worker cache name to refresh the icon assets after deployment.
+- No SQL, Supabase, Metered, or Edge Function changes required.

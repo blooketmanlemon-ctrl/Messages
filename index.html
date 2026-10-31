@@ -16,6 +16,63 @@
 .modal-back{position:fixed;inset:0;background:#11182766;display:grid;place-items:center;padding:18px;z-index:5}.modal{width:min(430px,100%);background:var(--panel);border-radius:22px;padding:23px;box-shadow:0 20px 80px #0003;display:grid;gap:13px}.modal h2{margin:0 0 3px}.modal-actions{display:flex;justify-content:flex-end;gap:8px}.secondary{background:var(--soft);color:var(--text);padding:11px 15px;border-radius:12px}.avatar-preview{width:76px;height:76px;border-radius:50%;margin:auto}.theme-row{display:flex;gap:8px}.theme-choice{flex:1;padding:10px;border-radius:12px;border:2px solid var(--line);background:var(--panel);color:var(--text)}.theme-choice.selected{border-color:var(--blue)}
 body.dark{--bg:#111318;--panel:#1b1d24;--soft:#282b34;--line:#333640;--text:#f2f3f7;--muted:#a1a5b1;--bubble:#30343e;--shadow:0 12px 40px #0003}body.dark .conversation:hover{background:#252832}body.dark .conversation.active{background:#1c3553}body.dark .empty-icon{background:#1d3551}body.dark .auth{background:radial-gradient(ellipse at 50% 0,#1b3554 0,transparent 55%),var(--bg)}
 @media(max-width:720px){.app{grid-template-columns:1fr}.list-pane{grid-column:1;grid-row:1}.chat-pane{display:none;grid-column:1;grid-row:1}.app.chat-open .list-pane{display:none}.app.chat-open .chat-pane{display:flex}.list-head{padding:16px 17px 12px}.list-head .brand{font-size:25px}.chat-head{height:64px;padding:0 13px}.mobile-back{display:grid}.messages{padding:16px 12px}.message-row{max-width:86%}.composer-area{padding:9px 10px max(12px,env(safe-area-inset-bottom))}.profile-footer{padding-bottom:max(12px,env(safe-area-inset-bottom))}}
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+
+body {
+  position: fixed;
+  inset: 0;
+}
+
+#app.app {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  max-width: 1500px;
+  min-height: 0;
+  margin: 0 auto;
+  grid-template-rows: minmax(0, 1fr);
+  overflow: hidden;
+}
+
+#app .list-pane,
+#app .chat-pane {
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+#app .conversation-list {
+  min-height: 0;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+#app .messages {
+  flex: 1 1 0%;
+  min-height: 0;
+  height: 0;
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
+#app .chat-head,
+#app .composer-area {
+  flex: 0 0 auto;
+}
+
 </style>
 </head>
 <body>

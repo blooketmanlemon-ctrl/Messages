@@ -54,3 +54,5 @@ SCREEN-SHARE + SETTINGS UPDATE
 - No SQL changes, Metered changes, or Supabase Edge Function redeployment required.
 
 Icon sizing update: the Chatly artwork inside the app icons has been enlarged slightly (2.5%) while preserving each icon canvas size. The service-worker cache version was bumped so the updated icons refresh after deployment.
+
+Icon update: app artwork was inset into an iPadOS squircle-safe area; icon files remain 192x192/512x512.

@@ -1,4 +1,4 @@
-const CACHE_NAME = "chatly-settings-open-fix-icon-size-20261031-v3";
+const CACHE_NAME = "chatly-ipad-squircle-safe-icons-20261031-v1";
 const STATIC_ASSETS = [
   "./manifest.webmanifest",
   "./icon.svg",

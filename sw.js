@@ -1,4 +1,4 @@
-const CACHE_NAME = "chatly-messages-style-icon-20261031-v1";
+const CACHE_NAME = "chatly-read-receipts-upload-fix-20261031-v1";
 const STATIC_ASSETS = [
   "./manifest.webmanifest",
   "./icon.svg",

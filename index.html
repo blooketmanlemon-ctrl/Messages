@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <title>Chatly</title>
-<meta name="chatly-build" content="chatly-settings-scroll-hard-fix-2026-10-31">
+<meta name="chatly-build" content="chatly-read-receipts-upload-fix-2026-10-31">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -154,6 +154,16 @@ body {
   }
 }
 
+
+/* Read receipts and dismissible upload feedback */
+.message-read-status{font-size:11px;color:var(--muted);padding:0 8px;align-self:flex-end;min-height:0}
+.message-read-status.hidden{display:none!important}
+.upload-status:empty{display:none}
+.upload-status:not(:empty){display:flex;align-items:center;gap:8px;max-width:min(560px,calc(100% - 28px));padding:7px 10px;border:1px solid var(--line);box-shadow:0 3px 12px #0000000d;pointer-events:auto;line-height:1.35}
+.upload-status.status-error{color:#c62838;border-color:#e9a5ac;background:var(--panel)}
+.upload-status.status-success{color:#16804a;background:var(--panel)}
+.upload-status .upload-status-text{min-width:0;overflow-wrap:anywhere;flex:1}
+.upload-status .upload-dismiss{width:24px;height:24px;flex:none;border-radius:50%;background:var(--soft);color:var(--text);font-size:17px;line-height:1}
 </style>
 
 <style id="chatly-video-call-styles">
@@ -668,6 +678,8 @@ async function ensureSupabaseClient(){
   catch(error){sb=undefined;supabaseInitPromise=null;throw error;}
 }
 let conversationLoadToken=0;
+let messageReadObserver=null,readReceiptChannel=null,uploadStatusTimer=null;
+const readReceiptState=new Map(),readMarkedIds=new Set();
 let blockedByMeIds=new Set(),blockedMeIds=new Set(),blockChannel=null,blockDataAvailable=false;
 let messageSelectionMode=false;
 const selectedMessages=new Map();
@@ -1737,7 +1749,7 @@ async function enter(authUser){
   $("myName").textContent=profile.display_name||profile.username;
   setAvatar($("myAvatar"),profile.avatar_url,profile.display_name||profile.username);
   await refreshBlockedUsers();await loadConversations();
-  subscribeToBlockChanges();subscribeToCallSignals();subscribeToGroupCallSignals();subscribeToMessageSounds();subscribeToGroupMemberships();
+  subscribeToBlockChanges();subscribeToCallSignals();subscribeToGroupCallSignals();subscribeToMessageSounds();subscribeToGroupMemberships();subscribeToReadReceiptEvents();
   setTimeout(()=>checkPendingIncomingCalls().catch(error=>console.warn("Pending call check failed:",error)),1100);
 }
 function displayName(p){return p?.display_name||p?.username||"Chatly user";}
@@ -1828,9 +1840,60 @@ function createGroupModal(){
     }catch(error){$("groupError").textContent=error.message||String(error);$("createGroupButton").disabled=false;}
   };
 }
+function setupMessageReadObserver(conversationId,messageType){
+  if(messageReadObserver){messageReadObserver.disconnect();messageReadObserver=null;}
+  if(!("IntersectionObserver" in window))return;
+  messageReadObserver=new IntersectionObserver(entries=>{
+    for(const entry of entries){
+      if(!entry.isIntersecting||entry.intersectionRatio<0.45)continue;
+      const message=entry.target?._chatMessage;
+      if(!message||message.sender_id===user?.id||conversationId!==activeConversation||document.visibilityState!=="visible")continue;
+      messageReadObserver.unobserve(entry.target);
+      markChatMessageRead(message,messageType).catch(error=>console.warn("Could not mark message as read:",error));
+    }
+  },{root:$("messages"),threshold:0.45});
+}
+async function markChatMessageRead(message,messageType){
+  if(!message||message.sender_id===user?.id||!user)return;
+  const key=messageType+":"+message.id;
+  if(readMarkedIds.has(key))return;
+  readMarkedIds.add(key);
+  const {error}=await sb.from("chat_message_reads").insert({message_id:message.id,message_type:messageType,reader_id:user.id});
+  if(error&&error.code!=="23505"){
+    readMarkedIds.delete(key);
+    console.warn("Chatly read receipt was not saved:",error.message);
+  }
+}
+function updateMessageReadReceipt(row,message){
+  if(!row||!message||message.sender_id!==user?.id)return;
+  let status=row.querySelector(".message-read-status");
+  if(!status){status=document.createElement("div");status.className="message-read-status hidden";row.append(status);}
+  const readers=readReceiptState.get(message.id);
+  const count=readers?readers.size:0;
+  if(!count){status.textContent="";status.classList.add("hidden");return;}
+  const current=conversations.find(c=>c.id===activeConversation);
+  status.textContent=current?.isGroup?`Seen by ${count}`:"Read";
+  status.classList.remove("hidden");
+}
+function addChatReadReceipt(receipt){
+  if(!receipt||receipt.reader_id===user?.id)return;
+  const readers=readReceiptState.get(receipt.message_id)||new Set();
+  readers.add(receipt.reader_id);
+  readReceiptState.set(receipt.message_id,readers);
+  const row=[...$("messages").querySelectorAll(".message-row")].find(el=>el.dataset.messageId===receipt.message_id);
+  if(row)updateMessageReadReceipt(row,row._chatMessage);
+}
+function subscribeToReadReceiptEvents(){
+  if(!sb||!user)return;
+  if(readReceiptChannel){sb.removeChannel(readReceiptChannel);readReceiptChannel=null;}
+  readReceiptChannel=sb.channel("chatly-read-receipts-"+user.id)
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_message_reads"},payload=>addChatReadReceipt(payload.new))
+    .subscribe(status=>{if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("Chatly read receipt updates:",status);});
+}
+
 async function openConversation(id){
   if(messageSelectionMode)toggleMessageSelectionMode(false);
-  const c=conversations.find(x=>x.id===id);if(!c)return;activeConversation=id;activeContact=c.person||null;seen=new Set();$("app").classList.add("chat-open");$("emptyState").classList.add("hidden");$("chatHead").classList.remove("hidden");$("messages").classList.remove("hidden");$("messageForm").classList.remove("hidden");
+  const c=conversations.find(x=>x.id===id);if(!c)return;activeConversation=id;activeContact=c.person||null;seen=new Set();readReceiptState.clear();if(messageReadObserver)messageReadObserver.disconnect();setupMessageReadObserver(id,c.isGroup?"group":"direct");$("app").classList.add("chat-open");$("emptyState").classList.add("hidden");$("chatHead").classList.remove("hidden");$("messages").classList.remove("hidden");$("messageForm").classList.remove("hidden");
   const name=conversationTitle(c);$("chatName").textContent=name;if(c.isGroup){$("chatAvatar").innerHTML="👥";$("chatStatus").textContent=(c.members||[]).length+" members";$("renameContact").title="Add people to group";}else{setAvatar($("chatAvatar"),c.person.avatar_url,name);$("chatStatus").textContent="Chatly message";$("renameContact").title="Rename contact";}
   updateDirectBlockUI();renderConversations();if(liveChannel){sb.removeChannel(liveChannel);liveChannel=null;}if(activeGroupChannel){sb.removeChannel(activeGroupChannel);activeGroupChannel=null;}
   await loadMessages(true);
@@ -1847,7 +1910,35 @@ async function openConversation(id){
 }
 function nearBottomNow(){const el=$("messages");return el.scrollHeight-el.scrollTop-el.clientHeight<110;}
 function scrollBottom(){const el=$("messages");requestAnimationFrame(()=>{el.scrollTop=el.scrollHeight;});}
-async function loadMessages(scroll){if(messageSelectionMode)toggleMessageSelectionMode(false);const c=conversations.find(x=>x.id===activeConversation);const table=c?.isGroup?"chat_group_messages":"direct_messages";const filter=c?.isGroup?"group_id":"conversation_id";const type=c?.isGroup?"group":"direct";const {data,error}=await sb.from(table).select("id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size").eq(filter,activeConversation).order("created_at",{ascending:true}).limit(200);if(error){$("messages").textContent=error.message;return;}const hiddenResult=await sb.from("chat_message_hidden").select("message_id").eq("user_id",user.id).eq("message_type",type);if(hiddenResult.error)console.warn("Message hide settings unavailable:",hiddenResult.error.message);const hiddenIds=new Set((hiddenResult.data||[]).map(row=>row.message_id));$("messages").innerHTML="";seen.clear();(data||[]).filter(message=>!hiddenIds.has(message.id)).forEach(appendMessage);if(scroll)scrollBottom();}
+async function loadMessages(scroll){
+  if(messageSelectionMode)toggleMessageSelectionMode(false);
+  const c=conversations.find(x=>x.id===activeConversation);
+  const table=c?.isGroup?"chat_group_messages":"direct_messages";
+  const filter=c?.isGroup?"group_id":"conversation_id";
+  const type=c?.isGroup?"group":"direct";
+  const {data,error}=await sb.from(table)
+    .select("id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size")
+    .eq(filter,activeConversation).order("created_at",{ascending:true}).limit(200);
+  if(error){$("messages").textContent=error.message;return;}
+  const hiddenResult=await sb.from("chat_message_hidden").select("message_id").eq("user_id",user.id).eq("message_type",type);
+  if(hiddenResult.error)console.warn("Message hide settings unavailable:",hiddenResult.error.message);
+  const hiddenIds=new Set((hiddenResult.data||[]).map(row=>row.message_id));
+  const visibleMessages=(data||[]).filter(message=>!hiddenIds.has(message.id));
+  readReceiptState.clear();
+  const messageIds=visibleMessages.map(message=>message.id);
+  if(messageIds.length){
+    const {data:receipts,error:receiptError}=await sb.from("chat_message_reads")
+      .select("message_id,reader_id,read_at").eq("message_type",type).in("message_id",messageIds);
+    if(receiptError)console.warn("Chatly read receipts are unavailable until the read-receipts SQL is installed:",receiptError.message);
+    else for(const receipt of receipts||[]){
+      if(receipt.reader_id===user.id)continue;
+      const readers=readReceiptState.get(receipt.message_id)||new Set();
+      readers.add(receipt.reader_id);readReceiptState.set(receipt.message_id,readers);
+    }
+  }
+  $("messages").innerHTML="";seen.clear();visibleMessages.forEach(appendMessage);
+  if(scroll)scrollBottom();
+}
 function appendMessage(m){
   if(seen.has(m.id))return;
   seen.add(m.id);
@@ -1877,6 +1968,7 @@ function appendMessage(m){
   time.className="message-time";
   time.textContent=new Date(m.created_at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
   row.append(time);
+  if(m.sender_id===user.id){const receipt=document.createElement("div");receipt.className="message-read-status hidden";row.append(receipt);}
   row.dataset.messageId=m.id;
   row._chatMessage=m;
   const indicator=document.createElement("button");
@@ -1893,6 +1985,9 @@ function appendMessage(m){
   });
   if(messageSelectionMode&&selectedMessages.has(m.id))row.classList.add("selected-message");
   $("messages").append(row);
+  updateMessageReadReceipt(row,m);
+  if(m.sender_id!==user?.id&&messageReadObserver)messageReadObserver.observe(row);
+  else if(m.sender_id!==user?.id&&!messageReadObserver&&document.visibilityState==="visible"){setTimeout(()=>markChatMessageRead(m,conversations.find(c=>c.id===activeConversation)?.isGroup?"group":"direct").catch(()=>{}),250);}
 }
 async function renderMessageAttachment(message,holder){
   const {data,error}=await sb.storage.from("chat-media").createSignedUrl(message.attachment_path,3600);
@@ -2020,11 +2115,36 @@ function editOwnMessage(message){
   $("saveEditedMessage").onclick=async()=>{const content=$("editMessageText").value.trim();if(!content){alert("A message cannot be empty. Use Unsend for everyone to remove it.");return;}const info=messageTableInfo(message);const {data,error}=await sb.from(info.table).update({content}).eq("id",message.id).eq("sender_id",user.id).select("id").maybeSingle();if(error){alert("Could not edit message: "+error.message);return;}if(!data){alert("Chatly couldn't edit that message.");return;}closeModal();await loadMessages(false);await loadConversations();};
 }
 
+function clearUploadStatus(){
+  if(uploadStatusTimer){clearTimeout(uploadStatusTimer);uploadStatusTimer=null;}
+  const el=$("uploadStatus");if(el){el.textContent="";el.className="upload-status";}
+}
+function showUploadStatus(message,kind="info",autoClearMs=0){
+  const el=$("uploadStatus");if(!el)return;
+  if(uploadStatusTimer){clearTimeout(uploadStatusTimer);uploadStatusTimer=null;}
+  el.textContent="";el.className="upload-status"+(kind==="error"?" status-error":kind==="success"?" status-success":"");
+  const text=document.createElement("span");text.className="upload-status-text";text.textContent=message;el.append(text);
+  if(kind==="error"){
+    const close=document.createElement("button");close.type="button";close.className="upload-dismiss";close.setAttribute("aria-label","Dismiss upload error");close.textContent="×";close.onclick=clearUploadStatus;el.append(close);
+  }
+  if(autoClearMs>0)uploadStatusTimer=setTimeout(clearUploadStatus,autoClearMs);
+}
+function friendlyUploadError(error){
+  const message=String(error?.message||error||"Unknown upload error");
+  if(/row-level security|not authorized|permission denied|403/i.test(message))return "Chatly's chat-media storage permission blocked this upload. Run the new Chatly read-receipts and upload-fix SQL migration. Details: "+message;
+  if(/bucket.*not found|not found.*bucket/i.test(message))return "The chat-media storage bucket is missing. The new SQL migration creates it. Details: "+message;
+  if(/payload too large|file size|maximum.*size|413/i.test(message))return "This file exceeds the storage size limit. Try a smaller file. Details: "+message;
+  if(/failed to fetch|network|fetch/i.test(message))return "The upload could not reach Supabase. Check your connection and try again. Details: "+message;
+  return message;
+}
 async function uploadChatFiles(fileList){
   if(!activeConversation||!user)return;
   const currentConversation=conversations.find(c=>c.id===activeConversation);
-  const messageTable=currentConversation?.isGroup?"chat_group_messages":"direct_messages";
-  const conversationField=currentConversation?.isGroup?"group_id":"conversation_id";
+  if(!currentConversation){showUploadStatus("Open a conversation before attaching files.","error",10000);return;}
+  if(!currentConversation.isGroup&&isBlockedBetween(currentConversation.otherId)){showUploadStatus("Attachments are unavailable in this blocked conversation.","error",10000);return;}
+  const messageTable=currentConversation.isGroup?"chat_group_messages":"direct_messages";
+  const conversationField=currentConversation.isGroup?"group_id":"conversation_id";
+  const conversationId=activeConversation;
   const files=Array.from(fileList||[]);
   if(!files.length)return;
   const attachButton=$("attachButton");
@@ -2032,9 +2152,9 @@ async function uploadChatFiles(fileList){
   try{
     for(const file of files){
       if(file.size>50*1024*1024)throw new Error(file.name+" is larger than the 50 MB limit.");
-      $("uploadStatus").textContent="Uploading "+file.name+"…";
+      showUploadStatus("Uploading "+(file.name||"attachment")+"…","info");
       const safeName=(file.name||"file").replace(/[^a-zA-Z0-9._-]/g,"_").slice(-100);
-      const path=activeConversation+"/"+user.id+"/"+crypto.randomUUID()+"-"+safeName;
+      const path=conversationId+"/"+user.id+"/"+crypto.randomUUID()+"-"+safeName;
       const fileType=file.type||"application/octet-stream";
       const {error:uploadError}=await sb.storage.from("chat-media").upload(path,file,{
         cacheControl:"3600",upsert:false,contentType:fileType
@@ -2043,7 +2163,7 @@ async function uploadChatFiles(fileList){
       const messageId=crypto.randomUUID();
       const messageRow={
         id:messageId,
-        [conversationField]:activeConversation,
+        [conversationField]:conversationId,
         sender_id:user.id,
         content:"",
         attachment_path:path,
@@ -2053,22 +2173,21 @@ async function uploadChatFiles(fileList){
       };
       const {error:messageError}=await sb.from(messageTable).insert(messageRow);
       if(messageError){
-        await sb.storage.from("chat-media").remove([path]);
+        const cleanup=await sb.storage.from("chat-media").remove([path]);
+        if(cleanup.error)console.warn("Uploaded file cleanup failed:",cleanup.error.message);
         throw messageError;
       }
-      notifyChatlyPush("notify-message",{messageId,messageType:currentConversation?.isGroup?"group":"direct"});
+      notifyChatlyPush("notify-message",{messageId,messageType:currentConversation.isGroup?"group":"direct"});
     }
-    $("uploadStatus").textContent=files.length===1?"Attachment sent.":files.length+" attachments sent.";
-    setTimeout(()=>{if($("uploadStatus"))$("uploadStatus").textContent="";},2500);
+    showUploadStatus(files.length===1?"Attachment sent.":files.length+" attachments sent.","success",3500);
   }catch(error){
-    $("uploadStatus").textContent="Upload failed.";
-    alert("Could not upload attachment: "+(error.message||error));
+    console.error("Chatly attachment upload failed:",error);
+    showUploadStatus("Upload failed — "+friendlyUploadError(error),"error",12000);
   }finally{
     attachButton.disabled=false;
     $("chatFileInput").value="";
   }
 }
-
 function refreshPreview(id,m){const c=conversations.find(x=>x.id===id);if(c){c.last=m;conversations.sort((a,b)=>new Date(b.last?.created_at||b.created_at)-new Date(a.last?.created_at||a.created_at));renderConversations();}}
 $("messageForm").onsubmit=async e=>{
   e.preventDefault();const content=$("messageInput").value.trim();if(!content||!activeConversation)return;

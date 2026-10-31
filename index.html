@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <title>Chatly</title>
-<meta name="chatly-build" content="chatly-blocking-2026-10-31">
+<meta name="chatly-build" content="chatly-push-notifications-2026-10-31">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -304,6 +304,9 @@ body.dark .blocked-notice{background:#35202a;border-color:#653342;color:#fecdd3}
 .blocked-person-row .person-copy small{color:var(--muted)}
 .blocked-state{font-size:11px;color:var(--muted);margin-left:6px}
 @media(max-width:720px){.blocked-notice{margin:7px 9px 0}.block-contact-btn{min-width:38px;padding:0 8px;font-size:12px}}
+.push-settings-block{display:grid;gap:8px;border:1px solid var(--line);border-radius:14px;padding:12px;background:var(--soft)}
+.push-settings-block p{margin:0;line-height:1.4}
+#pushNotificationStatus{line-height:1.4}
 </style>
 </head>
 <body>
@@ -344,7 +347,6 @@ body.dark .blocked-notice{background:#35202a;border-color:#653342;color:#fecdd3}
       <div class="spacer"></div>
       <button class="round-btn call-head-btn" id="videoCallBtn" title="Start video call" aria-label="Start video call">📹</button>
       <button class="round-btn" id="renameContact" title="Group members / rename contact">✎</button>
-      <button class="round-btn block-contact-btn hidden" id="blockContactBtn" type="button" title="Block person" aria-label="Block person">Block</button>
     </header>
     <div class="message-selection-toolbar hidden" id="messageSelectionToolbar" role="toolbar" aria-label="Selected message actions">
       <span class="selection-count" id="messageSelectionCount">0 selected</span>
@@ -459,12 +461,115 @@ let activeGroupChannel=null,groupMembershipChannel=null;
 let groupCallState=null,groupCallSignalChannel=null,pendingGroupInvite=null;
 let soundEnabled=localStorage.getItem("chatly-sounds")!=="off",audioContextInstance=null,ringtoneInterval=null,messageSoundChannel=null,pendingChatSounds=[],playedMessageSoundIds=new Set();
 const nickKey="chatly-v2-nicknames";
+// Public VAPID key is safe to ship in the website. The matching private key
+// stays only in Supabase Edge Function Secrets.
+const CHATLY_VAPID_PUBLIC_KEY="BCxKKuhEQsjUZc68-xF2mKyWES7gG-K5eWKk3c0lTsBN92oaRpiC6r4AemI8iQLBJoL731NxAdD09xFmthKuDqw";
+let chatlyServiceWorkerRegistration=null,chatlyServiceWorkerPromise=null;
+const handledDirectOfferIds=new Set(),handledGroupInviteIds=new Set();
 function esc(s=""){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function initials(s="U"){return (s.trim()[0]||"U").toUpperCase();}
 function setAvatar(el,url,name){el.innerHTML=url?`<img src="${esc(url)}" alt="">`:esc(initials(name));}
 function nickname(id,fallback){try{return JSON.parse(localStorage.getItem(nickKey)||"{}")[id]||fallback}catch{return fallback}}
 function saveNickname(id,name){let all={};try{all=JSON.parse(localStorage.getItem(nickKey)||"{}")}catch{}all[id]=name;localStorage.setItem(nickKey,JSON.stringify(all));}
 function toast(s){const el=$("chatStatus");if(el)el.textContent=s;}
+
+function urlBase64ToUint8Array(base64String){
+  const padding="=".repeat((4-base64String.length%4)%4);
+  const base64=(base64String+padding).replace(/-/g,"+").replace(/_/g,"/");
+  const raw=atob(base64);
+  const output=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++)output[i]=raw.charCodeAt(i);
+  return output;
+}
+function chatlyIsAppleMobile(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+}
+function chatlyIsStandalone(){
+  return window.matchMedia?.("(display-mode: standalone)").matches||navigator.standalone===true;
+}
+async function getChatlyServiceWorker(){
+  if(chatlyServiceWorkerRegistration)return chatlyServiceWorkerRegistration;
+  if(chatlyServiceWorkerPromise)return await chatlyServiceWorkerPromise;
+  if(!("serviceWorker" in navigator))throw new Error("This browser does not support service workers.");
+  chatlyServiceWorkerPromise=navigator.serviceWorker.ready.then(reg=>{
+    chatlyServiceWorkerRegistration=reg;return reg;
+  });
+  return await chatlyServiceWorkerPromise;
+}
+async function invokeChatlyPush(action,details={}){
+  const {data,error}=await sb.functions.invoke("chatly-push",{body:{action,...details}});
+  if(error)throw new Error(error.message||"Push notification request failed.");
+  if(data?.error)throw new Error(data.error);
+  return data||{};
+}
+async function getChatlyPushSubscription(){
+  if(!("PushManager" in window)||!("Notification" in window))return null;
+  const reg=await getChatlyServiceWorker();
+  return await reg.pushManager.getSubscription();
+}
+async function enableChatlyPushNotifications(){
+  const status=$("pushNotificationStatus"),button=$("pushNotificationsBtn");
+  if(status)status.textContent="Setting up notifications…";
+  if(!window.isSecureContext)throw new Error("Notifications require Chatly to be opened over HTTPS.");
+  if(!( "Notification" in window)||!("PushManager" in window)||!("serviceWorker" in navigator)){
+    throw new Error("This browser does not support web push notifications.");
+  }
+  if(chatlyIsAppleMobile()&&!chatlyIsStandalone()){
+    throw new Error("On iPad or iPhone, first use Share → Add to Home Screen, then open Chatly from its Home Screen icon and enable notifications there.");
+  }
+  let permission=Notification.permission;
+  if(permission==="default")permission=await Notification.requestPermission();
+  if(permission!=="granted")throw new Error(permission==="denied"?"Notifications are blocked in your device settings. Enable notifications for Chatly there first.":"Notification permission was not granted.");
+  const reg=await getChatlyServiceWorker();
+  let subscription=await reg.pushManager.getSubscription();
+  if(!subscription){
+    subscription=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(CHATLY_VAPID_PUBLIC_KEY)});
+  }
+  await invokeChatlyPush("subscribe",{subscription:subscription.toJSON()});
+  if(status)status.textContent="Notifications are enabled on this device.";
+  if(button)button.textContent="Turn off notifications";
+  return true;
+}
+async function disableChatlyPushNotifications(){
+  const status=$("pushNotificationStatus"),button=$("pushNotificationsBtn");
+  if(status)status.textContent="Turning notifications off…";
+  const subscription=await getChatlyPushSubscription();
+  if(subscription){
+    await invokeChatlyPush("unsubscribe",{endpoint:subscription.endpoint});
+    await subscription.unsubscribe();
+  }
+  if(status)status.textContent="Notifications are off on this device.";
+  if(button)button.textContent="Enable notifications";
+}
+async function refreshPushSettingsUI(){
+  const status=$("pushNotificationStatus"),button=$("pushNotificationsBtn");
+  if(!status||!button)return;
+  try{
+    if(!("Notification" in window)||!("PushManager" in window)){
+      status.textContent="This browser does not support push notifications.";button.disabled=true;return;
+    }
+    if(chatlyIsAppleMobile()&&!chatlyIsStandalone()){
+      status.textContent="On iPad/iPhone, add Chatly to your Home Screen and open that app before enabling notifications.";
+    }else if(Notification.permission==="denied"){
+      status.textContent="Notifications are blocked in device settings.";
+    }
+    const subscription=await getChatlyPushSubscription();
+    const enabled=!!subscription;
+    if(enabled){
+      // Re-sync the existing browser subscription with the signed-in account.
+      await invokeChatlyPush("subscribe",{subscription:subscription.toJSON()});
+      status.textContent="Notifications are enabled on this device.";
+    }else if(Notification.permission!="denied"&&!(chatlyIsAppleMobile()&&!chatlyIsStandalone())){
+      status.textContent="Enable alerts for new messages and incoming calls.";
+    }
+    button.disabled=false;button.textContent=enabled?"Turn off notifications":"Enable notifications";
+    button.dataset.enabled=String(enabled);
+  }catch(error){status.textContent=error.message||"Notification setup is unavailable.";button.disabled=false;button.textContent="Enable notifications";}
+}
+async function notifyChatlyPush(action,details){
+  try{await invokeChatlyPush(action,details);}
+  catch(error){console.warn("Chatly push notification could not be sent:",error.message||error);}
+}
 
 function getChatAudioContext(){
   const AudioCtx=window.AudioContext||window.webkitAudioContext;
@@ -652,6 +757,7 @@ async function sendCallSignal(type,call,payload={}){
     payload
   });
   if(error)throw error;
+  if(type==="offer")notifyChatlyPush("notify-direct-call",{callId:call.id,conversationId:call.conversationId,recipientId:call.peerUserId});
 }
 function callChatElements(kind){
   return kind==="group"?{
@@ -1098,6 +1204,11 @@ async function stopPrivateScreenShare(){
 async function handleCallSignal(change){
   const row=change?.new;
   if(!row||row.to_user!==user?.id||row.from_user===user?.id)return;
+  if(row.signal_type==="offer"){
+    const key=String(row.id||`${row.call_id}:${row.from_user}:${row.created_at||"offer"}`);
+    if(handledDirectOfferIds.has(key))return;
+    handledDirectOfferIds.add(key);if(handledDirectOfferIds.size>40)handledDirectOfferIds.clear();
+  }
   if(isBlockedBetween(row.from_user)){console.info("Ignored a private call signal from a blocked account.");return;}
   const incomingPayload=row.payload||{};
   if(row.signal_type==="offer"){
@@ -1179,6 +1290,20 @@ async function handleCallSignal(change){
     showCallNotice("The other person ended the call.");
   }
 }
+async function checkPendingIncomingCalls(){
+  if(!sb||!user)return;
+  const cutoff=new Date(Date.now()-45000).toISOString();
+  if(!callState&&!groupCallState){
+    const {data:directRows,error:directError}=await sb.from("call_signals").select("*").eq("to_user",user.id).eq("signal_type","offer").gte("created_at",cutoff).order("created_at",{ascending:false}).limit(3);
+    if(directError)console.warn("Could not check pending private call invitations:",directError.message);
+    for(const row of directRows||[]){if(!callState&&!groupCallState)await handleCallSignal({new:row});}
+  }
+  if(!callState&&!groupCallState&&!pendingGroupInvite){
+    const {data:groupRows,error:groupError}=await sb.from("chat_group_call_signals").select("*").eq("to_user",user.id).eq("signal_type","invite").gte("created_at",cutoff).order("created_at",{ascending:false}).limit(3);
+    if(groupError)console.warn("Could not check pending group call invitations:",groupError.message);
+    for(const row of groupRows||[]){if(!callState&&!groupCallState&&!pendingGroupInvite)await handleGroupCallSignal({new:row});}
+  }
+}
 function subscribeToCallSignals(){
   if(!sb||!user||callSignalChannel)return;
   callSignalChannel=sb.channel("chatly-call-signals-"+user.id)
@@ -1236,10 +1361,9 @@ async function refreshBlockedUsers(){
 }
 function updateDirectBlockUI(){
   const conversation=conversations.find(item=>item.id===activeConversation);
-  const button=$("blockContactBtn"),notice=$("blockedNotice");
-  if(!button||!notice)return;
+  const notice=$("blockedNotice");
+  if(!notice)return;
   const isDirect=!!conversation&&!conversation.isGroup;
-  button.classList.toggle("hidden",!isDirect);
   notice.classList.add("hidden");
   if(!isDirect){
     ["messageInput","attachButton"].forEach(id=>{const el=$(id);if(el)el.disabled=false;});
@@ -1248,10 +1372,6 @@ function updateDirectBlockUI(){
     return;
   }
   const id=conversation.otherId,byMe=isBlockedByMe(id),byOther=isBlockedByOther(id),blocked=byMe||byOther;
-  button.textContent=byMe?"Unblock":"Block";
-  button.title=byMe?"Unblock this person":"Block this person";
-  button.setAttribute("aria-label",button.title);
-  button.classList.toggle("is-blocked",byMe);
   if(byMe||byOther){
     notice.classList.remove("hidden");
     notice.textContent=byMe&&byOther?"You've both blocked each other. Private messages and calls are unavailable.":byMe?`You've blocked ${conversationTitle(conversation)}. They cannot send you private messages or call you.`:`${conversationTitle(conversation)} has blocked you. You cannot send private messages or call them.`;
@@ -1306,7 +1426,16 @@ function subscribeToBlockChanges(){
     })
     .subscribe(status=>{if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("Chatly block updates:",status);});
 }
-async function enter(authUser){user=authUser;const {data,error}=await sb.from("profiles").select("*").eq("id",user.id).single();if(error)throw error;profile=data;$("auth").classList.add("hidden");$("app").classList.remove("hidden");$("myName").textContent=profile.display_name||profile.username;setAvatar($("myAvatar"),profile.avatar_url,profile.display_name||profile.username);await refreshBlockedUsers();await loadConversations();subscribeToBlockChanges();subscribeToCallSignals();subscribeToGroupCallSignals();subscribeToMessageSounds();subscribeToGroupMemberships();}
+async function enter(authUser){
+  user=authUser;
+  const {data,error}=await sb.from("profiles").select("*").eq("id",user.id).single();if(error)throw error;
+  profile=data;$("auth").classList.add("hidden");$("app").classList.remove("hidden");
+  $("myName").textContent=profile.display_name||profile.username;
+  setAvatar($("myAvatar"),profile.avatar_url,profile.display_name||profile.username);
+  await refreshBlockedUsers();await loadConversations();
+  subscribeToBlockChanges();subscribeToCallSignals();subscribeToGroupCallSignals();subscribeToMessageSounds();subscribeToGroupMemberships();
+  setTimeout(()=>checkPendingIncomingCalls().catch(error=>console.warn("Pending call check failed:",error)),1100);
+}
 function displayName(p){return p?.display_name||p?.username||"Chatly user";}
 async function loadConversations(){
   const loadToken=++conversationLoadToken;
@@ -1607,7 +1736,9 @@ async function uploadChatFiles(fileList){
         cacheControl:"3600",upsert:false,contentType:fileType
       });
       if(uploadError)throw uploadError;
+      const messageId=crypto.randomUUID();
       const messageRow={
+        id:messageId,
         [conversationField]:activeConversation,
         sender_id:user.id,
         content:"",
@@ -1621,6 +1752,7 @@ async function uploadChatFiles(fileList){
         await sb.storage.from("chat-media").remove([path]);
         throw messageError;
       }
+      notifyChatlyPush("notify-message",{messageId,messageType:currentConversation?.isGroup?"group":"direct"});
     }
     $("uploadStatus").textContent=files.length===1?"Attachment sent.":files.length+" attachments sent.";
     setTimeout(()=>{if($("uploadStatus"))$("uploadStatus").textContent="";},2500);
@@ -1634,7 +1766,19 @@ async function uploadChatFiles(fileList){
 }
 
 function refreshPreview(id,m){const c=conversations.find(x=>x.id===id);if(c){c.last=m;conversations.sort((a,b)=>new Date(b.last?.created_at||b.created_at)-new Date(a.last?.created_at||a.created_at));renderConversations();}}
-$("messageForm").onsubmit=async e=>{e.preventDefault();const content=$("messageInput").value.trim();if(!content||!activeConversation)return;const c=conversations.find(x=>x.id===activeConversation);if(c&&!c.isGroup&&isBlockedBetween(c.otherId)){updateDirectBlockUI();return;}const table=c?.isGroup?"chat_group_messages":"direct_messages";const field=c?.isGroup?"group_id":"conversation_id";const btn=$("messageForm").querySelector("button");btn.disabled=true;const {error}=await sb.from(table).insert({[field]:activeConversation,sender_id:user.id,content});btn.disabled=false;if(error){alert("Message could not send: "+error.message);return;}$("messageInput").value="";$("messageInput").style.height="auto";};
+$("messageForm").onsubmit=async e=>{
+  e.preventDefault();const content=$("messageInput").value.trim();if(!content||!activeConversation)return;
+  const c=conversations.find(x=>x.id===activeConversation);
+  if(c&&!c.isGroup&&isBlockedBetween(c.otherId)){updateDirectBlockUI();return;}
+  const table=c?.isGroup?"chat_group_messages":"direct_messages";
+  const field=c?.isGroup?"group_id":"conversation_id";
+  const messageId=crypto.randomUUID(),btn=$("messageForm").querySelector("button");btn.disabled=true;
+  const {error}=await sb.from(table).insert({id:messageId,[field]:activeConversation,sender_id:user.id,content});
+  btn.disabled=false;
+  if(error){alert("Message could not send: "+error.message);return;}
+  notifyChatlyPush("notify-message",{messageId,messageType:c?.isGroup?"group":"direct"});
+  $("messageInput").value="";$("messageInput").style.height="auto";
+};
 $("messageInput").addEventListener("input",()=>{const el=$("messageInput");el.style.height="auto";el.style.height=Math.min(el.scrollHeight,120)+"px";});
 $("messageInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("messageForm").requestSubmit();}});
 $("selectMessagesBtn").onclick=()=>toggleMessageSelectionMode();
@@ -1871,6 +2015,7 @@ async function startGroupCall(group){
     const invites=members.map(to_user=>({call_id:callRow.id,group_id:group.id,from_user:user.id,to_user,signal_type:"invite",payload:{group_name:group.name,caller_name:displayName(profile)}}));
     const {error:inviteError}=await sb.from("chat_group_call_signals").insert(invites);
     if(inviteError)throw inviteError;
+    notifyChatlyPush("notify-group-call",{callId:callRow.id,groupId:group.id});
     groupCallStatus("Calling "+members.length+" group member"+(members.length===1?"":"s")+"…");
   }catch(error){
     if(groupCallState)await cleanupGroupCall(false);
@@ -1900,6 +2045,11 @@ function showIncomingGroupInvite(invite){
 }
 async function handleGroupCallSignal(change){
   const row=change?.new;if(!row||row.to_user!==user?.id||row.from_user===user.id)return;
+  if(row.signal_type==="invite"){
+    const key=String(row.id||`${row.call_id}:${row.from_user}:${row.created_at||"invite"}`);
+    if(handledGroupInviteIds.has(key))return;
+    handledGroupInviteIds.add(key);if(handledGroupInviteIds.size>40)handledGroupInviteIds.clear();
+  }
   const payload=row.payload||{};
   try{
     if(row.signal_type==="invite"){
@@ -2156,7 +2306,6 @@ $("privateCallChatForm").onsubmit=event=>{event.preventDefault();sendInCallChatM
 $("searchChats").oninput=renderConversations;
 $("newChat").onclick=newChatModal;$("emptyNewChat").onclick=newChatModal;
 $("backToChats").onclick=()=>{$("app").classList.remove("chat-open");};
-$("blockContactBtn").onclick=toggleActiveContactBlock;
 $("renameContact").onclick=()=>{
   const c=conversations.find(x=>x.id===activeConversation);if(!c)return;
   if(c.isGroup){manageGroupMembers(c);return;}
@@ -2201,31 +2350,78 @@ function manageGroupMembers(group){
 function modal(title,body){$("modalRoot").innerHTML=`<div class="modal-back" id="modalBack"><section class="modal"><h2>${esc(title)}</h2>${body}</section></div>`;$("modalBack").onclick=e=>{if(e.target.id==="modalBack")closeModal();};}
 function closeModal(){$("modalRoot").innerHTML="";}
 $("settings").onclick=profileModal;
-function profileModal(){const dark=document.body.classList.contains("dark");modal("Customize Chatly",`<div class="avatar avatar-preview" id="profilePreview"></div><label class="small muted">Display name</label><input class="field" id="displayNameInput" maxlength="32" value="${esc(profile.display_name||profile.username)}"><label class="small muted">Profile picture</label><input class="field" id="avatarFile" type="file" accept="image/*"><label class="sound-setting"><input id="soundEnabledInput" type="checkbox" ${soundEnabled?"checked":""}><span>Play message sounds and call ringtones</span></label><div class="sound-test-row"><button type="button" class="secondary" id="testSoundsButton">Test sound</button><span class="small muted" id="testSoundStatus">Tap to check audio.</span></div><label class="small muted">Appearance</label><div class="theme-row"><button class="theme-choice ${!dark?"selected":""}" id="lightTheme">☀ Light</button><button class="theme-choice ${dark?"selected":""}" id="darkTheme">☾ Dark</button></div><button class="secondary" id="manageBlockedPeopleBtn" type="button">Manage blocked people</button><div class="modal-actions"><button class="secondary" id="cancelModal">Cancel</button><button class="primary" id="saveProfile">Save</button></div>`);setAvatar($("profilePreview"),profile.avatar_url,profile.display_name||profile.username);$("cancelModal").onclick=closeModal;$("manageBlockedPeopleBtn").onclick=manageBlockedPeople;
-$("soundEnabledInput").onchange=()=>{
-  soundEnabled=$("soundEnabledInput").checked;
-  localStorage.setItem("chatly-sounds",soundEnabled?"on":"off");
-  if(!soundEnabled){pendingChatSounds.length=0;stopCallRingtone();}
-};
-$("testSoundsButton").onclick=async()=>{
-  soundEnabled=true;
-  $("soundEnabledInput").checked=true;
-  localStorage.setItem("chatly-sounds","on");
-  $("testSoundStatus").textContent="Playing…";
-  const ready=await unlockChatAudio();
-  if(ready){
-    playChatSoundNow(audioContextInstance,"message");
-    $("testSoundStatus").textContent="Sounds are working!";
-  }else{
-    $("testSoundStatus").textContent="Your browser blocked audio. Tap again or check device sound.";
-  }
-};
-$("lightTheme").onclick=()=>setTheme(false);$("darkTheme").onclick=()=>setTheme(true);$("saveProfile").onclick=async()=>{try{const display=$("displayNameInput").value.trim()||profile.username;let avatar_url=profile.avatar_url||null;const file=$("avatarFile").files[0];if(file){if(file.size>4*1024*1024)throw Error("Choose an image under 4 MB.");const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"");const path=`${user.id}/${crypto.randomUUID()}.${ext}`;const up=await sb.storage.from("chat-avatars").upload(path,file,{upsert:false,contentType:file.type});if(up.error)throw up.error;avatar_url=sb.storage.from("chat-avatars").getPublicUrl(path).data.publicUrl;}const {data,error}=await sb.from("profiles").update({display_name:display,avatar_url}).eq("id",user.id).select().single();if(error)throw error;profile=data;$("myName").textContent=display;setAvatar($("myAvatar"),avatar_url,display);soundEnabled=$("soundEnabledInput").checked;localStorage.setItem("chatly-sounds",soundEnabled?"on":"off");if(!soundEnabled)pendingChatSounds.length=0;closeModal();}catch(err){alert("Could not save profile: "+err.message);}};}
+function profileModal(){
+  const dark=document.body.classList.contains("dark");
+  modal("Customize Chatly",`<div class="avatar avatar-preview" id="profilePreview"></div>
+    <label class="small muted">Display name</label>
+    <input class="field" id="displayNameInput" maxlength="32" value="${esc(profile.display_name||profile.username)}">
+    <label class="small muted">Profile picture</label>
+    <input class="field" id="avatarFile" type="file" accept="image/*">
+    <label class="sound-setting"><input id="soundEnabledInput" type="checkbox" ${soundEnabled?"checked":""}><span>Play message sounds and call ringtones while Chatly is open</span></label>
+    <div class="sound-test-row"><button type="button" class="secondary" id="testSoundsButton">Test sound</button><span class="small muted" id="testSoundStatus">Tap to check audio.</span></div>
+    <div class="push-settings-block"><strong>Push notifications</strong><p class="small muted">Get message alerts and incoming-call notifications when Chatly is in the background.</p><button class="secondary" id="pushNotificationsBtn" type="button">Enable notifications</button><div class="small muted" id="pushNotificationStatus" aria-live="polite">Checking notification support…</div></div>
+    <label class="small muted">Appearance</label>
+    <div class="theme-row"><button class="theme-choice ${!dark?"selected":""}" id="lightTheme">☀ Light</button><button class="theme-choice ${dark?"selected":""}" id="darkTheme">☾ Dark</button></div>
+    <button class="secondary" id="manageBlockedPeopleBtn" type="button">Manage blocked people</button>
+    <div class="modal-actions"><button class="secondary" id="cancelModal">Cancel</button><button class="primary" id="saveProfile">Save</button></div>`);
+  setAvatar($("profilePreview"),profile.avatar_url,profile.display_name||profile.username);
+  $("cancelModal").onclick=closeModal;
+  $("manageBlockedPeopleBtn").onclick=manageBlockedPeople;
+  $("soundEnabledInput").onchange=()=>{
+    soundEnabled=$("soundEnabledInput").checked;
+    localStorage.setItem("chatly-sounds",soundEnabled?"on":"off");
+    if(!soundEnabled){pendingChatSounds.length=0;stopCallRingtone();}
+  };
+  $("testSoundsButton").onclick=async()=>{
+    soundEnabled=true;$("soundEnabledInput").checked=true;localStorage.setItem("chatly-sounds","on");
+    $("testSoundStatus").textContent="Playing…";
+    const ready=await unlockChatAudio();
+    if(ready){playChatSoundNow(audioContextInstance,"message");$("testSoundStatus").textContent="Sounds are working!";}
+    else{$("testSoundStatus").textContent="Your browser blocked audio. Tap again or check device sound.";}
+  };
+  $("pushNotificationsBtn").onclick=async()=>{
+    const button=$("pushNotificationsBtn");button.disabled=true;
+    try{
+      if(button.dataset.enabled==="true")await disableChatlyPushNotifications();
+      else await enableChatlyPushNotifications();
+      await refreshPushSettingsUI();
+    }catch(error){$("pushNotificationStatus").textContent=error.message||"Could not change notification settings.";}
+    finally{button.disabled=false;}
+  };
+  refreshPushSettingsUI();
+  $("lightTheme").onclick=()=>setTheme(false);$("darkTheme").onclick=()=>setTheme(true);
+  $("saveProfile").onclick=async()=>{
+    try{
+      const display=$("displayNameInput").value.trim()||profile.username;
+      let avatar_url=profile.avatar_url||null;const file=$("avatarFile").files[0];
+      if(file){
+        if(file.size>4*1024*1024)throw Error("Choose an image under 4 MB.");
+        const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"");
+        const path=`${user.id}/${crypto.randomUUID()}.${ext}`;
+        const up=await sb.storage.from("chat-avatars").upload(path,file,{upsert:false,contentType:file.type});
+        if(up.error)throw up.error;avatar_url=sb.storage.from("chat-avatars").getPublicUrl(path).data.publicUrl;
+      }
+      const {data,error}=await sb.from("profiles").update({display_name:display,avatar_url}).eq("id",user.id).select().single();
+      if(error)throw error;profile=data;$("myName").textContent=display;setAvatar($("myAvatar"),avatar_url,display);
+      soundEnabled=$("soundEnabledInput").checked;localStorage.setItem("chatly-sounds",soundEnabled?"on":"off");if(!soundEnabled)pendingChatSounds.length=0;
+      closeModal();
+    }catch(err){alert("Could not save profile: "+err.message);}
+  };
+}
 function setTheme(dark){document.body.classList.toggle("dark",dark);localStorage.setItem("chatly-theme",dark?"dark":"light");$("lightTheme")?.classList.toggle("selected",!dark);$("darkTheme")?.classList.toggle("selected",dark);}
 setTheme(localStorage.getItem("chatly-theme")==="dark");
 $("signOut").onclick=async()=>{await finishCall(false);await cleanupGroupCall(false);if(callSignalChannel)await sb.removeChannel(callSignalChannel);if(groupCallSignalChannel)await sb.removeChannel(groupCallSignalChannel);if(blockChannel)await sb.removeChannel(blockChannel);await sb.auth.signOut();};
 window.addEventListener("pagehide",()=>{if(callState)stopCallMedia(callState);});
-if("serviceWorker"in navigator&&location.protocol!=="file:")navigator.serviceWorker.register("./sw.js").catch(()=>{});
+if("serviceWorker"in navigator&&location.protocol!=="file:"){
+  chatlyServiceWorkerPromise=navigator.serviceWorker.register("./sw.js").then(reg=>{chatlyServiceWorkerRegistration=reg;return reg;}).catch(error=>{console.warn("Chatly service worker registration failed:",error);throw error;});
+  navigator.serviceWorker.addEventListener("message",event=>{
+    if(event.data?.type==="CHATLY_NOTIFICATION_CLICK"){
+      checkPendingIncomingCalls().catch(error=>console.warn("Could not restore incoming call from notification:",error));
+      if(event.data?.data?.conversationId){const id=event.data.data.conversationId;if(conversations.some(c=>c.id===id))openConversation(id);}
+    }
+  });
+}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&user)setTimeout(()=>checkPendingIncomingCalls().catch(()=>{}),650);});
 start().catch(err=>{console.error(err);showError(err.message);});
 </script>
 </body>

@@ -27,3 +27,19 @@ BLOCKING UPDATE
 3. Commit and hard-refresh Chatly.
 
 Blocking prevents new private messages and one-to-one calls in either direction. Existing messages remain visible. Shared group chats and group calls are not affected by an individual block. No Metered settings or Edge Function changes are required.
+
+PUSH NOTIFICATIONS (NEW)
+1. Run CHATLY-PUSH-NOTIFICATIONS-SQL.sql once in Supabase SQL Editor.
+2. Add CHATLY_VAPID_PUBLIC_KEY, CHATLY_VAPID_PRIVATE_KEY and CHATLY_VAPID_SUBJECT
+   as Supabase Edge Function Secrets. The values are provided in the ChatGPT setup
+   instructions. Use a mailto: address you control for CHATLY_VAPID_SUBJECT.
+3. Deploy the new supabase/functions/chatly-push/index.ts Edge Function with JWT
+   verification enabled. Keep the VAPID private key and Supabase service-role key
+   only in Supabase Secrets; never commit them to GitHub.
+4. On iPad/iPhone (iOS/iPadOS 16.4+), add Chatly to the Home Screen, open it from
+   that icon, then open Chatly Settings and tap Enable notifications.
+5. Enable notifications separately on every device where alerts should arrive.
+
+Push alerts use the device's normal notification sound. A web app cannot guarantee
+continuous native-style call ringing or CallKit UI while fully closed; that needs
+a native iOS app. See CHATLY-PUSH-SETUP.txt for the full installation notes.

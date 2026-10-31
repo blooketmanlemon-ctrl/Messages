@@ -1,0 +1,42 @@
+CHATLY PUSH NOTIFICATIONS — SETUP
+=================================
+
+WHAT THIS ADDS
+- System push notifications for new direct messages and group messages.
+- Incoming private and group call alerts when Chatly is in the background.
+- Push subscriptions are stored in Supabase and sent by a server-side Edge Function.
+- The VAPID private key stays in Supabase Secrets, never in index.html or GitHub.
+
+IMPORTANT IPAD REQUIREMENT
+On iPad/iPhone, web push works only when Chatly is added to the Home Screen and
+opened as its installed web app (iPadOS/iOS 16.4 or later). Open Chatly from the
+Home Screen icon, then go to Settings and choose Enable notifications. Safari tab
+permission alone is not enough for iOS/iPadOS web push.
+
+INSTALL ORDER
+1. Run CHATLY-PUSH-NOTIFICATIONS-SQL.sql once in Supabase SQL Editor.
+2. Add these Supabase Edge Function Secrets:
+   CHATLY_VAPID_PUBLIC_KEY     = public key shown in the setup message
+   CHATLY_VAPID_PRIVATE_KEY   = private key shown in the setup message
+   CHATLY_VAPID_SUBJECT       = mailto:YOUR-REAL-CONTACT-EMAIL
+   SUPABASE_SERVICE_ROLE_KEY  = your project's existing service-role secret
+   SUPABASE_URL and SUPABASE_ANON_KEY are normally available automatically in
+   Supabase Edge Functions. If your project does not expose them, add them too.
+3. Deploy the function from this folder using the Supabase CLI:
+   supabase functions deploy chatly-push
+   Keep JWT verification enabled.
+4. Replace the GitHub Pages files with this ZIP's website assets and supabase folder.
+5. On iPad, install Chatly to Home Screen, open the installed app, open Settings,
+   and tap Enable notifications. Allow the system permission prompt.
+6. Repeat on every device/account where notifications should arrive.
+
+NO SQL CHANGES TO EXISTING CHAT TABLES
+Only the new chat_push_subscriptions table is added. Existing Metered TURN
+secrets and chatly-turn-config function are unchanged.
+
+CALL ALERT LIMITATION
+A browser/PWA can display an incoming-call push notification with the device's
+normal notification sound and an action to reopen Chatly. It cannot guarantee a
+continuous, custom, native-style ringing loop or CallKit full-screen call UI while
+fully closed; that requires a native iOS app. On iPad, ensure Chatly notifications
+and sounds are enabled in Settings > Notifications after installing the PWA.

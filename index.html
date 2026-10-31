@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <title>Chatly</title>
-<meta name="chatly-build" content="chatly-conversation-wide-timestamps-v3-2026-10-31">
+<meta name="chatly-build" content="chatly-left-swipe-fullscreen-conversation-v1-2026-10-31">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -18,7 +18,7 @@
 .auth{min-height:100dvh;display:grid;place-items:center;padding:22px;background:radial-gradient(ellipse at 50% 0,#dcecff 0,transparent 55%),var(--bg)}.auth-card{width:min(420px,100%);background:var(--panel);padding:30px;border-radius:25px;box-shadow:var(--shadow)}.brand{font-weight:850;font-size:31px;letter-spacing:-1.6px}.brand span{color:var(--blue)}.auth-card h1{margin:18px 0 5px;font-size:25px}.auth-card p{line-height:1.5}.stack{display:grid;gap:11px;margin-top:20px}.field{width:100%;border:1px solid var(--line);background:var(--soft);padding:13px 15px;border-radius:13px;outline:none;color:var(--text)}.field:focus{border-color:var(--blue);box-shadow:0 0 0 3px #1685f81a}.primary{background:var(--blue);color:#fff;padding:13px 17px;border-radius:13px;font-weight:700}.primary:hover{background:var(--blue2)}.text-btn{background:transparent;color:var(--blue);font-weight:650;padding:8px}
 .app{height:100dvh;display:grid;grid-template-columns:340px minmax(0,1fr);max-width:1500px;margin:auto;background:var(--panel);box-shadow:var(--shadow);overflow:hidden}.list-pane{border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0;background:var(--panel)}.list-head{padding:24px 20px 15px;display:flex;align-items:center;gap:10px}.list-head .brand{font-size:27px}.list-head .spacer{flex:1}.round-btn{width:38px;height:38px;border-radius:50%;background:var(--soft);color:var(--text);font-size:19px;display:grid;place-items:center}.search-wrap{padding:0 16px 13px}.search{width:100%;border:0;border-radius:12px;background:var(--soft);padding:11px 13px;outline:none;color:var(--text)}.list-label{padding:9px 20px 7px;color:var(--muted);font-size:11px;text-transform:uppercase;font-weight:800;letter-spacing:.1em}.conversation-list{overflow:auto;flex:1;overscroll-behavior:contain}.conversation{display:flex;align-items:center;gap:12px;padding:12px 17px;cursor:pointer;border-left:3px solid transparent}.conversation:hover{background:#f7f8fb}.conversation.active{background:#eef5ff;border-left-color:var(--blue)}.avatar{width:48px;height:48px;border-radius:50%;background:#dceaff;color:#176bc0;display:grid;place-items:center;font-weight:800;flex:none;overflow:hidden}.avatar img{width:100%;height:100%;object-fit:cover}.conv-copy{min-width:0;flex:1;border-bottom:1px solid var(--line);padding:2px 0 12px}.conv-top{display:flex;align-items:center;gap:8px}.conv-name{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}.conv-time{font-size:11px;color:var(--muted);white-space:nowrap}.conv-preview{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:4px}.profile-footer{border-top:1px solid var(--line);padding:12px 15px;display:flex;align-items:center;gap:10px}.profile-footer .avatar{width:38px;height:38px}.profile-copy{min-width:0;flex:1}.profile-name{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.profile-actions{display:flex;gap:4px}
 .chat-pane{display:flex;flex-direction:column;min-width:0;background:var(--panel);position:relative}.empty{height:100%;display:grid;place-items:center;text-align:center;padding:25px;color:var(--muted)}.empty-icon{width:76px;height:76px;border-radius:25px;background:#eaf3ff;color:var(--blue);display:grid;place-items:center;font-size:36px;margin:0 auto 18px}.chat-head{height:72px;flex:none;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 22px}.chat-head .avatar{width:42px;height:42px}.chat-person{font-weight:750}.chat-status{font-size:12px;color:var(--muted);margin-top:3px}.chat-head .spacer{flex:1}.messages{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:22px clamp(14px,4vw,54px);display:flex;flex-direction:column;gap:7px;scrollbar-gutter:stable}.day-divider{text-align:center;color:var(--muted);font-size:11px;margin:12px 0 16px}.message-row{display:flex;flex-direction:column;max-width:min(72%,620px);align-self:flex-start;gap:3px}.message-row.mine{align-self:flex-end;align-items:flex-end}.bubble{background:var(--bubble);padding:10px 15px;border-radius:20px 20px 20px 6px;line-height:1.42;white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px}.mine .bubble{background:var(--blue);color:white;border-radius:20px 20px 6px 20px}.message-time{font-size:10px;color:var(--muted);padding:0 7px}
-/* Swipe-right timestamps: reveal a small time chip just to the right of each bubble. */
+/* Swipe-left timestamps: reveal all message times in a shared right-side gutter. */
 .message-row{position:relative;touch-action:pan-y;transition:transform .18s ease;will-change:transform}
 .message-row .message-timestamp{position:absolute;top:50%;left:calc(100% + 7px);right:auto;transform:translateY(-50%);font-size:10px;color:var(--muted);padding:5px 7px;white-space:nowrap;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .16s ease;z-index:2;background:var(--panel);border:1px solid var(--line);border-radius:9px;box-shadow:0 2px 8px #0000000a}
 .message-row.timestamp-revealed .message-timestamp{opacity:1;visibility:visible}
@@ -530,6 +530,41 @@ body.chatly-reduce-motion *,body.chatly-reduce-motion *::before,body.chatly-redu
   }
 }
 </style>
+
+<style id="chatly-fullscreen-conversation-navigation-v1">
+/* Opening a conversation takes over the full app area on desktop, tablet and mobile. */
+#app.app.chat-open {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+#app.app.chat-open > .list-pane {
+  display: none !important;
+}
+#app.app.chat-open > .chat-pane {
+  display: grid !important;
+  grid-column: 1 / -1 !important;
+  grid-row: 1 !important;
+  width: 100% !important;
+  max-width: none !important;
+}
+#app.app.chat-open .mobile-back {
+  display: grid !important;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  font-size: 25px;
+  line-height: 1;
+  place-items: center;
+}
+#app.app.chat-open .chat-head {
+  padding-left: max(14px, env(safe-area-inset-left));
+  padding-right: max(14px, env(safe-area-inset-right));
+}
+@media (max-width: 720px) {
+  #app.app.chat-open { grid-template-columns: minmax(0, 1fr) !important; }
+}
+</style>
+
 </head>
 <body>
 <div id="auth" class="auth">
@@ -1981,17 +2016,17 @@ function setupMessageSwipeGestures(){
     const dx=event.clientX-swipe.x;
     const dy=event.clientY-swipe.y;
 
-    // Let normal vertical scrolling win. Only a clear rightward horizontal drag reveals times.
+    // Let normal vertical scrolling win. A clear LEFTWARD drag reveals all timestamps.
     if(!swipe.horizontal){
-      if(Math.abs(dy)>12&&Math.abs(dy)>Math.max(8,dx)*1.15){activeMessageSwipe=null;return;}
-      if(dx>8&&dx>Math.abs(dy)*1.2){
+      if(Math.abs(dy)>12&&Math.abs(dy)>Math.max(8,Math.abs(dx))*1.15){activeMessageSwipe=null;return;}
+      if(dx < -8 && -dx > Math.abs(dy)*1.2){
         swipe.horizontal=true;
         swipe.revealed=true;
         swipe.root.classList.add("timestamp-reveal-mode","timestamp-dragging");
       }else return;
     }
 
-    const progress=Math.max(0,Math.min(1,dx/86));
+    const progress=Math.max(0,Math.min(1,(-dx)/86));
     swipe.root.style.setProperty("--chatly-timestamp-progress",progress.toFixed(3));
     swipe.root.style.setProperty("--chatly-timestamp-gutter",`${Math.round(progress*86)}px`);
   },{passive:true});
@@ -2947,7 +2982,27 @@ $("callChatToggle").onclick=()=>toggleInCallChat("direct");
 $("privateCallChatForm").onsubmit=event=>{event.preventDefault();sendInCallChatMessage("direct");};
 $("searchChats").oninput=renderConversations;
 $("newChat").onclick=newChatModal;$("emptyNewChat").onclick=newChatModal;
-$("backToChats").onclick=()=>{$("app").classList.remove("chat-open");};
+function returnToMainArea(){
+  if(messageSelectionMode)toggleMessageSelectionMode(false);
+  if(liveChannel){sb.removeChannel(liveChannel);liveChannel=null;}
+  if(activeGroupChannel){sb.removeChannel(activeGroupChannel);activeGroupChannel=null;}
+  if(messageReadObserver){messageReadObserver.disconnect();messageReadObserver=null;}
+  for(const timer of readVisibilityTimers.values())clearTimeout(timer);
+  readVisibilityTimers.clear();
+  readObserverContext=null;
+  activeConversation=null;
+  activeContact=null;
+  readReceiptState.clear();
+  $("app").classList.remove("chat-open");
+  $("chatHead").classList.add("hidden");
+  $("messages").classList.add("hidden");
+  $("messageForm").classList.add("hidden");
+  $("messageSelectionToolbar").classList.add("hidden");
+  $("blockedNotice").classList.add("hidden");
+  $("emptyState").classList.remove("hidden");
+  renderConversations();
+}
+$("backToChats").onclick=returnToMainArea;
 $("renameContact").onclick=()=>{
   const c=conversations.find(x=>x.id===activeConversation);if(!c)return;
   if(c.isGroup){manageGroupMembers(c);return;}

@@ -1,4 +1,4 @@
-const CACHE_NAME = "chatly-conversation-wide-timestamps-v3-20261031";
+const CACHE_NAME = "chatly-left-swipe-fullscreen-v1-20261031";
 const STATIC_ASSETS = [
   "./manifest.webmanifest",
   "./icon.svg",

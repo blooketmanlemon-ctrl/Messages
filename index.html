@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <title>Chatly</title>
-<meta name="chatly-build" content="chatly-left-swipe-fullscreen-conversation-v1-2026-10-31">
+<meta name="chatly-build" content="chatly-arcade-right-pane-messages-safe-v2-2026-10-31">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -608,6 +608,13 @@ body.dark .arcade-shell{background:radial-gradient(ellipse at 88% 0%,#58407a44,t
 @media(max-width:380px){.arcade-grid{grid-template-columns:1fr}.arcade-game-card{min-height:130px}.arcade-hero-art{display:none}}
 </style>
 
+
+<style id="chatly-arcade-navigation-fix">
+.arcade-launch-btn{font-size:17px;line-height:1;flex:0 0 38px}
+.arcade-launch-btn:hover{background:var(--blue);color:#fff}
+@media(max-width:720px){.arcade-launch-btn{width:36px;height:36px;flex-basis:36px}}
+</style>
+
 </head>
 <body>
 <div id="auth" class="auth">
@@ -627,9 +634,8 @@ body.dark .arcade-shell{background:radial-gradient(ellipse at 88% 0%,#58407a44,t
 </div>
 <div id="app" class="app hidden">
   <aside class="list-pane">
-    <header class="list-head"><div class="brand">chat<span>ly</span></div><div class="spacer"></div><button class="round-btn" id="newChat" title="New message or group">＋</button></header>
+    <header class="list-head"><div class="brand">chat<span>ly</span></div><div class="spacer"></div><button class="round-btn arcade-launch-btn" id="arcadeNavBtn" type="button" title="Open Chatly Arcade" aria-label="Open Chatly Arcade">🎮</button><button class="round-btn" id="newChat" title="New message or group">＋</button></header>
     <div class="search-wrap"><input class="search" id="searchChats" placeholder="Search conversations"></div>
-    <button class="arcade-nav-btn" id="arcadeNavBtn" type="button"><span class="arcade-nav-icon">🎮</span><span class="arcade-nav-copy"><strong>Chatly Arcade</strong><small>Play while you wait</small></span><span class="arcade-nav-arrow">›</span></button>
     <div class="list-label">Messages</div>
     <div class="conversation-list" id="conversationList"><div class="empty">Your conversations will appear here.</div></div>
     <footer class="profile-footer">
@@ -646,6 +652,7 @@ body.dark .arcade-shell{background:radial-gradient(ellipse at 88% 0%,#58407a44,t
       <div class="avatar" id="chatAvatar">?</div>
       <div><div class="chat-person" id="chatName"></div><div class="chat-status" id="chatStatus">Chatly message</div></div>
       <div class="spacer"></div>
+      <button class="round-btn arcade-launch-btn" id="arcadeChatBtn" title="Open Chatly Arcade" aria-label="Open Chatly Arcade">🎮</button>
       <button class="round-btn call-head-btn" id="videoCallBtn" title="Start video call" aria-label="Start video call">📹</button>
       <button class="round-btn" id="renameContact" title="Group members / rename contact">✎</button>
     </header>
@@ -3341,41 +3348,51 @@ function initChatlyArcade(){
   if(!user||!sb)return;
   arcadeEnsureShell();
   if(!chatlyArcadeInitialized){
-    const searchWrap=document.querySelector("#app .search-wrap");
-    if(searchWrap&&!$("arcadeNavBtn")){searchWrap.insertAdjacentHTML("afterend",'<button class="arcade-nav-btn" id="arcadeNavBtn" type="button"><span class="arcade-nav-icon">🎮</span><span class="arcade-nav-copy"><strong>Chatly Arcade</strong><small>Play while you wait</small></span><span class="arcade-nav-arrow">›</span></button>');}
     if($("arcadeNavBtn"))$("arcadeNavBtn").onclick=()=>showChatlyArcadeHome(true);
+    if($("arcadeChatBtn"))$("arcadeChatBtn").onclick=()=>showChatlyArcadeHome(true);
     if($("arcadeInvitesBtn"))$("arcadeInvitesBtn").onclick=loadChatlyArcadeInvites;
     if($("arcadeMessagesBtn"))$("arcadeMessagesBtn").onclick=showChatlyMessagesLanding;
     chatlyArcadeInitialized=true;
   }
-  showChatlyArcadeHome(true);
+  // Load Arcade into the right-hand main panel only. Do not hide the Messages list
+  // or tear down any active conversation subscriptions during app startup.
+  renderChatlyArcadeHome().catch(error=>{
+    console.warn("Chatly Arcade could not load:",error);
+    const inner=$("arcadeInner");
+    if(inner)inner.innerHTML='<div class="arcade-empty-note">Chatly Arcade could not load right now. Your messages are still available.</div>';
+  });
   if(chatlyArcadeInviteChannel)sb.removeChannel(chatlyArcadeInviteChannel);
   chatlyArcadeInviteChannel=sb.channel("chatly-arcade-invites-"+user.id)
-    .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_arcade_invites",filter:"invitee_id=eq."+user.id},async payload=>{
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_arcade_invites",filter:"invitee_id=eq."+user.id},async()=>{
       await loadChatlyArcadeInvites();
-      const title=CHATLY_ARCADE_GAMES[chatlyArcadeCurrentGame]?.title||"a game";
       arcadeToast("You received a Chatly game invite!", "View", ()=>showChatlyArcadeHome(true));
     })
     .subscribe(status=>{if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("Chatly Arcade invite subscription:",status);});
-  loadChatlyArcadeInvites();
 }
 function showChatlyMessagesLanding(){
   arcadeClearTimers();
   if(chatlyArcadeRoomChannel){sb.removeChannel(chatlyArcadeRoomChannel);chatlyArcadeRoomChannel=null;}
   chatlyArcadeRoomId=null;chatlyArcadeRoom=null;chatlyArcadeCurrentGame=null;
   $("app").classList.remove("arcade-open");
+  // Return to the conversation that was open before Arcade, if there was one.
+  if(activeConversation&&conversations.some(c=>c.id===activeConversation)){
+    openConversation(activeConversation);
+    return;
+  }
+  $("app").classList.remove("chat-open");
   $("emptyState").innerHTML='<div><div class="empty-icon">✉</div><h2 style="color:var(--text)">Your messages</h2><p>Choose a conversation or start a new one.</p><button class="primary" id="emptyNewChat">New message</button></div>';
   $("emptyState").classList.remove("hidden");
+  $("chatHead").classList.add("hidden");$("messages").classList.add("hidden");$("messageForm").classList.add("hidden");
   if($("emptyNewChat"))$("emptyNewChat").onclick=newChatModal;
+  loadConversations().catch(error=>console.warn("Could not refresh the Messages list:",error));
 }
 async function showChatlyArcadeHome(openOnMobile=true){
   if(!user||!sb)return;
   arcadeClearTimers();
   if(chatlyArcadeRoomChannel){sb.removeChannel(chatlyArcadeRoomChannel);chatlyArcadeRoomChannel=null;}
-  if(liveChannel){sb.removeChannel(liveChannel);liveChannel=null;}
-  if(activeGroupChannel){sb.removeChannel(activeGroupChannel);activeGroupChannel=null;}
-  activeConversation=null;activeContact=null;
   chatlyArcadeRoomId=null;chatlyArcadeRoom=null;chatlyArcadeCurrentGame=null;
+  // Preserve activeConversation, liveChannel and activeGroupChannel. The user can
+  // return to the same conversation, and incoming messages keep arriving.
   $("app").classList.remove("chat-open");
   if(openOnMobile)$("app").classList.add("arcade-open");
   arcadeEnsureShell();

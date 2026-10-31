@@ -1,25 +1,27 @@
-CHATLY ARCADE UPDATE
+CHATLY ARCADE - MESSAGES/LAYOUT REPAIR
 
-FEATURES
-- Replaces the empty "Your messages" screen in the main right pane with Chatly Arcade.
-- Adds a persistent Arcade entry under the conversation search.
-- Solo Flap Chat mini-game (tap/click or Space to flap; best score stored on device).
-- Multiplayer private rooms for Tic-Tac-Toe, Connect Four, Reaction Rush, Quick Tap Race, Word Scramble, and Number Hunt.
-- Invite friends from existing private Chatly conversations.
-- Invitees see in-app invites on their Arcade home and can join or decline.
-- Supabase Realtime synchronizes room state and player scores.
-- Responsive desktop, iPad, and mobile Arcade screens.
+WHAT THIS UPDATE FIXES
+- Removes the large Chatly Arcade banner from above the Messages list.
+- Keeps the Arcade home/game system in the main RIGHT-HAND pane on desktop and tablet.
+- Adds a compact 🎮 launcher in the Chatly top header for phones and small screens.
+- Adds a 🎮 launcher in the open-conversation header so Arcade remains easy to reach.
+- The mobile Messages list is shown by default after login; Arcade no longer hides it automatically.
+- Arcade startup no longer clears the active conversation or tears down direct/group message Realtime channels.
+- Returning from Arcade restores the conversation that was open before it.
+- Returning to the Messages landing refreshes the conversation list.
 
 INSTALL
-1. Run CHATLY-ARCADE-SQL.sql once in Supabase SQL Editor. The original Chatly conversations, group chats, calls, push, blocking, read receipts, and media storage are not changed.
-2. Replace the files in the root of the GitHub Pages repository with this ZIP's files.
-3. Commit and hard refresh. On iPad, fully close/reopen Chatly.
-4. Open Chatly Arcade in the left sidebar. On the initial empty message screen, Arcade appears in the main right pane.
+1. Unzip this package.
+2. Replace the website files in the GitHub Pages repository root with these files.
+3. Commit the changes.
+4. Desktop: hard refresh with Ctrl+Shift+R.
+5. iPad/iPhone: fully close Chatly and reopen it. If the old version remains, remove and re-add the Home Screen shortcut after the site updates.
 
-MULTIPLAYER NOTES
-- Multiplayer invitations use existing private Chatly conversations as the friend list.
-- Each player must sign into Chatly and open Arcade to see/join an invite. This build uses in-app realtime invites; it does not add push notifications for game invites.
-- Turn-based Tic-Tac-Toe and Connect Four, plus Reaction Rush, Quick Tap Race, Word Scramble, and Number Hunt are included.
-- The local Flap Chat score is stored on that device.
-- Supabase Realtime publication is enabled by the SQL migration.
-- No Metered credentials or calling Edge Functions are changed.
+DATABASE
+The Chatly Arcade SQL migration has ALREADY been run. No SQL changes are needed for this repair. Do not run the Arcade SQL again.
+
+CALLING
+Metered TURN settings and Supabase calling/push Edge Functions are unchanged.
+
+NOTE
+Multiplayer invites and game synchronization still require testing across two signed-in Chatly accounts. This update fixes navigation and preserves message subscriptions; it does not claim that every multiplayer mode has been live-tested.

@@ -1,4 +1,4 @@
-const CACHE_NAME = "chatly-arcade-main-right-pane-v3-20261031";
+const CACHE_NAME = "chatly-mini-flappy-home-v1-20261031";
 const STATIC_ASSETS = [
   "./manifest.webmanifest",
   "./icon.svg",

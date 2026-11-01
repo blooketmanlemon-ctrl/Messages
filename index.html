@@ -218,6 +218,25 @@ body.dark .call-avatar{background:#35445c;color:#fff}
 }
 </style>
 
+<style id="chatly-minimized-call-dock-styles">
+.call-head-tools{display:flex;align-items:center;gap:10px;min-width:0}
+.call-minimize-btn{width:38px;height:38px;flex:none;border-radius:50%;border:1px solid #ffffff35;background:#ffffff14;color:#fff;font-size:25px;line-height:1;display:grid;place-items:center}
+.call-minimize-btn:hover{background:#ffffff26}
+.group-call-minimize{margin-left:auto;width:38px;height:38px;flex:none;border-radius:50%;border:1px solid #ffffff35;background:#ffffff14;color:#fff;font-size:25px;line-height:1;display:grid;place-items:center}
+.active-call-dock{position:fixed;z-index:120;right:16px;bottom:max(16px,env(safe-area-inset-bottom));width:min(440px,calc(100vw - 24px));display:flex;align-items:center;gap:12px;padding:12px 13px;border:1px solid #ffffff28;border-radius:18px;background:linear-gradient(135deg,#17243af5,#0b1322f7);box-shadow:0 16px 48px #0007;color:#fff;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.active-call-dock.hidden{display:none!important}
+.active-call-dock-copy{min-width:0;flex:1;display:grid;gap:3px}
+.active-call-dock-title{font-size:13px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.active-call-dock-status{font-size:11px;color:#c0cede;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.active-call-dock-actions{display:flex;align-items:center;gap:6px;flex:none}
+.active-call-dock-btn{padding:9px 11px;border-radius:11px;background:#34445b;color:#fff;font-size:12px;font-weight:750;white-space:nowrap}
+.active-call-dock-btn.return{background:#2563eb}
+.active-call-dock-btn.end{background:#d23b4b}
+.active-call-dock-btn.pip{background:#475569}
+@media(max-width:560px){.active-call-dock{right:8px;bottom:max(8px,env(safe-area-inset-bottom));width:calc(100vw - 16px);padding:10px;border-radius:15px;gap:8px}.active-call-dock-actions{gap:5px}.active-call-dock-btn{padding:9px 8px;font-size:11px}.active-call-dock-title{font-size:12px}.call-secure-note{display:none!important}}
+@media(max-width:390px){.active-call-dock-btn.pip{display:none}.active-call-dock-btn{padding:8px 7px}.active-call-dock{gap:6px}}
+</style>
+
 <style id="chatly-call-video-orientation-fix">
 /* Keep every call video in its natural, non-mirrored orientation. */
 #callOverlay #remoteVideo,
@@ -678,7 +697,10 @@ body.dark #app #emptyState.mini-flappy-empty{background:radial-gradient(ellipse 
   <section class="call-panel">
     <header class="call-panel-head">
       <div class="call-brand">chat<span>ly</span> <small>VIDEO CALL</small></div>
-      <div class="call-secure-note">Camera and microphone are only used during a call.</div>
+      <div class="call-head-tools">
+        <div class="call-secure-note">Camera and microphone are only used during a call.</div>
+        <button class="call-minimize-btn hidden" id="minimizePrivateCall" type="button" aria-label="Minimize call" title="Minimize call">−</button>
+      </div>
     </header>
     <div class="call-stage">
       <video id="remoteVideo" autoplay playsinline></video>
@@ -734,6 +756,7 @@ body.dark #app #emptyState.mini-flappy-empty{background:radial-gradient(ellipse 
         <span id="groupCallStatus">Connecting…</span>
       </div>
       <div class="group-call-cap">Up to 6 people</div>
+      <button class="group-call-minimize" id="minimizeGroupCall" type="button" aria-label="Minimize group call" title="Minimize call">−</button>
     </header>
     <div id="groupCallGrid" class="group-call-grid" aria-live="polite"></div>
     <section class="in-call-chat-panel group-in-call-chat hidden" id="groupCallChatPanel" aria-label="Group call messages">
@@ -755,6 +778,17 @@ body.dark #app #emptyState.mini-flappy-empty{background:radial-gradient(ellipse 
     </footer>
   </section>
 </div>
+<aside id="activeCallDock" class="active-call-dock hidden" aria-live="polite" aria-label="Active call minimized">
+  <div class="active-call-dock-copy">
+    <div class="active-call-dock-title" id="activeCallDockTitle">Call in progress</div>
+    <div class="active-call-dock-status" id="activeCallDockStatus">You're still connected</div>
+  </div>
+  <div class="active-call-dock-actions">
+    <button class="active-call-dock-btn pip" id="activeCallDockPip" type="button" title="Pop video out">Pop out</button>
+    <button class="active-call-dock-btn return" id="activeCallDockReturn" type="button">Return</button>
+    <button class="active-call-dock-btn end" id="activeCallDockEnd" type="button">End</button>
+  </div>
+</aside>
 <!-- Supabase SDK is loaded with CDN fallback from the main app script. -->
 <script>
 const SUPABASE_URL="https://rfivnjnvliqpehdkqqap.supabase.co";
@@ -1104,12 +1138,75 @@ function callDisplayName(id){
   if(conversation)return nickname(id,displayName(conversation.person));
   return "Chatly user";
 }
-function setCallStatus(message){$("callStatus").textContent=message||"";}
+function setCallStatus(message){$("callStatus").textContent=message||"";updateActiveCallDock();}
+function currentActiveCallKind(){
+  if(callState&&callState.phase!=="ended")return "direct";
+  if(groupCallState&&!groupCallState.closing)return "group";
+  return null;
+}
+function updateActiveCallDock(){
+  const dock=$("activeCallDock");if(!dock)return;
+  const kind=currentActiveCallKind();
+  const state=kind==="direct"?callState:kind==="group"?groupCallState:null;
+  const minimized=!!state?.minimized;
+  dock.classList.toggle("hidden",!state||!minimized);
+  if(!state||!minimized)return;
+  $("activeCallDockTitle").textContent=kind==="direct"?`Call with ${state.peerName||"Chatly user"}`:`Group call · ${state.groupName||"Chatly group"}`;
+  const status=kind==="direct"?($("callStatus")?.textContent||"You're still connected"):($("groupCallStatus")?.textContent||"You're still connected");
+  $("activeCallDockStatus").textContent=status;
+}
+function minimizeActiveCall(kind){
+  if(kind==="direct"&&callState){
+    if(!["connecting","connected"].includes(callState.phase))return;
+    callState.minimized=true;$("callOverlay").classList.add("hidden");
+  }else if(kind==="group"&&groupCallState){
+    groupCallState.minimized=true;$("groupCallOverlay").classList.add("hidden");
+  }else{return;}
+  updateActiveCallDock();
+}
+function restoreActiveCall(){
+  if(callState&&callState.phase!=="ended"){
+    callState.minimized=false;$("callOverlay").classList.remove("hidden");
+  }else if(groupCallState&&!groupCallState.closing){
+    groupCallState.minimized=false;$("groupCallOverlay").classList.remove("hidden");
+  }
+  updateActiveCallDock();
+}
+async function popOutActiveCallVideo(){
+  let video=null;
+  if(callState&&callState.phase!=="ended")video=$("remoteVideo");
+  else if(groupCallState){
+    for(const peerId of groupCallState.peers.keys()){
+      const candidate=$(groupCallTileId(peerId)+"-video");
+      if(candidate?.srcObject?.getVideoTracks?.().some(track=>track.readyState==="live")){video=candidate;break;}
+    }
+  }
+  if(!video||!video.srcObject||video.readyState<2){
+    alert("Picture-in-Picture will be available after another participant's video has connected.");
+    return;
+  }
+  try{
+    if(typeof video.requestPictureInPicture==="function")await video.requestPictureInPicture();
+    else if(typeof video.webkitSetPresentationMode==="function")video.webkitSetPresentationMode("picture-in-picture");
+    else throw new Error("This browser doesn't support Picture-in-Picture for Chatly calls. You can still minimize the call inside Chatly.");
+  }catch(error){alert(error.message||"Could not open Picture-in-Picture. Try again after the other person's video appears.");}
+}
+async function endMinimizedCall(){
+  if(callState&&callState.phase!=="ended")await finishCall(true,callState.phase==="outgoing"?"cancel":"hangup");
+  else if(groupCallState)await leaveGroupCall();
+  updateActiveCallDock();
+}
+$("minimizePrivateCall").onclick=()=>minimizeActiveCall("direct");
+$("minimizeGroupCall").onclick=()=>minimizeActiveCall("group");
+$("activeCallDockReturn").onclick=restoreActiveCall;
+$("activeCallDockPip").onclick=popOutActiveCallVideo;
+$("activeCallDockEnd").onclick=endMinimizedCall;
 function setCallPhase(phase){
   if(!callState)return;
   callState.phase=phase;
   if(phase!=="incoming"&&phase!=="outgoing")stopCallRingtone();
-  $("callOverlay").classList.remove("hidden");
+  $("callOverlay").classList.toggle("hidden",!!callState.minimized);
+  $("minimizePrivateCall").classList.toggle("hidden",!(["connecting","connected"].includes(phase)));
   $("callIncomingActions").classList.toggle("hidden",phase!=="incoming");
   $("callOutgoingActions").classList.toggle("hidden",phase!=="outgoing");
   $("callActiveActions").classList.toggle("hidden",phase!=="connecting"&&phase!=="connected");
@@ -1122,6 +1219,7 @@ function setCallPhase(phase){
   $("localVideo").classList.toggle("hidden",!callState.localStream||(callState.localCameraOff&&!sharingScreen));
   $("localCameraOff").classList.toggle("visible",!!callState.localCameraOff&&!!callState.localStream&&!sharingScreen);
   setAvatar($("localCameraAvatar"),profile?.avatar_url,profile?.display_name||profile?.username||"You");
+  updateActiveCallDock();
 }
 function showCallEnded(message){
   if(!callState)return;
@@ -1132,6 +1230,8 @@ function showCallEnded(message){
   if(callState.disconnectTimer)clearTimeout(callState.disconnectTimer);
   stopCallMedia(callState);
   callState.phase="ended";
+  callState.minimized=false;
+  $("activeCallDock").classList.add("hidden");
   $("callOverlay").classList.remove("hidden");
   $("callIncomingActions").classList.add("hidden");
   $("callOutgoingActions").classList.add("hidden");
@@ -1254,6 +1354,7 @@ async function finishCall(sendSignal=false,signalType="hangup"){
   const call=callState;
   if(!call)return;
   callState=null;
+  updateActiveCallDock();
   stopCallRingtone();
   await closeInCallChat(call);
   resetInCallChatUI("direct");
@@ -1465,6 +1566,7 @@ async function startVideoCall(){
     cameraFacing:"user",
     role:"caller",
     phase:"outgoing",
+    minimized:false,
     localStream:null,
     remoteStream:null,
     remoteDescriptionSet:false,
@@ -1722,6 +1824,7 @@ async function handleCallSignal(change){
       cameraFacing:"user",
       role:"callee",
       phase:"incoming",
+      minimized:false,
       offerDescription:incomingPayload.description,
       localStream:null,
       remoteStream:null,
@@ -2538,7 +2641,7 @@ $("selectionDeleteBtn").onclick=deleteSelectedForMe;
 $("selectionUnsendBtn").onclick=unsendSelectedForEveryone;
 $("videoCallBtn").onclick=()=>{const c=conversations.find(x=>x.id===activeConversation);if(c?.isGroup)startGroupCall(c);else startVideoCall();};
 const GROUP_CALL_MAX_PARTICIPANTS=6;
-function groupCallStatus(message){const el=$("groupCallStatus");if(el)el.textContent=message||"";}
+function groupCallStatus(message){const el=$("groupCallStatus");if(el)el.textContent=message||"";updateActiveCallDock();}
 function groupCallName(group){return group?.name||"Group call";}
 function findGroupMember(group,id){return (group?.members||[]).find(member=>member.id===id)||null;}
 function groupMemberDisplay(group,id){const member=findGroupMember(group,id);return displayName(member)||"Chatly user";}
@@ -2574,8 +2677,9 @@ function setGroupCallControls(){
 function showGroupCallUI(state){
   $("groupCallTitle").textContent=state.groupName;
   $("groupCallGrid").innerHTML="";
-  $("groupCallOverlay").classList.remove("hidden");
+  $("groupCallOverlay").classList.toggle("hidden",!!state.minimized);
   setGroupCallControls();
+  updateActiveCallDock();
 }
 async function sendGroupCallSignal(type,state,toUser,payload={}){
   if(!sb||!user||!state||!toUser)throw new Error("Group call is not connected.");
@@ -2719,7 +2823,7 @@ async function setupGroupCallRealtime(state){
 }
 async function enterGroupCall(callRow,group){
   if(callState||groupCallState)throw new Error("Finish your current call before joining a group call.");
-  const state={id:callRow.id,groupId:callRow.group_id,groupName:groupCallName(group),group,startedBy:callRow.started_by,isHost:callRow.started_by===user.id,localStream:null,screenStream:null,screenTrack:null,cameraFacing:"user",iceServers:null,peers:new Map(),participantChannel:null,heartbeatTimer:null,closing:false};
+  const state={id:callRow.id,groupId:callRow.group_id,groupName:groupCallName(group),group,startedBy:callRow.started_by,isHost:callRow.started_by===user.id,minimized:false,localStream:null,screenStream:null,screenTrack:null,cameraFacing:"user",iceServers:null,peers:new Map(),participantChannel:null,heartbeatTimer:null,closing:false};
   groupCallState=state;
   showGroupCallUI(state);
   groupCallStatus("Requesting camera and microphone…");
@@ -2851,6 +2955,7 @@ async function cleanupGroupCall(sendLeave=true){
     for(const peerId of state.peers.keys())sendGroupCallSignal("leave",state,peerId,{}).catch(()=>{});
   }
   groupCallState=null;
+  updateActiveCallDock();
   await closeInCallChat(state);
   resetInCallChatUI("group");
   if(state.heartbeatTimer)clearInterval(state.heartbeatTimer);
@@ -3336,7 +3441,10 @@ function setTheme(dark){document.body.classList.toggle("dark",dark);localStorage
 setTheme(localStorage.getItem("chatly-theme")==="dark");
 applySavedChatlyCustomizations();
 $("signOut").onclick=async()=>{await finishCall(false);await cleanupGroupCall(false);if(callSignalChannel)await sb.removeChannel(callSignalChannel);if(groupCallSignalChannel)await sb.removeChannel(groupCallSignalChannel);if(blockChannel)await sb.removeChannel(blockChannel);await sb.auth.signOut();};
-window.addEventListener("pagehide",()=>{if(callState)stopCallMedia(callState);});
+// Calls are kept alive while users move between Chatly views or the page enters
+// the browser's back/forward cache. Closing the tab or force-quitting the browser
+// is still controlled by the browser/OS and cannot be guaranteed by a web app.
+window.addEventListener("pagehide",()=>{if(callState?.minimized)updateActiveCallDock();});
 if("serviceWorker"in navigator&&location.protocol!=="file:"){
   chatlyServiceWorkerPromise=navigator.serviceWorker.register("./sw.js").then(reg=>{chatlyServiceWorkerRegistration=reg;return reg;}).catch(error=>{console.warn("Chatly service worker registration failed:",error);throw error;});
   navigator.serviceWorker.addEventListener("message",event=>{

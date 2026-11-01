@@ -218,6 +218,24 @@ body.dark .call-avatar{background:#35445c;color:#fff}
 }
 </style>
 
+<style id="chatly-call-video-orientation-fix">
+/* Keep every call video in its natural, non-mirrored orientation. */
+#callOverlay #remoteVideo,
+#callOverlay #localVideo,
+#groupCallOverlay .group-call-tile video {
+  transform: none !important;
+  -webkit-transform: none !important;
+  scale: 1 !important;
+  rotate: 0deg !important;
+  backface-visibility: visible !important;
+}
+/* Screen-share previews are contain-fit so the entire shared display remains visible. */
+#callOverlay #localVideo.screen-share-preview,
+#groupCallOverlay .group-call-tile video.screen-share-preview {
+  object-fit: contain !important;
+  background: #050914;
+}
+</style>
 
 <style id="chatly-media-sounds-styles">
 .attach-button{width:34px;height:34px;flex:none;border-radius:50%;background:transparent;color:var(--blue);font-size:26px;line-height:1;display:grid;place-items:center;padding:0}
@@ -1275,6 +1293,8 @@ async function getCallMedia(call){
   call.localStream=stream;
   call.cameraFacing=stream.getVideoTracks?.()[0]?.getSettings?.().facingMode||"user";
   $("localVideo").srcObject=stream;
+  $("localVideo").style.transform="none";
+  $("localVideo").style.webkitTransform="none";
   $("localVideo").classList.remove("hidden");
   $("localVideo").muted=true;
   call.localCameraOff=false;
@@ -1551,6 +1571,8 @@ async function flipPrivateCamera(){
     call.cameraFacing=nextFacing;
     if(!call.screenStream){
       $("localVideo").srcObject=call.localStream;
+      $("localVideo").style.transform="none";
+      $("localVideo").style.webkitTransform="none";
       $("localVideo").classList.toggle("hidden",!nextTrack.enabled);
       $("localCameraOff").classList.toggle("visible",!nextTrack.enabled);
       $("localVideo").play().catch(()=>{});
@@ -1562,37 +1584,65 @@ async function flipPrivateCamera(){
 }
 
 function getChatlyVideoSender(pc,preferred=null){
-  if(preferred)return preferred;
   if(!pc)return null;
-  return pc.getSenders?.().find(sender=>sender.track?.kind==="video")
-    ||pc.getTransceivers?.().find(transceiver=>transceiver.receiver?.track?.kind==="video")?.sender
+  const senders=pc.getSenders?.()||[];
+  if(preferred&&senders.includes(preferred))return preferred;
+  return senders.find(sender=>sender.track?.kind==="video")
+    ||pc.getTransceivers?.().find(transceiver=>transceiver.sender&&(
+      transceiver.sender.track?.kind==="video"||transceiver.receiver?.track?.kind==="video"
+    ))?.sender
     ||null;
 }
+async function replaceChatlyVideoTrack(sender,track){
+  if(!sender||typeof sender.replaceTrack!=="function"){
+    throw new Error("The call has no active video sender. Wait until the other person has joined, then try sharing again.");
+  }
+  await sender.replaceTrack(track||null);
+  return sender;
+}
+function setCallVideoPreview(video,stream,{screen=false}={}){
+  if(!video)return;
+  video.srcObject=stream||null;
+  video.classList.toggle("screen-share-preview",!!screen);
+  video.style.transform="none";
+  video.style.webkitTransform="none";
+  if(stream)video.classList.remove("hidden");
+  video.play?.().catch(()=>{});
+}
 async function requestChatlyScreenCapture(){
-  if(!window.isSecureContext)throw new Error("Screen sharing requires Chatly to be opened over HTTPS.");
+  if(!window.isSecureContext){
+    throw new Error("Screen sharing requires Chatly to be opened over HTTPS.");
+  }
   const mediaDevices=navigator.mediaDevices;
   const capture=mediaDevices?.getDisplayMedia?.bind(mediaDevices)
     ||navigator.getDisplayMedia?.bind(navigator);
   if(!capture){
-    throw new Error("This browser does not provide screen sharing. Update your browser and try Chatly in Safari or a desktop browser that supports screen capture. Some iPad browser/PWA versions do not expose this feature.");
+    throw new Error("This browser does not support website screen sharing. Try the latest Safari or Chrome in a normal browser tab. Some iPadOS versions and Home Screen web apps do not expose screen capture; Chatly cannot override that browser restriction.");
   }
   try{
-    // The simple constraints are the most compatible across Chromium, Firefox and Safari.
-    const displayStream=await capture({video:true,audio:false});
+    // Call the picker directly from the Share Screen button gesture.
+    const displayStream=await capture({video:{frameRate:{ideal:15,max:30}},audio:false});
     const track=displayStream?.getVideoTracks?.()[0];
-    if(!track){displayStream?.getTracks?.().forEach(item=>item.stop());throw new Error("The screen picker did not provide a video track.");}
+    if(!track){
+      displayStream?.getTracks?.().forEach(item=>item.stop());
+      throw new Error("The screen picker did not provide a video track.");
+    }
     try{track.contentHint="detail";}catch{}
+    track.enabled=true;
     return displayStream;
   }catch(error){
     if(error?.name==="AbortError")throw error;
     if(error?.name==="NotAllowedError"||error?.name==="PermissionDeniedError"){
-      throw new Error("Screen sharing was cancelled or blocked. Tap Share screen again and choose a screen, window, or browser tab.");
+      throw new Error("Screen sharing was cancelled or blocked. Tap Share screen again and choose the screen, window, or tab when your browser asks.");
     }
     if(error?.name==="InvalidStateError"){
       throw new Error("The browser needs Chatly to be the active page. Close other dialogs and tap Share screen again.");
     }
     if(error?.name==="NotReadableError"){
-      throw new Error("The device could not start screen capture. Close another screen-recording session and try again.");
+      throw new Error("The device could not start screen capture. Stop any other screen-recording session and try again.");
+    }
+    if(error?.name==="NotFoundError"){
+      throw new Error("No shareable screen or window was found on this device.");
     }
     throw new Error(error?.message||"The browser could not start screen capture.");
   }
@@ -1609,12 +1659,12 @@ async function startPrivateScreenShare(){
     const screenTrack=displayStream.getVideoTracks()[0];
     const sender=getChatlyVideoSender(call.pc,call.videoSender);
     if(!screenTrack||!sender){displayStream.getTracks().forEach(track=>track.stop());throw new Error("The call's video sender is not ready yet. Try again after the call connects.");}
-    try{await sender.replaceTrack(screenTrack);}
-    catch(error){displayStream.getTracks().forEach(track=>track.stop());throw new Error("Your browser couldn't switch the call from camera to screen. Try sharing a browser tab or lower-resolution screen, then try again. Details: "+(error.message||error));}
+    try{await replaceChatlyVideoTrack(sender,screenTrack);}
+    catch(error){displayStream.getTracks().forEach(track=>track.stop());throw new Error("Your browser couldn't switch the call from camera to screen. Try sharing a browser tab or window. Details: "+(error.message||error));}
     call.videoSender=sender;call.screenStream=displayStream;call.screenTrack=screenTrack;
     const localVideo=$("localVideo");
-    localVideo.srcObject=displayStream;localVideo.classList.remove("hidden");localVideo.muted=true;
-    await localVideo.play().catch(()=>{});
+    localVideo.muted=true;
+    setCallVideoPreview(localVideo,displayStream,{screen:true});
     $("localCameraOff").classList.remove("visible");
     $("shareScreenCall").textContent="Stop sharing";$("shareScreenCall").classList.add("share-active");
     $("callStatus").textContent="You're sharing your screen.";
@@ -1631,11 +1681,11 @@ async function stopPrivateScreenShare(){
   call.screenStream=null;call.screenTrack=null;
   const sender=getChatlyVideoSender(call.pc,call.videoSender);
   if(sender){
-    try{await sender.replaceTrack(track||null);}
+    try{await replaceChatlyVideoTrack(sender,track||null);}
     catch(error){console.warn("Could not restore camera after screen share:",error);$("callStatus").textContent="Screen sharing stopped, but camera could not be restored. Toggle your camera off and on.";}
   }
   display.getTracks().forEach(item=>{item.onended=null;item.stop();});
-  $("localVideo").srcObject=call.localStream;
+  setCallVideoPreview($("localVideo"),call.localStream);
   const cameraEnabled=!!track&&track.enabled;
   $("localVideo").classList.toggle("hidden",!cameraEnabled);
   $("localCameraOff").classList.toggle("visible",!cameraEnabled);
@@ -2500,7 +2550,7 @@ function createGroupCallTile(id,name,avatarUrl,isLocal=false){
   let tile=$(tileId);
   if(tile)return tile;
   tile=document.createElement("div");tile.className="group-call-tile";tile.id=tileId;
-  const video=document.createElement("video");video.autoplay=true;video.playsInline=true;video.muted=!!isLocal;video.classList.add("hidden");video.id=tileId+"-video";
+  const video=document.createElement("video");video.autoplay=true;video.playsInline=true;video.muted=!!isLocal;video.classList.add("hidden");video.id=tileId+"-video";video.style.transform="none";video.style.webkitTransform="none";
   const avatar=document.createElement("div");avatar.className="group-call-tile-avatar";avatar.id=tileId+"-avatar";setAvatar(avatar,avatarUrl,name);
   const label=document.createElement("div");label.className="group-call-tile-name";label.textContent=isLocal?(name+" (You)"):name;
   tile.append(video,avatar,label);
@@ -2857,7 +2907,7 @@ async function flipGroupCamera(){
     state.cameraFacing=nextFacing;
     if(!state.screenStream){
       const localVideo=$(groupCallTileId(user.id)+"-video");
-      if(localVideo){localVideo.srcObject=state.localStream;localVideo.classList.toggle("hidden",!nextTrack.enabled);localVideo.play().catch(()=>{});}
+      if(localVideo){localVideo.srcObject=state.localStream;localVideo.style.transform="none";localVideo.style.webkitTransform="none";localVideo.classList.toggle("hidden",!nextTrack.enabled);localVideo.play().catch(()=>{});}
       $(groupCallTileId(user.id)+"-avatar")?.classList.toggle("hidden",!!nextTrack.enabled);
     }
     setGroupCallControls();
@@ -2882,13 +2932,13 @@ async function startGroupScreenShare(){
       const sender=getChatlyVideoSender(peer.pc,peer.videoSender);
       if(!sender)throw new Error("The video connection to "+peer.name+" is not ready. Try again in a moment.");
       const previousTrack=sender.track;
-      await sender.replaceTrack(screenTrack);
+      await replaceChatlyVideoTrack(sender,screenTrack);
       peer.videoSender=sender;
       replaced.push({peerId,sender,previousTrack});
     }
     state.screenSenders=replaced;
     const localVideo=$(groupCallTileId(user.id)+"-video");
-    if(localVideo){localVideo.srcObject=displayStream;localVideo.classList.remove("hidden");localVideo.play().catch(()=>{});}
+    if(localVideo){localVideo.classList.add("screen-share-preview");localVideo.srcObject=displayStream;localVideo.classList.remove("hidden");localVideo.style.transform="none";localVideo.style.webkitTransform="none";localVideo.play().catch(()=>{});}
     $(groupCallTileId(user.id)+"-avatar")?.classList.add("hidden");
     const localLabel=$(groupCallTileId(user.id))?.querySelector(".group-call-tile-name");
     if(localLabel)localLabel.textContent=displayName(profile)+" (You · Sharing screen)";
@@ -2910,11 +2960,11 @@ async function stopGroupScreenShare(){
   const camera=state.localStream?.getVideoTracks?.()[0];
   for(const [peerId,peer] of state.peers){
     const sender=getChatlyVideoSender(peer.pc,peer.videoSender);
-    if(sender){try{await sender.replaceTrack(camera||null);peer.videoSender=sender;}catch(error){console.warn("Could not restore group camera:",error);}}
+    if(sender){try{await replaceChatlyVideoTrack(sender,camera||null);peer.videoSender=sender;}catch(error){console.warn("Could not restore group camera:",error);}}
   }
   display.getTracks().forEach(track=>{track.onended=null;track.stop();});
   const localVideo=$(groupCallTileId(user.id)+"-video");
-  if(localVideo){localVideo.srcObject=state.localStream;localVideo.classList.toggle("hidden",!camera?.enabled);localVideo.play().catch(()=>{});}
+  if(localVideo){localVideo.classList.remove("screen-share-preview");localVideo.srcObject=state.localStream;localVideo.style.transform="none";localVideo.style.webkitTransform="none";localVideo.classList.toggle("hidden",!camera?.enabled);localVideo.play().catch(()=>{});}
   $(groupCallTileId(user.id)+"-avatar")?.classList.toggle("hidden",!!camera?.enabled);
   const localLabel=$(groupCallTileId(user.id))?.querySelector(".group-call-tile-name");
   if(localLabel)localLabel.textContent=displayName(profile)+" (You)";

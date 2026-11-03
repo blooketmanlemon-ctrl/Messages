@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <title>Chatly</title>
-<meta name="chatly-build" content="chatly-mini-flappy-home-v1-2026-10-31">
+<meta name="chatly-build" content="chatly-live-typing-mini-flappy-v1-2026-11-03">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -18,6 +18,15 @@
 .auth{min-height:100dvh;display:grid;place-items:center;padding:22px;background:radial-gradient(ellipse at 50% 0,#dcecff 0,transparent 55%),var(--bg)}.auth-card{width:min(420px,100%);background:var(--panel);padding:30px;border-radius:25px;box-shadow:var(--shadow)}.brand{font-weight:850;font-size:31px;letter-spacing:-1.6px}.brand span{color:var(--blue)}.auth-card h1{margin:18px 0 5px;font-size:25px}.auth-card p{line-height:1.5}.stack{display:grid;gap:11px;margin-top:20px}.field{width:100%;border:1px solid var(--line);background:var(--soft);padding:13px 15px;border-radius:13px;outline:none;color:var(--text)}.field:focus{border-color:var(--blue);box-shadow:0 0 0 3px #1685f81a}.primary{background:var(--blue);color:#fff;padding:13px 17px;border-radius:13px;font-weight:700}.primary:hover{background:var(--blue2)}.text-btn{background:transparent;color:var(--blue);font-weight:650;padding:8px}
 .app{height:100dvh;display:grid;grid-template-columns:340px minmax(0,1fr);max-width:1500px;margin:auto;background:var(--panel);box-shadow:var(--shadow);overflow:hidden}.list-pane{border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0;background:var(--panel)}.list-head{padding:24px 20px 15px;display:flex;align-items:center;gap:10px}.list-head .brand{font-size:27px}.list-head .spacer{flex:1}.round-btn{width:38px;height:38px;border-radius:50%;background:var(--soft);color:var(--text);font-size:19px;display:grid;place-items:center}.search-wrap{padding:0 16px 13px}.search{width:100%;border:0;border-radius:12px;background:var(--soft);padding:11px 13px;outline:none;color:var(--text)}.list-label{padding:9px 20px 7px;color:var(--muted);font-size:11px;text-transform:uppercase;font-weight:800;letter-spacing:.1em}.conversation-list{overflow:auto;flex:1;overscroll-behavior:contain}.conversation{display:flex;align-items:center;gap:12px;padding:12px 17px;cursor:pointer;border-left:3px solid transparent}.conversation:hover{background:#f7f8fb}.conversation.active{background:#eef5ff;border-left-color:var(--blue)}.avatar{width:48px;height:48px;border-radius:50%;background:#dceaff;color:#176bc0;display:grid;place-items:center;font-weight:800;flex:none;overflow:hidden}.avatar img{width:100%;height:100%;object-fit:cover}.conv-copy{min-width:0;flex:1;border-bottom:1px solid var(--line);padding:2px 0 12px}.conv-top{display:flex;align-items:center;gap:8px}.conv-name{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}.conv-time{font-size:11px;color:var(--muted);white-space:nowrap}.conv-preview{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:4px}.profile-footer{border-top:1px solid var(--line);padding:12px 15px;display:flex;align-items:center;gap:10px}.profile-footer .avatar{width:38px;height:38px}.profile-copy{min-width:0;flex:1}.profile-name{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.profile-actions{display:flex;gap:4px}
 .chat-pane{display:flex;flex-direction:column;min-width:0;background:var(--panel);position:relative}.empty{height:100%;display:grid;place-items:center;text-align:center;padding:25px;color:var(--muted)}.empty-icon{width:76px;height:76px;border-radius:25px;background:#eaf3ff;color:var(--blue);display:grid;place-items:center;font-size:36px;margin:0 auto 18px}.chat-head{height:72px;flex:none;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 22px}.chat-head .avatar{width:42px;height:42px}.chat-person{font-weight:750}.chat-status{font-size:12px;color:var(--muted);margin-top:3px}.chat-head .spacer{flex:1}.messages{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:22px clamp(14px,4vw,54px);display:flex;flex-direction:column;gap:7px;scrollbar-gutter:stable}.day-divider{text-align:center;color:var(--muted);font-size:11px;margin:12px 0 16px}.message-row{display:flex;flex-direction:column;max-width:min(72%,620px);align-self:flex-start;gap:3px}.message-row.mine{align-self:flex-end;align-items:flex-end}.bubble{background:var(--bubble);padding:10px 15px;border-radius:20px 20px 20px 6px;line-height:1.42;white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px}.mine .bubble{background:var(--blue);color:white;border-radius:20px 20px 6px 20px}.message-time{font-size:10px;color:var(--muted);padding:0 7px}
+/* Live typing indicator */
+.typing-indicator{align-self:flex-start;display:flex;align-items:center;gap:8px;min-height:35px;padding:2px 8px 7px;color:var(--muted);font-size:12px;opacity:1;transition:opacity .16s ease,transform .16s ease;transform:translateY(0)}
+.typing-indicator.hidden{display:none!important}
+.typing-bubble{display:inline-flex;align-items:center;gap:4px;padding:10px 13px;background:var(--bubble);border-radius:17px 17px 17px 5px;min-width:48px;min-height:32px}
+.typing-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:chatlyTypingPulse 1s infinite ease-in-out}
+.typing-dot:nth-child(2){animation-delay:.14s}.typing-dot:nth-child(3){animation-delay:.28s}
+.typing-label{font-size:11px;color:var(--muted)}
+@keyframes chatlyTypingPulse{0%,60%,100%{transform:translateY(0);opacity:.45}30%{transform:translateY(-4px);opacity:1}}
+@media(prefers-reduced-motion:reduce){.typing-dot{animation:none;opacity:.8}}
 /* Swipe-left timestamps: reveal all message times in a shared right-side gutter. */
 .message-row{position:relative;touch-action:pan-y;transition:transform .18s ease;will-change:transform}
 .message-row .message-timestamp{position:absolute;top:50%;left:calc(100% + 7px);right:auto;transform:translateY(-50%);font-size:10px;color:var(--muted);padding:5px 7px;white-space:nowrap;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .16s ease;z-index:2;background:var(--panel);border:1px solid var(--line);border-radius:9px;box-shadow:0 2px 8px #0000000a}
@@ -238,21 +247,17 @@ body.dark .call-avatar{background:#35445c;color:#fff}
 </style>
 
 <style id="chatly-call-video-orientation-fix">
-/* Keep every call video in its natural, non-mirrored orientation. */
-#callOverlay #remoteVideo,
-#callOverlay #localVideo,
-#groupCallOverlay .group-call-tile video {
+/* Always display camera feeds in their natural orientation: never mirror or rotate them. */
+#callOverlay video,
+#groupCallOverlay video {
   transform: none !important;
   -webkit-transform: none !important;
   scale: 1 !important;
   rotate: 0deg !important;
+  object-position: center center !important;
+  transform-origin: center center !important;
   backface-visibility: visible !important;
-}
-/* Screen-share previews are contain-fit so the entire shared display remains visible. */
-#callOverlay #localVideo.screen-share-preview,
-#groupCallOverlay .group-call-tile video.screen-share-preview {
-  object-fit: contain !important;
-  background: #050914;
+  -webkit-backface-visibility: visible !important;
 }
 </style>
 
@@ -739,7 +744,6 @@ body.dark #app #emptyState.mini-flappy-empty{background:radial-gradient(ellipse 
       <button class="call-action neutral" id="toggleCamera">Camera off</button>
       <button class="call-action neutral" id="flipCameraCall" type="button">Flip camera</button>
       <button class="call-action neutral" id="callChatToggle" type="button" aria-expanded="false">Chat</button>
-      <button class="call-action neutral" id="shareScreenCall">Share screen</button>
       <button class="call-action end" id="endCall">End call</button>
     </div>
     <div class="call-actions hidden" id="callEndedActions">
@@ -772,7 +776,6 @@ body.dark #app #emptyState.mini-flappy-empty{background:radial-gradient(ellipse 
       <button id="groupToggleCamera" class="group-call-control" type="button">Camera off</button>
       <button id="groupFlipCamera" class="group-call-control" type="button">Flip camera</button>
       <button id="groupCallChatToggle" class="group-call-control" type="button" aria-expanded="false">Chat</button>
-      <button id="groupShareScreen" class="group-call-control" type="button">Share screen</button>
       <button id="groupLeaveCall" class="group-call-control leave" type="button">Leave call</button>
       <button id="groupEndCall" class="group-call-control end-all hidden" type="button">End for everyone</button>
     </footer>
@@ -865,6 +868,9 @@ let messageSelectionMode=false;
 const selectedMessages=new Map();
 let callSignalChannel=null,callState=null;
 let activeGroupChannel=null,groupMembershipChannel=null;
+// Ephemeral typing state is sent over Supabase Realtime Broadcast (no database migration).
+let typingChannel=null,typingConversationId=null,typingStopTimer=null,typingActive=false,typingLastSentAt=0;
+const remoteTypingUsers=new Map();
 let groupCallState=null,groupCallSignalChannel=null,pendingGroupInvite=null;
 let soundEnabled=localStorage.getItem("chatly-sounds")!=="off",audioContextInstance=null,ringtoneInterval=null,messageSoundChannel=null,pendingChatSounds=[],playedMessageSoundIds=new Set();
 const MESSAGE_SOUND_OPTIONS={
@@ -1215,9 +1221,8 @@ function setCallPhase(phase){
   $("callPeerLarge").textContent=callState.peerName||"Chatly user";
   setAvatar($("callAvatar"),callState.peerAvatarUrl,callState.peerName||"U");
   $("callPlaceholder").classList.toggle("hidden",!!callState.remoteVideoReady&&!callState.remoteCameraOff);
-  const sharingScreen=!!callState.screenStream;
-  $("localVideo").classList.toggle("hidden",!callState.localStream||(callState.localCameraOff&&!sharingScreen));
-  $("localCameraOff").classList.toggle("visible",!!callState.localCameraOff&&!!callState.localStream&&!sharingScreen);
+  $("localVideo").classList.toggle("hidden",!callState.localStream||!!callState.localCameraOff);
+  $("localCameraOff").classList.toggle("visible",!!callState.localCameraOff&&!!callState.localStream);
   setAvatar($("localCameraAvatar"),profile?.avatar_url,profile?.display_name||profile?.username||"You");
   updateActiveCallDock();
 }
@@ -1247,8 +1252,6 @@ function stopCallMedia(call){
   if(!call)return;
   try{call.pc?.close()}catch{}
   call.pc=null;
-  if(call.screenStream)call.screenStream.getTracks().forEach(track=>{track.onended=null;track.stop();});
-  call.screenStream=null;
   if(call.localStream)call.localStream.getTracks().forEach(track=>track.stop());
   if(call.remoteStream)call.remoteStream.getTracks().forEach(track=>track.stop());
   $("localVideo").srcObject=null;
@@ -1362,7 +1365,6 @@ async function finishCall(sendSignal=false,signalType="hangup"){
   if(call.disconnectTimer)clearTimeout(call.disconnectTimer);
   stopCallMedia(call);
   $("callOverlay").classList.add("hidden");
-  $("shareScreenCall").textContent="Share screen";$("shareScreenCall").classList.remove("share-active");
   if(sendSignal){
     try{await sendCallSignal(signalType,call,{})}
     catch(error){console.warn("Could not send call ending signal:",error)}
@@ -1372,6 +1374,18 @@ function showCallNotice(message){
   if(!callState)return;
   showCallEnded(message);
 }
+function applyNaturalCameraOrientation(video){
+  if(!video)return;
+  video.classList.add("chatly-natural-video");
+  video.style.setProperty("transform","none","important");
+  video.style.setProperty("-webkit-transform","none","important");
+  video.style.setProperty("scale","1","important");
+  video.style.setProperty("rotate","0deg","important");
+  video.style.setProperty("object-position","center center","important");
+  video.style.setProperty("transform-origin","center center","important");
+  video.style.setProperty("backface-visibility","visible","important");
+}
+
 async function getCallMedia(call){
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
     throw new Error("Camera and microphone require a secure HTTPS page and a supported browser.");
@@ -1394,8 +1408,7 @@ async function getCallMedia(call){
   call.localStream=stream;
   call.cameraFacing=stream.getVideoTracks?.()[0]?.getSettings?.().facingMode||"user";
   $("localVideo").srcObject=stream;
-  $("localVideo").style.transform="none";
-  $("localVideo").style.webkitTransform="none";
+  applyNaturalCameraOrientation($("localVideo"));
   $("localVideo").classList.remove("hidden");
   $("localVideo").muted=true;
   call.localCameraOff=false;
@@ -1444,6 +1457,7 @@ async function createCallPeerConnection(call){
   call.pc=pc;
   call.remoteStream=new MediaStream();
   $("remoteVideo").srcObject=call.remoteStream;
+  applyNaturalCameraOrientation($("remoteVideo"));
   $("remoteVideo").classList.remove("hidden");
   $("callPlaceholder").classList.remove("hidden");
   pc.ontrack=event=>{
@@ -1470,6 +1484,7 @@ async function createCallPeerConnection(call){
       }
     }
     $("remoteVideo").srcObject=call.remoteStream;
+  applyNaturalCameraOrientation($("remoteVideo"));
     $("remoteVideo").play().catch(()=>{});
   };
   pc.onicecandidate=event=>{
@@ -1664,139 +1679,41 @@ async function acquireAlternateCameraTrack(stream,currentFacing){
   return {oldTrack,nextTrack,nextFacing:nextTrack.getSettings?.().facingMode||nextFacing,temporary};
 }
 async function flipPrivateCamera(){
-  const call=callState;if(!call?.localStream)return;
-  try{
-    const {oldTrack,nextTrack,nextFacing}=await acquireAlternateCameraTrack(call.localStream,call.cameraFacing||"user");
-    try{if(!call.screenStream&&call.videoSender)await call.videoSender.replaceTrack(nextTrack);}
-    catch(error){nextTrack.stop();throw error;}
-    call.localStream.removeTrack(oldTrack);call.localStream.addTrack(nextTrack);oldTrack.stop();
-    call.cameraFacing=nextFacing;
-    if(!call.screenStream){
-      $("localVideo").srcObject=call.localStream;
-      $("localVideo").style.transform="none";
-      $("localVideo").style.webkitTransform="none";
-      $("localVideo").classList.toggle("hidden",!nextTrack.enabled);
-      $("localCameraOff").classList.toggle("visible",!nextTrack.enabled);
-      $("localVideo").play().catch(()=>{});
-    }
-    call.localCameraOff=!nextTrack.enabled;refreshCallControls();
-    if(!call.screenStream&&call.peerUserId)sendCallSignal("camera",call,{enabled:nextTrack.enabled,sharing:false}).catch(()=>{});
-    setCallStatus("Camera switched.");
-  }catch(error){alert("Could not flip the camera: "+(error.message||error));}
-}
-
-function getChatlyVideoSender(pc,preferred=null){
-  if(!pc)return null;
-  const senders=pc.getSenders?.()||[];
-  if(preferred&&senders.includes(preferred))return preferred;
-  return senders.find(sender=>sender.track?.kind==="video")
-    ||pc.getTransceivers?.().find(transceiver=>transceiver.sender&&(
-      transceiver.sender.track?.kind==="video"||transceiver.receiver?.track?.kind==="video"
-    ))?.sender
-    ||null;
-}
-async function replaceChatlyVideoTrack(sender,track){
-  if(!sender||typeof sender.replaceTrack!=="function"){
-    throw new Error("The call has no active video sender. Wait until the other person has joined, then try sharing again.");
-  }
-  await sender.replaceTrack(track||null);
-  return sender;
-}
-function setCallVideoPreview(video,stream,{screen=false}={}){
-  if(!video)return;
-  video.srcObject=stream||null;
-  video.classList.toggle("screen-share-preview",!!screen);
-  video.style.transform="none";
-  video.style.webkitTransform="none";
-  if(stream)video.classList.remove("hidden");
-  video.play?.().catch(()=>{});
-}
-async function requestChatlyScreenCapture(){
-  if(!window.isSecureContext){
-    throw new Error("Screen sharing requires Chatly to be opened over HTTPS.");
-  }
-  const mediaDevices=navigator.mediaDevices;
-  const capture=mediaDevices?.getDisplayMedia?.bind(mediaDevices)
-    ||navigator.getDisplayMedia?.bind(navigator);
-  if(!capture){
-    throw new Error("This browser does not support website screen sharing. Try the latest Safari or Chrome in a normal browser tab. Some iPadOS versions and Home Screen web apps do not expose screen capture; Chatly cannot override that browser restriction.");
-  }
-  try{
-    // Call the picker directly from the Share Screen button gesture.
-    const displayStream=await capture({video:{frameRate:{ideal:15,max:30}},audio:false});
-    const track=displayStream?.getVideoTracks?.()[0];
-    if(!track){
-      displayStream?.getTracks?.().forEach(item=>item.stop());
-      throw new Error("The screen picker did not provide a video track.");
-    }
-    try{track.contentHint="detail";}catch{}
-    track.enabled=true;
-    return displayStream;
-  }catch(error){
-    if(error?.name==="AbortError")throw error;
-    if(error?.name==="NotAllowedError"||error?.name==="PermissionDeniedError"){
-      throw new Error("Screen sharing was cancelled or blocked. Tap Share screen again and choose the screen, window, or tab when your browser asks.");
-    }
-    if(error?.name==="InvalidStateError"){
-      throw new Error("The browser needs Chatly to be the active page. Close other dialogs and tap Share screen again.");
-    }
-    if(error?.name==="NotReadableError"){
-      throw new Error("The device could not start screen capture. Stop any other screen-recording session and try again.");
-    }
-    if(error?.name==="NotFoundError"){
-      throw new Error("No shareable screen or window was found on this device.");
-    }
-    throw new Error(error?.message||"The browser could not start screen capture.");
-  }
-}
-
-async function startPrivateScreenShare(){
   const call=callState;
-  if(!call?.pc||!call.localStream){alert("Join the active call before sharing your screen.");return;}
-  let displayStream=null;
+  if(!call?.localStream)return;
   try{
-    // getDisplayMedia must be called immediately from the user's button gesture.
-    displayStream=await requestChatlyScreenCapture();
-    if(callState?.id!==call.id){displayStream.getTracks().forEach(track=>track.stop());return;}
-    const screenTrack=displayStream.getVideoTracks()[0];
-    const sender=getChatlyVideoSender(call.pc,call.videoSender);
-    if(!screenTrack||!sender){displayStream.getTracks().forEach(track=>track.stop());throw new Error("The call's video sender is not ready yet. Try again after the call connects.");}
-    try{await replaceChatlyVideoTrack(sender,screenTrack);}
-    catch(error){displayStream.getTracks().forEach(track=>track.stop());throw new Error("Your browser couldn't switch the call from camera to screen. Try sharing a browser tab or window. Details: "+(error.message||error));}
-    call.videoSender=sender;call.screenStream=displayStream;call.screenTrack=screenTrack;
+    const {oldTrack,nextTrack,nextFacing}=await acquireAlternateCameraTrack(
+      call.localStream,
+      call.cameraFacing||"user"
+    );
+    const sender=call.videoSender||call.pc?.getSenders?.().find(item=>item.track?.kind==="video");
+    if(sender){
+      try{await sender.replaceTrack(nextTrack);}
+      catch(error){nextTrack.stop();throw error;}
+      call.videoSender=sender;
+    }
+    call.localStream.removeTrack(oldTrack);
+    call.localStream.addTrack(nextTrack);
+    oldTrack.stop();
+    call.cameraFacing=nextFacing;
     const localVideo=$("localVideo");
-    localVideo.muted=true;
-    setCallVideoPreview(localVideo,displayStream,{screen:true});
-    $("localCameraOff").classList.remove("visible");
-    $("shareScreenCall").textContent="Stop sharing";$("shareScreenCall").classList.add("share-active");
-    $("callStatus").textContent="You're sharing your screen.";
-    if(call.peerUserId)sendCallSignal("camera",call,{enabled:true,sharing:true}).catch(error=>console.warn("Could not sync screen-share state:",error));
-    screenTrack.onended=()=>{if(callState?.id===call.id)stopPrivateScreenShare();};
+    localVideo.srcObject=call.localStream;
+    applyNaturalCameraOrientation(localVideo);
+    localVideo.classList.toggle("hidden",!nextTrack.enabled);
+    $("localCameraOff").classList.toggle("visible",!nextTrack.enabled);
+    localVideo.play().catch(()=>{});
+    call.localCameraOff=!nextTrack.enabled;
+    refreshCallControls();
+    if(call.peerUserId){
+      sendCallSignal("camera",call,{enabled:nextTrack.enabled}).catch(error=>console.warn("Could not sync camera state:",error));
+    }
+    setCallStatus("Camera switched.");
   }catch(error){
-    displayStream?.getTracks?.().forEach(track=>{track.onended=null;track.stop();});
-    if(error.name!=="AbortError")alert("Could not share your screen: "+(error.message||error));
+    alert("Could not flip the camera: "+(error.message||error));
   }
 }
-async function stopPrivateScreenShare(){
-  const call=callState;if(!call?.screenStream)return;
-  const display=call.screenStream,track=call.localStream?.getVideoTracks?.()[0];
-  call.screenStream=null;call.screenTrack=null;
-  const sender=getChatlyVideoSender(call.pc,call.videoSender);
-  if(sender){
-    try{await replaceChatlyVideoTrack(sender,track||null);}
-    catch(error){console.warn("Could not restore camera after screen share:",error);$("callStatus").textContent="Screen sharing stopped, but camera could not be restored. Toggle your camera off and on.";}
-  }
-  display.getTracks().forEach(item=>{item.onended=null;item.stop();});
-  setCallVideoPreview($("localVideo"),call.localStream);
-  const cameraEnabled=!!track&&track.enabled;
-  $("localVideo").classList.toggle("hidden",!cameraEnabled);
-  $("localCameraOff").classList.toggle("visible",!cameraEnabled);
-  $("shareScreenCall").textContent="Share screen";$("shareScreenCall").classList.remove("share-active");
-  if(callState?.id===call.id){
-    $("callStatus").textContent="Screen sharing stopped.";
-    if(call.peerUserId)sendCallSignal("camera",call,{enabled:cameraEnabled,sharing:false}).catch(()=>{});
-  }
-}
+
+
 async function handleCallSignal(change){
   const row=change?.new;
   if(!row||row.to_user!==user?.id||row.from_user===user?.id)return;
@@ -1849,9 +1766,7 @@ async function handleCallSignal(change){
   const call=callState;
   if(row.signal_type==="camera"){
     call.remoteCameraOff=!incomingPayload.enabled;
-    call.remoteSharingScreen=!!incomingPayload.sharing;
-    if(call.remoteSharingScreen)setCallStatus("The other person is sharing their screen.");
-    else if(call.phase==="connected")setCallStatus("Connected");
+    if(call.phase==="connected")setCallStatus("Connected");
     if(call.remoteCameraOff){
       call.remoteVideoReady=false;
       $("remoteVideo").classList.add("hidden");
@@ -2312,8 +2227,66 @@ function subscribeToReadReceiptEvents(){
     .subscribe(status=>{if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("Chatly read receipt updates:",status);});
 }
 
+function typingDotsMarkup(){return '<span class="typing-bubble" aria-label="Typing"><i class="typing-dot"></i><i class="typing-dot"></i><i class="typing-dot"></i></span>'; }
+function renderTypingIndicator(){
+  const root=$("messages");if(!root)return;
+  let indicator=$("typingIndicator");
+  if(!indicator){indicator=document.createElement("div");indicator.id="typingIndicator";indicator.className="typing-indicator hidden";indicator.setAttribute("role","status");indicator.setAttribute("aria-live","polite");}
+  const active=[...remoteTypingUsers.values()];
+  if(active.length){
+    const current=conversations.find(item=>item.id===activeConversation);
+    let label="";
+    if(current?.isGroup){const names=active.slice(0,2).map(item=>item.name||"Someone");label=active.length>2?`${names.join(", ")} and ${active.length-2} more are typing`:names.length===2?`${names[0]} and ${names[1]} are typing`:`${names[0]} is typing`;}
+    indicator.innerHTML=(label?`<span class="typing-label">${esc(label)}</span>`:"")+typingDotsMarkup();
+    indicator.classList.remove("hidden");
+  }else{indicator.classList.add("hidden");indicator.innerHTML="";}
+  // Keep the indicator beneath the newest message, including after live inserts.
+  root.append(indicator);
+}
+function clearRemoteTyping(){
+  for(const item of remoteTypingUsers.values())if(item.timer)clearTimeout(item.timer);
+  remoteTypingUsers.clear();renderTypingIndicator();
+}
+function receiveTypingBroadcast(payload,conversation){
+  if(!payload||payload.senderId===user?.id||payload.conversationId!==activeConversation)return;
+  const senderId=String(payload.senderId||"");if(!senderId)return;
+  const existing=remoteTypingUsers.get(senderId);if(existing?.timer)clearTimeout(existing.timer);
+  if(payload.isTyping===false){remoteTypingUsers.delete(senderId);renderTypingIndicator();return;}
+  let name=payload.displayName||"";
+  if(conversation?.isGroup){const member=(conversation.members||[]).find(person=>person.id===senderId);name=displayName(member)||name||"Someone";}
+  else name="";
+  const item={name,timer:setTimeout(()=>{remoteTypingUsers.delete(senderId);renderTypingIndicator();},2600)};
+  remoteTypingUsers.set(senderId,item);renderTypingIndicator();
+}
+async function sendTypingBroadcast(isTyping){
+  const channel=typingChannel;const conversationId=typingConversationId;
+  if(!channel||!conversationId||!user)return;
+  try{await channel.send({type:"broadcast",event:"typing",payload:{senderId:user.id,displayName:displayName(profile),conversationId,isTyping:!!isTyping}});}catch(error){console.warn("Chatly typing update failed:",error?.message||error);}
+}
+function stopLocalTyping(){
+  if(typingStopTimer){clearTimeout(typingStopTimer);typingStopTimer=null;}
+  if(typingActive){typingActive=false;sendTypingBroadcast(false);}
+}
+function updateLocalTyping(){
+  if(!activeConversation||!typingChannel||!user)return;
+  const value=$("messageInput")?.value||"";
+  if(!value.trim()){stopLocalTyping();return;}
+  const now=Date.now();
+  if(!typingActive||now-typingLastSentAt>1000){typingActive=true;typingLastSentAt=now;sendTypingBroadcast(true);}
+  if(typingStopTimer)clearTimeout(typingStopTimer);
+  typingStopTimer=setTimeout(stopLocalTyping,1700);
+}
+function attachTypingBroadcast(channel,conversation,id){
+  typingChannel=channel;typingConversationId=id;typingActive=false;typingLastSentAt=0;
+  channel.on("broadcast",{event:"typing"},event=>receiveTypingBroadcast(event?.payload,conversation));
+}
+function detachTypingBroadcast(){
+  stopLocalTyping();typingChannel=null;typingConversationId=null;clearRemoteTyping();
+}
+
 async function openConversation(id){
   pauseMiniFlappyForChat();
+  detachTypingBroadcast();
   if(messageSelectionMode)toggleMessageSelectionMode(false);
   const c=conversations.find(x=>x.id===id);if(!c)return;activeConversation=id;activeContact=c.person||null;seen=new Set();readReceiptState.clear();readObserverContext=null;if(messageReadObserver){messageReadObserver.disconnect();messageReadObserver=null;}$("app").classList.add("chat-open");$("emptyState").classList.add("hidden");$("chatHead").classList.remove("hidden");$("messages").classList.remove("hidden");$("messageForm").classList.remove("hidden");
   const name=conversationTitle(c);$("chatName").textContent=name;if(c.isGroup){$("chatAvatar").innerHTML="👥";$("chatStatus").textContent=(c.members||[]).length+" members";$("renameContact").title="Add people to group";}else{setAvatar($("chatAvatar"),c.person.avatar_url,name);$("chatStatus").textContent="Chatly message";$("renameContact").title="Rename contact";}
@@ -2325,12 +2298,16 @@ async function openConversation(id){
     .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_group_messages",filter:"group_id=eq."+id},async payload=>{const near=nearBottomNow();const {data}=await sb.from("chat_group_messages").select("id,group_id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size").eq("id",payload.new.id).single();if(data){playIncomingMessageSound(data);appendMessage(data);if(near||data.sender_id===user.id)scrollBottom();refreshPreview(id,data);}})
     .on("postgres_changes",{event:"UPDATE",schema:"public",table:"chat_group_messages",filter:"group_id=eq."+id},async()=>{await loadMessages(false);await loadConversations();})
     .on("postgres_changes",{event:"DELETE",schema:"public",table:"chat_group_messages",filter:"group_id=eq."+id},async payload=>{removeMessageFromView(payload.old?.id);await loadConversations();})
-    .subscribe();}
+    .on("broadcast",{event:"typing"},event=>receiveTypingBroadcast(event?.payload,c))
+    .subscribe(status=>{if(status==="SUBSCRIBED"){typingChannel=activeGroupChannel;typingConversationId=id;if(($("messageInput")?.value||"").trim())updateLocalTyping();}if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("Chatly group typing channel:",status);});
+    typingChannel=activeGroupChannel;typingConversationId=id;}
   else{liveChannel=sb.channel("dm-"+id)
     .on("postgres_changes",{event:"INSERT",schema:"public",table:"direct_messages",filter:"conversation_id=eq."+id},async payload=>{const nearBottom=nearBottomNow();const {data}=await sb.from("direct_messages").select("id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size").eq("id",payload.new.id).single();if(data){playIncomingMessageSound(data);appendMessage(data);if(nearBottom||data.sender_id===user.id)scrollBottom();refreshPreview(id,data);}})
     .on("postgres_changes",{event:"UPDATE",schema:"public",table:"direct_messages",filter:"conversation_id=eq."+id},async()=>{await loadMessages(false);await loadConversations();})
     .on("postgres_changes",{event:"DELETE",schema:"public",table:"direct_messages",filter:"conversation_id=eq."+id},async payload=>{removeMessageFromView(payload.old?.id);await loadConversations();})
-    .subscribe();}
+    .on("broadcast",{event:"typing"},event=>receiveTypingBroadcast(event?.payload,c))
+    .subscribe(status=>{if(status==="SUBSCRIBED"){typingChannel=liveChannel;typingConversationId=id;if(($("messageInput")?.value||"").trim())updateLocalTyping();}if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("Chatly direct typing channel:",status);});
+    typingChannel=liveChannel;typingConversationId=id;}
 }
 function nearBottomNow(){const el=$("messages");return el.scrollHeight-el.scrollTop-el.clientHeight<110;}
 function scrollBottom(){const el=$("messages");requestAnimationFrame(()=>{el.scrollTop=el.scrollHeight;});}
@@ -2361,6 +2338,7 @@ async function loadMessages(scroll){
     }
   }
   $("messages").innerHTML="";seen.clear();visibleMessages.forEach(appendMessage);
+  renderTypingIndicator();
   renderLatestReadReceipt();
   if(scroll)scrollBottom();
   scheduleVisibleReadScan();
@@ -2413,6 +2391,7 @@ function appendMessage(m){
   if(messageSelectionMode&&selectedMessages.has(m.id))row.classList.add("selected-message");
   $("messages").append(row);
   updateMessageReadReceipt(row,m);
+  renderTypingIndicator();
   if(m.sender_id!==user?.id)scheduleVisibleReadScan();
 }
 async function renderMessageAttachment(message,holder){
@@ -2626,9 +2605,11 @@ $("messageForm").onsubmit=async e=>{
   btn.disabled=false;
   if(error){alert("Message could not send: "+error.message);return;}
   notifyChatlyPush("notify-message",{messageId,messageType:c?.isGroup?"group":"direct"});
+  stopLocalTyping();
   $("messageInput").value="";$("messageInput").style.height="auto";
 };
-$("messageInput").addEventListener("input",()=>{const el=$("messageInput");el.style.height="auto";el.style.height=Math.min(el.scrollHeight,120)+"px";});
+$("messageInput").addEventListener("input",()=>{const el=$("messageInput");el.style.height="auto";el.style.height=Math.min(el.scrollHeight,120)+"px";updateLocalTyping();});
+$("messageInput").addEventListener("blur",()=>{if(typingStopTimer){clearTimeout(typingStopTimer);typingStopTimer=null;}stopLocalTyping();});
 $("messageInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey&&(sendWithEnter||e.ctrlKey||e.metaKey)){e.preventDefault();$("messageForm").requestSubmit();}});
 $("selectMessagesBtn").onclick=()=>toggleMessageSelectionMode();
 $("selectionCancelBtn").onclick=()=>toggleMessageSelectionMode(false);
@@ -2653,7 +2634,7 @@ function createGroupCallTile(id,name,avatarUrl,isLocal=false){
   let tile=$(tileId);
   if(tile)return tile;
   tile=document.createElement("div");tile.className="group-call-tile";tile.id=tileId;
-  const video=document.createElement("video");video.autoplay=true;video.playsInline=true;video.muted=!!isLocal;video.classList.add("hidden");video.id=tileId+"-video";video.style.transform="none";video.style.webkitTransform="none";
+  const video=document.createElement("video");video.autoplay=true;video.playsInline=true;video.muted=!!isLocal;video.classList.add("hidden");video.id=tileId+"-video";applyNaturalCameraOrientation(video);
   const avatar=document.createElement("div");avatar.className="group-call-tile-avatar";avatar.id=tileId+"-avatar";setAvatar(avatar,avatarUrl,name);
   const label=document.createElement("div");label.className="group-call-tile-name";label.textContent=isLocal?(name+" (You)"):name;
   tile.append(video,avatar,label);
@@ -2695,8 +2676,8 @@ function updateGroupPeerTile(peerId){
   const tile=createGroupCallTile(peerId,name,member?.avatar_url||"",false);
   const video=$(groupCallTileId(peerId)+"-video"),avatar=$(groupCallTileId(peerId)+"-avatar");
   const label=tile?.querySelector(".group-call-tile-name");
-  if(label)label.textContent=name+(peer.screenSharing?" · Sharing screen":"");
-  if(video&&peer.remoteStream){video.srcObject=peer.remoteStream;video.play().catch(()=>{});}
+  if(label)label.textContent=name;
+  if(video&&peer.remoteStream){video.srcObject=peer.remoteStream;applyNaturalCameraOrientation(video);video.play().catch(()=>{});}
   if(avatar)avatar.classList.toggle("hidden",!!peer.videoReady&&!peer.cameraOff);
   if(video)video.classList.toggle("hidden",!peer.videoReady||peer.cameraOff);
 }
@@ -2714,10 +2695,7 @@ async function ensureGroupPeer(peerId,shouldOffer=false){
   const tile=createGroupCallTile(peerId,peer.name,member?.avatar_url||"",false);
   if(!tile){state.peers.delete(peerId);return null;}
   const pc=new RTCPeerConnection({iceServers:state.iceServers,iceCandidatePoolSize:2});peer.pc=pc;
-  state.localStream.getTracks().forEach(track=>{
-    if(track.kind==="video"&&state.screenStream){const screenTrack=state.screenStream.getVideoTracks()[0];if(screenTrack)pc.addTrack(screenTrack,state.screenStream);else pc.addTrack(track,state.localStream);}
-    else pc.addTrack(track,state.localStream);
-  });
+  state.localStream.getTracks().forEach(track=>pc.addTrack(track,state.localStream));
   peer.videoSender=pc.getSenders().find(sender=>sender.track?.kind==="video")||null;
   pc.ontrack=event=>{
     const tracks=event.streams?.[0]?.getTracks?.()||[event.track];
@@ -2823,7 +2801,7 @@ async function setupGroupCallRealtime(state){
 }
 async function enterGroupCall(callRow,group){
   if(callState||groupCallState)throw new Error("Finish your current call before joining a group call.");
-  const state={id:callRow.id,groupId:callRow.group_id,groupName:groupCallName(group),group,startedBy:callRow.started_by,isHost:callRow.started_by===user.id,minimized:false,localStream:null,screenStream:null,screenTrack:null,cameraFacing:"user",iceServers:null,peers:new Map(),participantChannel:null,heartbeatTimer:null,closing:false};
+  const state={id:callRow.id,groupId:callRow.group_id,groupName:groupCallName(group),group,startedBy:callRow.started_by,isHost:callRow.started_by===user.id,minimized:false,localStream:null,cameraFacing:"user",iceServers:null,peers:new Map(),participantChannel:null,heartbeatTimer:null,closing:false};
   groupCallState=state;
   showGroupCallUI(state);
   groupCallStatus("Requesting camera and microphone…");
@@ -2927,7 +2905,7 @@ async function handleGroupCallSignal(change){
       const peer=state.peers.get(peerId)||await ensureGroupPeer(peerId,false);
       await receiveGroupCandidate(peer,payload.candidate);
     }else if(row.signal_type==="camera"){
-      const peer=state.peers.get(peerId);if(peer){peer.cameraOff=!payload.enabled;peer.screenSharing=!!payload.sharing;updateGroupPeerTile(peerId);}
+      const peer=state.peers.get(peerId);if(peer){peer.cameraOff=!payload.enabled;updateGroupPeerTile(peerId);}
     }else if(row.signal_type==="leave"){
       closeGroupPeer(peerId);groupCallStatus(groupMemberDisplay(state.group,peerId)+" left the call.");
     }else if(row.signal_type==="end"){
@@ -2963,9 +2941,7 @@ async function cleanupGroupCall(sendLeave=true){
   try{await sb.from("chat_group_call_participants").delete().eq("call_id",state.id).eq("user_id",user.id);}catch{}
   for(const peer of state.peers.values()){try{peer.pc?.close();}catch{}peer.remoteStream?.getTracks?.().forEach(track=>track.stop());}
   state.peers.clear();
-  state.screenStream?.getTracks?.().forEach(track=>{track.onended=null;track.stop();});
   state.localStream?.getTracks?.().forEach(track=>track.stop());
-  $("groupShareScreen").textContent="Share screen";$("groupShareScreen").classList.remove("share-active");
   $("groupCallOverlay").classList.add("hidden");
   $("groupCallGrid").innerHTML="";
 }
@@ -2986,98 +2962,60 @@ function toggleGroupCallMic(){
   track.enabled=!track.enabled;setGroupCallControls();
 }
 function toggleGroupCallCamera(){
-  const state=groupCallState,track=state?.localStream?.getVideoTracks?.()[0];if(!track)return;
+  const state=groupCallState,track=state?.localStream?.getVideoTracks?.()[0];
+  if(!track)return;
   track.enabled=!track.enabled;
-  if(!state.screenStream)setGroupTileCamera(user.id,track.enabled);
+  setGroupTileCamera(user.id,track.enabled);
   setGroupCallControls();
-  for(const peerId of state.peers.keys())sendGroupCallSignal("camera",state,peerId,{enabled:state.screenStream?true:track.enabled,sharing:!!state.screenStream}).catch(error=>console.warn("Could not sync group camera:",error));
+  for(const peerId of state.peers.keys()){
+    sendGroupCallSignal("camera",state,peerId,{enabled:track.enabled}).catch(error=>console.warn("Could not sync group camera:",error));
+  }
 }
 async function flipGroupCamera(){
-  const state=groupCallState;if(!state?.localStream)return;
+  const state=groupCallState;
+  if(!state?.localStream)return;
   try{
-    const {oldTrack,nextTrack,nextFacing}=await acquireAlternateCameraTrack(state.localStream,state.cameraFacing||"user");
-    const replacedSenders=[];
+    const {oldTrack,nextTrack,nextFacing}=await acquireAlternateCameraTrack(
+      state.localStream,
+      state.cameraFacing||"user"
+    );
+    const replaced=[];
     try{
-      if(!state.screenStream){
-        for(const peer of state.peers.values()){
-          const sender=peer.videoSender||peer.pc?.getSenders().find(item=>item.track?.kind==="video");
-          if(sender){await sender.replaceTrack(nextTrack);replacedSenders.push(sender);}
+      for(const peer of state.peers.values()){
+        const sender=peer.videoSender||peer.pc?.getSenders?.().find(item=>item.track?.kind==="video");
+        if(sender){
+          await sender.replaceTrack(nextTrack);
+          peer.videoSender=sender;
+          replaced.push(sender);
         }
       }
     }catch(error){
-      await Promise.all(replacedSenders.map(sender=>sender.replaceTrack(oldTrack).catch(()=>{})));
-      nextTrack.stop();throw error;
+      await Promise.all(replaced.map(sender=>sender.replaceTrack(oldTrack).catch(()=>{})));
+      nextTrack.stop();
+      throw error;
     }
-    state.localStream.removeTrack(oldTrack);state.localStream.addTrack(nextTrack);oldTrack.stop();
+    state.localStream.removeTrack(oldTrack);
+    state.localStream.addTrack(nextTrack);
+    oldTrack.stop();
     state.cameraFacing=nextFacing;
-    if(!state.screenStream){
-      const localVideo=$(groupCallTileId(user.id)+"-video");
-      if(localVideo){localVideo.srcObject=state.localStream;localVideo.style.transform="none";localVideo.style.webkitTransform="none";localVideo.classList.toggle("hidden",!nextTrack.enabled);localVideo.play().catch(()=>{});}
-      $(groupCallTileId(user.id)+"-avatar")?.classList.toggle("hidden",!!nextTrack.enabled);
+    const localVideo=$(groupCallTileId(user.id)+"-video");
+    if(localVideo){
+      localVideo.srcObject=state.localStream;
+      applyNaturalCameraOrientation(localVideo);
+      localVideo.classList.toggle("hidden",!nextTrack.enabled);
+      localVideo.play().catch(()=>{});
     }
+    $(groupCallTileId(user.id)+"-avatar")?.classList.toggle("hidden",!!nextTrack.enabled);
     setGroupCallControls();
-    for(const peerId of state.peers.keys())if(!state.screenStream)sendGroupCallSignal("camera",state,peerId,{enabled:nextTrack.enabled,sharing:false}).catch(()=>{});
+    for(const peerId of state.peers.keys()){
+      sendGroupCallSignal("camera",state,peerId,{enabled:nextTrack.enabled}).catch(()=>{});
+    }
     groupCallStatus("Camera switched.");
-  }catch(error){alert("Could not flip the group-call camera: "+(error.message||error));}
+  }catch(error){
+    alert("Could not flip the group-call camera: "+(error.message||error));
+  }
 }
 
-async function startGroupScreenShare(){
-  const state=groupCallState;if(!state?.localStream){alert("Join the group call before sharing your screen.");return;}
-  let displayStream=null;const replaced=[];
-  try{
-    displayStream=await requestChatlyScreenCapture();
-    if(groupCallState?.id!==state.id||state.closing){displayStream.getTracks().forEach(track=>track.stop());return;}
-    const screenTrack=displayStream.getVideoTracks()[0];
-    if(!screenTrack)throw new Error("The screen picker did not provide a video track.");
-    // Set this before replacing senders so any peer created during this operation
-    // starts with the screen track rather than the camera track.
-    state.screenStream=displayStream;state.screenTrack=screenTrack;
-    for(const [peerId,peer] of state.peers){
-      if(!peer.pc)continue;
-      const sender=getChatlyVideoSender(peer.pc,peer.videoSender);
-      if(!sender)throw new Error("The video connection to "+peer.name+" is not ready. Try again in a moment.");
-      const previousTrack=sender.track;
-      await replaceChatlyVideoTrack(sender,screenTrack);
-      peer.videoSender=sender;
-      replaced.push({peerId,sender,previousTrack});
-    }
-    state.screenSenders=replaced;
-    const localVideo=$(groupCallTileId(user.id)+"-video");
-    if(localVideo){localVideo.classList.add("screen-share-preview");localVideo.srcObject=displayStream;localVideo.classList.remove("hidden");localVideo.style.transform="none";localVideo.style.webkitTransform="none";localVideo.play().catch(()=>{});}
-    $(groupCallTileId(user.id)+"-avatar")?.classList.add("hidden");
-    const localLabel=$(groupCallTileId(user.id))?.querySelector(".group-call-tile-name");
-    if(localLabel)localLabel.textContent=displayName(profile)+" (You · Sharing screen)";
-    $("groupShareScreen").textContent="Stop sharing";$("groupShareScreen").classList.add("share-active");
-    groupCallStatus("You're sharing your screen with the group.");
-    for(const peerId of state.peers.keys())sendGroupCallSignal("camera",state,peerId,{enabled:true,sharing:true}).catch(error=>console.warn("Could not sync group screen-share state:",error));
-    screenTrack.onended=()=>{if(groupCallState?.id===state.id)stopGroupScreenShare();};
-  }catch(error){
-    // Roll back any peers already switched if one peer fails.
-    for(const item of replaced){try{await item.sender.replaceTrack(item.previousTrack||state.localStream.getVideoTracks()[0]||null);}catch(rollbackError){console.warn("Could not roll back a partial screen share:",rollbackError);}}
-    if(state.screenStream===displayStream){state.screenStream=null;state.screenTrack=null;state.screenSenders=[];}
-    displayStream?.getTracks?.().forEach(track=>{track.onended=null;track.stop();});
-    if(error.name!=="AbortError")alert("Could not share your screen: "+(error.message||error));
-  }
-}
-async function stopGroupScreenShare(){
-  const state=groupCallState;if(!state?.screenStream)return;
-  const display=state.screenStream;state.screenStream=null;state.screenTrack=null;
-  const camera=state.localStream?.getVideoTracks?.()[0];
-  for(const [peerId,peer] of state.peers){
-    const sender=getChatlyVideoSender(peer.pc,peer.videoSender);
-    if(sender){try{await replaceChatlyVideoTrack(sender,camera||null);peer.videoSender=sender;}catch(error){console.warn("Could not restore group camera:",error);}}
-  }
-  display.getTracks().forEach(track=>{track.onended=null;track.stop();});
-  const localVideo=$(groupCallTileId(user.id)+"-video");
-  if(localVideo){localVideo.classList.remove("screen-share-preview");localVideo.srcObject=state.localStream;localVideo.style.transform="none";localVideo.style.webkitTransform="none";localVideo.classList.toggle("hidden",!camera?.enabled);localVideo.play().catch(()=>{});}
-  $(groupCallTileId(user.id)+"-avatar")?.classList.toggle("hidden",!!camera?.enabled);
-  const localLabel=$(groupCallTileId(user.id))?.querySelector(".group-call-tile-name");
-  if(localLabel)localLabel.textContent=displayName(profile)+" (You)";
-  $("groupShareScreen").textContent="Share screen";$("groupShareScreen").classList.remove("share-active");
-  for(const peerId of state.peers.keys())sendGroupCallSignal("camera",state,peerId,{enabled:!!camera?.enabled,sharing:false}).catch(()=>{});
-  groupCallStatus("Screen sharing stopped.");
-}
-$("groupShareScreen").onclick=()=>groupCallState?.screenStream?stopGroupScreenShare():startGroupScreenShare();
 $("groupFlipCamera").onclick=flipGroupCamera;
 $("groupCallChatToggle").onclick=()=>toggleInCallChat("group");
 $("groupCallChatForm").onsubmit=event=>{event.preventDefault();sendInCallChatMessage("group");};
@@ -3152,14 +3090,12 @@ function toggleCallCamera(){
   if(track){
     track.enabled=!track.enabled;
     call.localCameraOff=!track.enabled;
-    if(!call.screenStream){
-      $("localVideo").classList.toggle("hidden",!track.enabled);
-      $("localCameraOff").classList.toggle("visible",!track.enabled);
-    }
+    $("localVideo").classList.toggle("hidden",!track.enabled);
+    $("localCameraOff").classList.toggle("visible",!track.enabled);
     setAvatar($("localCameraAvatar"),profile?.avatar_url,profile?.display_name||profile?.username||"You");
     refreshCallControls();
     if(call.peerUserId){
-      sendCallSignal("camera",call,{enabled:call.screenStream?true:track.enabled,sharing:!!call.screenStream}).catch(error=>console.warn("Could not sync camera state:",error));
+      sendCallSignal("camera",call,{enabled:track.enabled}).catch(error=>console.warn("Could not sync camera state:",error));
     }
   }
 }
@@ -3167,13 +3103,13 @@ $("toggleMic").onclick=toggleCallMicrophone;
 $("toggleMicRinging").onclick=toggleCallMicrophone;
 $("toggleCamera").onclick=toggleCallCamera;
 $("toggleCameraRinging").onclick=toggleCallCamera;
-$("shareScreenCall").onclick=()=>callState?.screenStream?stopPrivateScreenShare():startPrivateScreenShare();
 $("flipCameraCall").onclick=flipPrivateCamera;
 $("callChatToggle").onclick=()=>toggleInCallChat("direct");
 $("privateCallChatForm").onsubmit=event=>{event.preventDefault();sendInCallChatMessage("direct");};
 $("searchChats").oninput=renderConversations;
 $("newChat").onclick=newChatModal;if($("emptyNewChat"))$("emptyNewChat").onclick=newChatModal;
 function returnToMainArea(){
+  detachTypingBroadcast();
   if(messageSelectionMode)toggleMessageSelectionMode(false);
   if(liveChannel){sb.removeChannel(liveChannel);liveChannel=null;}
   if(activeGroupChannel){sb.removeChannel(activeGroupChannel);activeGroupChannel=null;}
@@ -3440,7 +3376,7 @@ function profileModal(){
 function setTheme(dark){document.body.classList.toggle("dark",dark);localStorage.setItem("chatly-theme",dark?"dark":"light");$("lightTheme")?.classList.toggle("selected",!dark);$("darkTheme")?.classList.toggle("selected",dark);}
 setTheme(localStorage.getItem("chatly-theme")==="dark");
 applySavedChatlyCustomizations();
-$("signOut").onclick=async()=>{await finishCall(false);await cleanupGroupCall(false);if(callSignalChannel)await sb.removeChannel(callSignalChannel);if(groupCallSignalChannel)await sb.removeChannel(groupCallSignalChannel);if(blockChannel)await sb.removeChannel(blockChannel);await sb.auth.signOut();};
+$("signOut").onclick=async()=>{detachTypingBroadcast();await finishCall(false);await cleanupGroupCall(false);if(callSignalChannel)await sb.removeChannel(callSignalChannel);if(groupCallSignalChannel)await sb.removeChannel(groupCallSignalChannel);if(blockChannel)await sb.removeChannel(blockChannel);await sb.auth.signOut();};
 // Calls are kept alive while users move between Chatly views or the page enters
 // the browser's back/forward cache. Closing the tab or force-quitting the browser
 // is still controlled by the browser/OS and cannot be guaranteed by a web app.

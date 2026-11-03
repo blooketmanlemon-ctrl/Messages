@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <title>Chatly</title>
-<meta name="chatly-build" content="chatly-live-typing-mini-flappy-v1-2026-11-03">
+<meta name="chatly-build" content="chatly-live-typing-mini-flappy-v3-dedicated-broadcast-2026-11-03">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -869,7 +869,7 @@ const selectedMessages=new Map();
 let callSignalChannel=null,callState=null;
 let activeGroupChannel=null,groupMembershipChannel=null;
 // Ephemeral typing state is sent over Supabase Realtime Broadcast (no database migration).
-let typingChannel=null,typingConversationId=null,typingStopTimer=null,typingActive=false,typingLastSentAt=0;
+let typingChannel=null,typingConversationId=null,typingStopTimer=null,typingActive=false,typingLastSentAt=0,typingChannelReady=false,typingPending=false;
 const remoteTypingUsers=new Map();
 let groupCallState=null,groupCallSignalChannel=null,pendingGroupInvite=null;
 let soundEnabled=localStorage.getItem("chatly-sounds")!=="off",audioContextInstance=null,ringtoneInterval=null,messageSoundChannel=null,pendingChatSounds=[],playedMessageSoundIds=new Set();
@@ -2260,28 +2260,74 @@ function receiveTypingBroadcast(payload,conversation){
 }
 async function sendTypingBroadcast(isTyping){
   const channel=typingChannel;const conversationId=typingConversationId;
-  if(!channel||!conversationId||!user)return;
-  try{await channel.send({type:"broadcast",event:"typing",payload:{senderId:user.id,displayName:displayName(profile),conversationId,isTyping:!!isTyping}});}catch(error){console.warn("Chatly typing update failed:",error?.message||error);}
+  if(!channel||!conversationId||!user||!typingChannelReady){typingPending=!!isTyping;return false;}
+  try{
+    const result=await channel.send({type:"broadcast",event:"typing",payload:{senderId:user.id,displayName:displayName(profile),conversationId,isTyping:!!isTyping}});
+    if(result!=="ok"){
+      console.warn("Chatly typing broadcast was not delivered:",result);
+      if(isTyping)typingPending=true;
+      return false;
+    }
+    typingPending=false;
+    return true;
+  }catch(error){
+    console.warn("Chatly typing update failed:",error?.message||error);
+    if(isTyping)typingPending=true;
+    return false;
+  }
 }
 function stopLocalTyping(){
   if(typingStopTimer){clearTimeout(typingStopTimer);typingStopTimer=null;}
-  if(typingActive){typingActive=false;sendTypingBroadcast(false);}
+  if(typingActive||typingPending){typingActive=false;typingLastSentAt=0;sendTypingBroadcast(false);}
+  typingPending=false;
 }
-function updateLocalTyping(){
-  if(!activeConversation||!typingChannel||!user)return;
+function updateLocalTyping(force=false){
+  if(!activeConversation||!user)return;
   const value=$("messageInput")?.value||"";
   if(!value.trim()){stopLocalTyping();return;}
-  const now=Date.now();
-  if(!typingActive||now-typingLastSentAt>1000){typingActive=true;typingLastSentAt=now;sendTypingBroadcast(true);}
+  typingActive=true;
+  if(!typingChannelReady||!typingChannel||typingConversationId!==activeConversation){typingPending=true;}
+  else{
+    const now=Date.now();
+    if(force||typingPending||now-typingLastSentAt>900){
+      typingLastSentAt=now;
+      sendTypingBroadcast(true).then(ok=>{if(!ok)typingLastSentAt=0;});
+    }
+  }
   if(typingStopTimer)clearTimeout(typingStopTimer);
-  typingStopTimer=setTimeout(stopLocalTyping,1700);
+  typingStopTimer=setTimeout(stopLocalTyping,1800);
 }
 function attachTypingBroadcast(channel,conversation,id){
-  typingChannel=channel;typingConversationId=id;typingActive=false;typingLastSentAt=0;
+  typingChannel=channel;typingConversationId=id;typingChannelReady=false;typingActive=false;typingPending=!!($("messageInput")?.value||"").trim();typingLastSentAt=0;
   channel.on("broadcast",{event:"typing"},event=>receiveTypingBroadcast(event?.payload,conversation));
 }
+function markTypingChannelSubscribed(channel,id){
+  if(id!==activeConversation)return;
+  typingChannel=channel;typingConversationId=id;typingChannelReady=true;
+  // If the user started typing while the Realtime channel was connecting,
+  // flush the pending state now instead of losing the first broadcast.
+  if(($("messageInput")?.value||"").trim())updateLocalTyping(true);
+}
+function subscribeTypingChannel(conversation,id){
+  if(!sb||!user||!id)return;
+  const channel=sb.channel("chatly-typing-"+id,{config:{broadcast:{self:false,ack:true}}});
+  attachTypingBroadcast(channel,conversation,id);
+  channel.subscribe(status=>{
+    if(status==="SUBSCRIBED")markTypingChannelSubscribed(channel,id);
+    else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"){
+      if(typingConversationId===id)typingChannelReady=false;
+      console.warn("Chatly typing Realtime channel:",status,"conversation:",id);
+    }
+  });
+}
 function detachTypingBroadcast(){
-  stopLocalTyping();typingChannel=null;typingConversationId=null;clearRemoteTyping();
+  const previous=typingChannel;
+  stopLocalTyping();
+  typingChannel=null;typingConversationId=null;typingChannelReady=false;typingPending=false;typingActive=false;typingLastSentAt=0;clearRemoteTyping();
+  if(previous&&sb){
+    // Give the final stop-typing broadcast a moment to leave before cleanup.
+    setTimeout(()=>{try{sb.removeChannel(previous);}catch(error){console.warn("Typing channel cleanup:",error?.message||error);}},120);
+  }
 }
 
 async function openConversation(id){
@@ -2298,16 +2344,13 @@ async function openConversation(id){
     .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_group_messages",filter:"group_id=eq."+id},async payload=>{const near=nearBottomNow();const {data}=await sb.from("chat_group_messages").select("id,group_id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size").eq("id",payload.new.id).single();if(data){playIncomingMessageSound(data);appendMessage(data);if(near||data.sender_id===user.id)scrollBottom();refreshPreview(id,data);}})
     .on("postgres_changes",{event:"UPDATE",schema:"public",table:"chat_group_messages",filter:"group_id=eq."+id},async()=>{await loadMessages(false);await loadConversations();})
     .on("postgres_changes",{event:"DELETE",schema:"public",table:"chat_group_messages",filter:"group_id=eq."+id},async payload=>{removeMessageFromView(payload.old?.id);await loadConversations();})
-    .on("broadcast",{event:"typing"},event=>receiveTypingBroadcast(event?.payload,c))
-    .subscribe(status=>{if(status==="SUBSCRIBED"){typingChannel=activeGroupChannel;typingConversationId=id;if(($("messageInput")?.value||"").trim())updateLocalTyping();}if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("Chatly group typing channel:",status);});
-    typingChannel=activeGroupChannel;typingConversationId=id;}
+    .subscribe(status=>{if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("Chatly group messages channel:",status);});}
   else{liveChannel=sb.channel("dm-"+id)
     .on("postgres_changes",{event:"INSERT",schema:"public",table:"direct_messages",filter:"conversation_id=eq."+id},async payload=>{const nearBottom=nearBottomNow();const {data}=await sb.from("direct_messages").select("id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size").eq("id",payload.new.id).single();if(data){playIncomingMessageSound(data);appendMessage(data);if(nearBottom||data.sender_id===user.id)scrollBottom();refreshPreview(id,data);}})
     .on("postgres_changes",{event:"UPDATE",schema:"public",table:"direct_messages",filter:"conversation_id=eq."+id},async()=>{await loadMessages(false);await loadConversations();})
     .on("postgres_changes",{event:"DELETE",schema:"public",table:"direct_messages",filter:"conversation_id=eq."+id},async payload=>{removeMessageFromView(payload.old?.id);await loadConversations();})
-    .on("broadcast",{event:"typing"},event=>receiveTypingBroadcast(event?.payload,c))
-    .subscribe(status=>{if(status==="SUBSCRIBED"){typingChannel=liveChannel;typingConversationId=id;if(($("messageInput")?.value||"").trim())updateLocalTyping();}if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("Chatly direct typing channel:",status);});
-    typingChannel=liveChannel;typingConversationId=id;}
+    .subscribe(status=>{if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("Chatly direct messages channel:",status);});}
+  subscribeTypingChannel(c,id);
 }
 function nearBottomNow(){const el=$("messages");return el.scrollHeight-el.scrollTop-el.clientHeight<110;}
 function scrollBottom(){const el=$("messages");requestAnimationFrame(()=>{el.scrollTop=el.scrollHeight;});}

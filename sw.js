@@ -1,4 +1,4 @@
-const CACHE_NAME = "chatly-live-typing-mini-flappy-v4-20261103";
+const CACHE_NAME = "chatly-live-typing-mini-flappy-v5-typing-broadcast-20261103";
 const STATIC_ASSETS = [
   "./manifest.webmanifest",
   "./icon.svg",

@@ -1,20 +1,15 @@
-CHATLY MINI FLAPPY HOME UPDATE
+CHATLY MINI FLAPPY + MINIMIZED CALLS + CAMERA FIX
 
-What changed:
-- Removed the Chatly Arcade concept and its navigation from the website.
-- Removed the multiplayer games/lobby/invite UI and its runtime subscriptions.
-- The main right-hand empty/new-message panel now contains a small, original Flappy-style game.
-- Your Messages list remains in the left sidebar, and opening a conversation works as before.
-- On the main panel, tap/click Start, then tap/click the game or press Space/Arrow Up to flap.
-- Best score is saved locally on this device. The optional sound toggle uses short synthesized tones.
-- The mini-game pauses when you open a conversation and can resume when you return to the main panel.
+Changes in this build:
+- Removed screen sharing from private and group calls (buttons and screen-capture code).
+- Preserved in-app minimized call dock, return, end, and supported Picture-in-Picture controls.
+- Explicitly disables horizontal mirroring and rotation on local and remote camera videos in private and group calls.
+- Camera flip swaps the actual outgoing camera track for every connected peer.
+- Kept Chatly Mini Flappy, messaging, notifications, group calls, and existing Supabase functions.
 
 Install:
-1. Unzip this package.
-2. Replace the runtime files in the root of your GitHub Pages repository with the matching files in this ZIP. Keep the supabase folder contents.
-3. Commit and publish.
-4. Hard refresh the website (Ctrl+Shift+R on desktop). On iPad, fully close the Home Screen app and reopen it.
+1. Replace the matching website files in the GitHub repository root with this ZIP's contents.
+2. Commit and publish.
+3. Hard refresh desktop, or fully close and reopen the iPad Home Screen app.
 
-No SQL changes, Supabase Edge Function redeployment, or Metered changes are needed.
-
-Note: The Arcade SQL tables previously created in Supabase are left untouched; the website no longer references them. They can be removed manually later if you decide you want to clean up unused tables, but do not drop them as part of this UI update.
+No SQL, Metered, or Edge Function changes are required.

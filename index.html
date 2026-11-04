@@ -735,6 +735,18 @@ body.dark #app #emptyState.mini-flappy-empty{background:radial-gradient(ellipse 
 @media(max-width:650px){.chatly-hub-overlay{padding:0}.chatly-hub-shell{width:100%;height:100%;height:100dvh;border-radius:0;border:0}.chatly-hub-topbar{padding:10px}.chatly-hub-tabs{padding:8px}.chatly-hub-content{padding:14px}.hub-feature-grid{grid-template-columns:1fr}.chatly-hub-title{font-size:15px}}
 </style>
 
+<style id="chatly-theme-wallpaper-repair">
+.hub-theme-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:11px;margin:14px 0 18px}
+.hub-wallpaper-card{min-width:0;border:2px solid var(--line);border-radius:14px;background:var(--panel);color:var(--text);padding:9px;text-align:left;display:flex;flex-direction:column;gap:7px;cursor:pointer;transition:border-color .16s,transform .16s,box-shadow .16s}
+.hub-wallpaper-card:hover{transform:translateY(-1px);border-color:var(--blue)}
+.hub-wallpaper-card.selected{border-color:var(--blue);box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 15%,transparent)}
+.hub-wallpaper-swatch{display:block;width:100%;height:78px;border:1px solid #8994a433;border-radius:9px;background-color:var(--soft);background-size:cover;background-position:center}
+.hub-wallpaper-name{font-weight:850;font-size:12px}
+.hub-custom-wallpaper{border:1px solid var(--line);border-radius:15px;background:var(--soft);padding:14px;margin-top:18px}
+.hub-custom-wallpaper .hub-actions{align-items:center}
+.hub-custom-wallpaper input{flex:1 1 220px;min-width:0}
+@media(max-width:500px){.hub-theme-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hub-wallpaper-swatch{height:66px}}
+</style>
 </head>
 <body>
 <div id="auth" class="auth">
@@ -2501,6 +2513,7 @@ async function openConversation(id){
   $("createPollBtn")?.classList.toggle("hidden",!c.isGroup);updateActiveChatPresenceStatus();
   updateDirectBlockUI();renderConversations();if(typeof window.chatlyApplyThreadTheme==="function")window.chatlyApplyThreadTheme(id);if(liveChannel){sb.removeChannel(liveChannel);liveChannel=null;}if(activeGroupChannel){sb.removeChannel(activeGroupChannel);activeGroupChannel=null;}
   await loadMessages(true);
+  if(typeof window.chatlyApplyThreadTheme==="function")window.chatlyApplyThreadTheme(id);
   setupMessageReadObserver(id,c.isGroup?"group":"direct");
   setupMessageSwipeGestures();
   if(c.isGroup){activeGroupChannel=sb.channel("group-chat-"+id)
@@ -3685,9 +3698,13 @@ function applyChatlyAccent(key){
   localStorage.setItem("chatly-accent",CHATLY_ACCENTS[key]?key:"blue");
 }
 function applyChatlyWallpaper(key){
-  const choice=CHATLY_WALLPAPERS[key]||CHATLY_WALLPAPERS.plain;
+  const selected=CHATLY_WALLPAPERS[key]?key:"plain";
+  const choice=CHATLY_WALLPAPERS[selected];
   document.documentElement.style.setProperty("--chatly-message-wallpaper",choice.background);
-  localStorage.setItem("chatly-wallpaper",CHATLY_WALLPAPERS[key]?key:"plain");
+  localStorage.setItem("chatly-wallpaper",selected);
+  // The global wallpaper is the fallback for chats that do not have their own choice.
+  // Reapply the active conversation so a saved per-chat wallpaper always wins.
+  try{if(activeConversation&&typeof window.chatlyApplyThreadTheme==="function")window.chatlyApplyThreadTheme(activeConversation);}catch(error){console.warn("Chat wallpaper refresh:",error?.message||error);}
 }
 function applyChatlyTextSize(value){
   const allowed=["small","normal","large"];
@@ -4131,14 +4148,85 @@ start().catch(err=>{console.error("Chatly startup error:",err);showError(err.mes
     const load=async()=>{const key=$h('hubLeaderboardGame').value;let query=sb.from('chat_brainlab_scores').select('user_id,game_key,score_value,score_label,created_at').eq('game_key',key).limit(50);query=query.order('score_value',{ascending:key==='reflex'});const {data,error}=await query;if(error)throw error;const ids=[...new Set((data||[]).map(x=>x.user_id))];const people=ids.length?await sb.from('profiles').select('id,username,display_name').in('id',ids):{data:[]};const map=new Map((people.data||[]).map(p=>[p.id,p]));const best=new Map();for(const row of data||[]){const prev=best.get(row.user_id);if(!prev||(key==='reflex'?row.score_value<prev.score_value:row.score_value>prev.score_value))best.set(row.user_id,row);}const rows=[...best.entries()].sort((a,b)=>key==='reflex'?a[1].score_value-b[1].score_value:b[1].score_value-a[1].score_value).slice(0,20);$h('hubLeaderboardList').innerHTML=rows.length?rows.map(([id,r],i)=>`<div class="hub-item"><span class="hub-tag">#${i+1}</span><div class="hub-item-main"><div class="hub-item-title">${escH(displayName(map.get(id)))}</div><div class="hub-item-sub">${escH(r.score_label||r.score_value)} · ${new Date(r.created_at).toLocaleDateString()}</div></div>${id===user.id?'<span class="hub-tag">You</span>':''}</div>`).join(''):'<div class="hub-empty">No scores yet. Play a Brain Lab challenge first!</div>';};
     $h('hubLeaderboardGame').onchange=()=>load().catch(e=>alert(e.message));await load();
   }
+  const CHATLY_THREAD_WALLPAPERS={
+    default:{label:'Use global wallpaper',background:null},
+    ocean:{label:'Ocean',background:'linear-gradient(145deg,#dceeff 0%,#f5fbff 100%)'},
+    sunset:{label:'Sunset',background:'linear-gradient(145deg,#fff0df 0%,#fff8f4 100%)'},
+    lavender:{label:'Lavender',background:'linear-gradient(145deg,#eee7ff 0%,#faf7ff 100%)'},
+    forest:{label:'Forest',background:'linear-gradient(145deg,#e0f2e7 0%,#f5fbf6 100%)'},
+    midnight:{label:'Midnight',background:'linear-gradient(145deg,#18243a 0%,#101827 100%)'},
+    rose:{label:'Rose',background:'linear-gradient(145deg,#ffe4ec 0%,#fff5f7 100%)'},
+    aurora:{label:'Aurora',background:'linear-gradient(135deg,#d8fff5 0%,#e9e4ff 52%,#fff0f7 100%)'},
+    dots:{label:'Soft dots',background:'radial-gradient(circle at 1px 1px,rgba(100,116,139,.22) 1px,transparent 1.6px) 0 0/18px 18px,linear-gradient(145deg,#f8fafc,#eef2f7)'},
+    linen:{label:'Linen',background:'repeating-linear-gradient(0deg,rgba(120,110,90,.045) 0 1px,transparent 1px 5px),linear-gradient(135deg,#f7f3eb,#eee8dc)'}
+  };
+  const threadAppearanceKey=id=>'chatly-thread-appearance-v2-'+id;
+  function getThreadAppearance(id){
+    let saved={};
+    try{saved=JSON.parse(localStorage.getItem(threadAppearanceKey(id))||'{}')||{};}catch{}
+    // Migrate the earlier theme key so existing selections are not lost.
+    const legacy=localStorage.getItem('chatly-thread-theme-'+id);
+    const wallpaper=CHATLY_THREAD_WALLPAPERS[saved.wallpaper]?saved.wallpaper:(CHATLY_THREAD_WALLPAPERS[legacy]?legacy:'default');
+    return {wallpaper,customUrl:typeof saved.customUrl==='string'?saved.customUrl:''};
+  }
+  function saveThreadAppearance(id,patch){
+    const next={...getThreadAppearance(id),...patch};
+    if(!CHATLY_THREAD_WALLPAPERS[next.wallpaper])next.wallpaper='default';
+    if(next.customUrl&&!/^https:\/\//i.test(next.customUrl))next.customUrl='';
+    localStorage.setItem(threadAppearanceKey(id),JSON.stringify(next));
+    // Keep the legacy key updated for compatibility with earlier Chatly builds.
+    localStorage.setItem('chatly-thread-theme-'+id,next.wallpaper);
+    return next;
+  }
+  function applyThreadTheme(conversationId){
+    const messages=$h('messages');if(!messages||!conversationId)return;
+    const appearance=getThreadAppearance(conversationId);
+    messages.classList.remove('hub-theme-ocean','hub-theme-sunset','hub-theme-lavender','hub-theme-forest','hub-theme-midnight','hub-theme-rose','hub-theme-aurora','hub-theme-dots','hub-theme-linen');
+    messages.removeAttribute('data-chat-wallpaper');
+    messages.style.removeProperty('background');
+    messages.style.removeProperty('background-image');
+    messages.style.removeProperty('background-size');
+    messages.style.removeProperty('background-position');
+    messages.style.removeProperty('background-color');
+    if(appearance.customUrl){
+      // CSS backgrounds can load HTTPS images without embedding them in the DOM.
+      const safeUrl=appearance.customUrl.replace(/["'\\\n\r]/g,'');
+      messages.style.setProperty('background',`linear-gradient(rgba(255,255,255,.22),rgba(255,255,255,.22)),url("${safeUrl}") center / cover no-repeat`,'important');
+      messages.dataset.chatWallpaper='custom';
+      return;
+    }
+    const selected=CHATLY_THREAD_WALLPAPERS[appearance.wallpaper]||CHATLY_THREAD_WALLPAPERS.default;
+    const background=selected.background||(CHATLY_WALLPAPERS[localStorage.getItem('chatly-wallpaper')]||CHATLY_WALLPAPERS.plain).background;
+    if(background)messages.style.setProperty('background',background,'important');
+    messages.dataset.chatWallpaper=appearance.wallpaper;
+  }
+  window.chatlyApplyThreadTheme=applyThreadTheme;
   async function renderThemes(){
     const scope=requireChat();if(!scope)return;
-    const key='chatly-thread-theme-'+scope.chat.id;const current=localStorage.getItem(key)||'default';const themes={default:['Default','var(--soft)'],ocean:['Ocean','linear-gradient(135deg,#dceeff,#f5fbff)'],sunset:['Sunset','linear-gradient(135deg,#fff0df,#fff8f4)'],lavender:['Lavender','linear-gradient(135deg,#eee7ff,#faf7ff)'],forest:['Forest','linear-gradient(135deg,#e0f2e7,#f5fbf6)'],midnight:['Midnight','linear-gradient(135deg,#18243a,#101827)']};
-    content.innerHTML=`<h2 class="hub-section-title">Individual chat theme</h2><p class="hub-section-sub">Set a wallpaper for <strong>${escH(conversationTitle(scope.chat))}</strong>. This preference is saved on this device.</p><div class="hub-feature-grid">${Object.entries(themes).map(([id,t])=>`<button class="hub-feature-card" data-theme="${id}"><span class="hub-item-main"><strong>${t[0]}</strong><span class="hub-theme-preview" style="background:${t[1]}">Chatly message preview</span></span>${id===current?'<span class="hub-tag">Selected</span>':''}</button>`).join('')}</div>`;
-    content.querySelectorAll('[data-theme]').forEach(b=>b.onclick=()=>{localStorage.setItem(key,b.dataset.theme);applyThreadTheme(scope.chat.id);renderThemes();});
+    const id=scope.chat.id,appearance=getThreadAppearance(id);
+    const previewBackground=id=>{
+      const opt=CHATLY_THREAD_WALLPAPERS[id];
+      if(id==='default')return (CHATLY_WALLPAPERS[localStorage.getItem('chatly-wallpaper')]||CHATLY_WALLPAPERS.plain).background;
+      return opt?.background||'var(--soft)';
+    };
+    content.innerHTML=`<h2 class="hub-section-title">Chat theme & wallpaper</h2>
+      <p class="hub-section-sub">Customize <strong>${escH(conversationTitle(scope.chat))}</strong>. Its wallpaper is saved separately from other conversations on this device.</p>
+      <div class="hub-theme-grid">${Object.entries(CHATLY_THREAD_WALLPAPERS).map(([key,item])=>`<button type="button" class="hub-wallpaper-card ${appearance.wallpaper===key&&!appearance.customUrl?'selected':''}" data-thread-wallpaper="${key}" aria-pressed="${appearance.wallpaper===key&&!appearance.customUrl?'true':'false'}"><span class="hub-wallpaper-swatch" style="background:${previewBackground(key)}"></span><span class="hub-wallpaper-name">${escH(item.label)}</span>${appearance.wallpaper===key&&!appearance.customUrl?'<span class="hub-tag">Selected</span>':''}</button>`).join('')}</div>
+      <section class="hub-custom-wallpaper"><strong>Use your own wallpaper</strong><p class="hub-item-sub">Paste a direct HTTPS image URL. This only changes this conversation.</p><div class="hub-actions"><input class="field" id="hubCustomWallpaperUrl" type="url" maxlength="1000" placeholder="https://example.com/wallpaper.jpg" value="${escH(appearance.customUrl)}"><button type="button" class="primary" id="hubApplyCustomWallpaper">Apply</button></div><div class="hub-actions" style="margin-top:10px"><button type="button" class="secondary" id="hubResetWallpaper">Reset this chat to global wallpaper</button><span class="hub-item-sub" id="hubWallpaperStatus" role="status" aria-live="polite"></span></div></section>`;
+    content.querySelectorAll('[data-thread-wallpaper]').forEach(button=>button.addEventListener('click',()=>{
+      saveThreadAppearance(id,{wallpaper:button.dataset.threadWallpaper,customUrl:''});
+      applyThreadTheme(id);renderThemes();
+    }));
+    $h('hubApplyCustomWallpaper').onclick=()=>{
+      const raw=$h('hubCustomWallpaperUrl').value.trim();
+      if(!raw){$h('hubWallpaperStatus').textContent='Paste an HTTPS image URL first.';return;}
+      let parsed;try{parsed=new URL(raw);}catch{$h('hubWallpaperStatus').textContent='That URL is not valid.';return;}
+      if(parsed.protocol!=='https:'){$h('hubWallpaperStatus').textContent='Use an HTTPS image URL.';return;}
+      saveThreadAppearance(id,{wallpaper:'default',customUrl:parsed.href});applyThreadTheme(id);renderThemes();
+      const statusNode=$h('hubWallpaperStatus');if(statusNode)statusNode.textContent='Wallpaper applied.';
+    };
+    $h('hubResetWallpaper').onclick=()=>{saveThreadAppearance(id,{wallpaper:'default',customUrl:''});applyThreadTheme(id);renderThemes();};
   }
-  function applyThreadTheme(conversationId){const messages=$h('messages');if(!messages)return;messages.classList.remove('hub-theme-ocean','hub-theme-sunset','hub-theme-lavender','hub-theme-forest','hub-theme-midnight');const t=localStorage.getItem('chatly-thread-theme-'+conversationId)||'default';if(t!=='default')messages.classList.add('hub-theme-'+t);}
-  window.chatlyApplyThreadTheme=applyThreadTheme;
   async function renderProfile(){
     const {data,error}=await sb.from('chat_profile_customizations').select('*').eq('user_id',user.id).maybeSingle();if(error)throw error;state.profileCustom=data||{};
     content.innerHTML=`<h2 class="hub-section-title">Profile banner & status</h2><p class="hub-section-sub">Add a banner image URL and a short status shown with your Chatly profile. Use an image URL you control.</p><form class="hub-form" id="hubProfileForm"><label>Banner image URL<input class="field" id="hubBannerUrl" type="url" maxlength="600" placeholder="https://example.com/banner.jpg" value="${escH(state.profileCustom.banner_url||'')}"></label><div class="hub-banner-preview" id="hubBannerPreview" ${state.profileCustom.banner_url?`style="background-image:url('${escH(state.profileCustom.banner_url)}')"`:''}></div><label>Short status<input class="field" id="hubStatusText" maxlength="80" placeholder="Playing games 🎮" value="${escH(state.profileCustom.status_text||'')}"></label><button class="primary" type="submit">Save profile customization</button></form>`;

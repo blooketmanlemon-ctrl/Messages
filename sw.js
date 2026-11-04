@@ -1,4 +1,4 @@
-const CACHE_NAME = "chatly-all-features-20261104";
+const CACHE_NAME = "chatly-theme-wallpaper-fix-20261104";
 const STATIC_ASSETS = [
   "./manifest.webmanifest",
   "./icon.svg",

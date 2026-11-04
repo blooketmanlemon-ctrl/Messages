@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <title>Chatly</title>
-<meta name="chatly-build" content="chatly-live-typing-mini-flappy-roblox-rivals-launcher-2026-11-03">
+<meta name="chatly-build" content="chatly-roblox-in-app-hub-2026-11-04">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -609,37 +609,40 @@ body.chatly-reduce-motion *,body.chatly-reduce-motion *::before,body.chatly-redu
 
 
 
-<style id="chatly-roblox-hub-styles">
-.mini-flappy-roblox-home{width:min(900px,100%);grid-template-columns:minmax(0,1fr) minmax(245px,300px);align-items:center;gap:clamp(14px,2vw,24px)}
-.mini-flappy-game-card{width:100%;min-width:0;display:grid;justify-items:center;gap:13px;padding:8px 0}
-.roblox-launch-card{width:100%;min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:11px;padding:18px 16px;border:1px solid var(--line);border-radius:20px;background:linear-gradient(150deg,var(--panel),var(--soft));box-shadow:0 12px 34px #1d2a450b;text-align:left}
-.roblox-hub-topline{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.roblox-launch-eyebrow{font-size:10px;font-weight:900;letter-spacing:.17em;color:var(--muted)}
-.roblox-launch-icon{width:48px;height:48px;display:grid;place-items:center;border-radius:15px;background:linear-gradient(145deg,#2b8df5,#6957dd);font-size:25px;box-shadow:0 8px 20px #3d7de52e}
-.roblox-launch-title{font-size:22px;line-height:1.1;font-weight:950;letter-spacing:-.8px;color:var(--text);margin-top:4px}
-.roblox-launch-copy{margin:0;color:var(--muted);font-size:11px;line-height:1.5}
-.roblox-featured-game{padding:12px;border:1px solid var(--line);border-radius:15px;background:var(--panel);display:grid;gap:8px}
-.roblox-featured-label{font-size:9px;letter-spacing:.14em;font-weight:900;color:var(--muted)}
-.roblox-featured-title{font-size:18px;font-weight:900;color:var(--text);display:flex;align-items:center;gap:8px}
-.roblox-featured-copy{font-size:10px;color:var(--muted)}
-.roblox-play-button,.roblox-copy-button{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:37px;padding:9px 11px;border-radius:11px;font-size:11px;font-weight:850;cursor:pointer}
-.roblox-play-button{border:0;background:#1685f8;color:white;box-shadow:0 6px 16px #1685f82a}
-.roblox-play-button:hover{background:#0878ed}
-.roblox-copy-button{border:1px solid var(--line);background:var(--soft);color:var(--text)}
-.roblox-feature-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-.roblox-add-game-details{border-top:1px solid var(--line);padding-top:9px}
-.roblox-add-game-details summary{cursor:pointer;color:var(--blue);font-size:11px;font-weight:800;list-style:none}
-.roblox-add-game-details summary::-webkit-details-marker{display:none}
-.roblox-add-game-form{display:grid;gap:7px;padding-top:9px}
-.roblox-hub-input{width:100%;min-width:0;border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:9px;padding:9px 10px;font:inherit;font-size:11px}
-.roblox-library-list{display:grid;gap:7px;max-height:150px;overflow:auto}
-.roblox-library-item{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:5px;padding:8px 9px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
-.roblox-library-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:800;color:var(--text)}
-.roblox-library-item button{border:1px solid var(--line);border-radius:8px;background:var(--soft);color:var(--text);font-size:10px;font-weight:800;padding:6px 8px}
-.roblox-login-note{font-size:9px;line-height:1.45;color:var(--muted)}
-.roblox-copy-status{min-height:14px;font-size:10px;color:var(--blue);text-align:center}
-@media(max-width:900px){.mini-flappy-roblox-home{grid-template-columns:minmax(0,1fr) minmax(225px,270px)}}
-@media(max-width:720px){.mini-flappy-roblox-home{grid-template-columns:minmax(0,1fr);width:min(520px,100%);gap:15px}.roblox-launch-card{max-width:420px;margin:0 auto;padding:17px}.mini-flappy-game-card{gap:10px}}
+<style id="chatly-roblox-in-chatly-styles">
+.roblox-top-button{display:grid;place-items:center}
+.roblox-top-glyph{width:19px;height:19px;display:block;position:relative;transform:rotate(14deg);background:currentColor;clip-path:polygon(18% 0,100% 18%,82% 100%,0 82%)}
+.roblox-top-glyph:after{content:"";position:absolute;left:37%;top:35%;width:27%;height:27%;background:var(--soft);transform:rotate(0deg);border-radius:1px}
+.roblox-hub-view{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:clamp(16px,3vw,32px);background:radial-gradient(ellipse at 50% 0%,#d9ecff70,transparent 55%),var(--panel)}
+@media(max-width:720px){#app.roblox-open .list-pane{display:none!important}#app.roblox-open .chat-pane{display:flex!important;grid-column:1;grid-row:1;width:100%;min-width:0}}
+body.dark .roblox-hub-view{background:radial-gradient(ellipse at 50% 0%,#20456a55,transparent 55%),var(--panel)}
+.roblox-hub-header{width:min(920px,100%);margin:0 auto 18px;display:flex;align-items:center;gap:14px}
+.roblox-hub-heading{min-width:0;flex:1}
+.roblox-hub-kicker,.roblox-card-kicker{font-size:9px;font-weight:900;letter-spacing:.16em;color:var(--blue)}
+.roblox-hub-heading h1{margin:2px 0 3px;font-size:clamp(25px,4vw,34px);letter-spacing:-1px;color:var(--text)}
+.roblox-hub-heading p,.roblox-hub-description{margin:0;color:var(--muted);font-size:12px;line-height:1.5}
+.roblox-hub-mark{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;background:var(--soft);color:var(--text);border:1px solid var(--line)}
+.roblox-hub-mark .roblox-top-glyph{width:25px;height:25px}
+.roblox-hub-content{width:min(920px,100%);margin:0 auto;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(240px,.85fr);gap:14px;align-items:start}
+.roblox-hub-card{min-width:0;border:1px solid var(--line);border-radius:19px;padding:17px;background:var(--soft);box-shadow:0 10px 30px #1d2a4508;display:flex;flex-direction:column;gap:11px}
+.roblox-card-title-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.roblox-card-title-row h2,.roblox-hub-card h2{font-size:17px;letter-spacing:-.3px;margin:3px 0 0;color:var(--text)}
+.roblox-count-pill{white-space:nowrap;padding:5px 9px;border-radius:999px;background:var(--panel);border:1px solid var(--line);color:var(--muted);font-size:10px;font-weight:800}
+.roblox-add-form{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) auto;gap:7px}
+.roblox-hub-input{width:100%;min-width:0;border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:10px;padding:10px 11px;font:inherit;font-size:12px;outline-color:var(--blue)}
+.roblox-primary-button,.roblox-secondary-button{border-radius:10px;padding:10px 13px;font-size:11px;font-weight:850;white-space:nowrap}
+.roblox-primary-button{background:var(--blue);color:#fff}.roblox-secondary-button{background:var(--panel);color:var(--text);border:1px solid var(--line)}
+.roblox-library-list{display:grid;gap:7px;max-height:330px;overflow:auto}
+.roblox-library-item{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:7px;padding:9px 10px;border:1px solid var(--line);border-radius:11px;background:var(--panel)}
+.roblox-library-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:800;color:var(--text)}
+.roblox-library-item button{border:1px solid var(--line);border-radius:8px;background:var(--soft);color:var(--text);font-size:10px;font-weight:800;padding:7px 9px}
+.roblox-library-empty{font-size:11px;color:var(--muted);padding:14px;border:1px dashed var(--line);border-radius:11px;text-align:center}
+.roblox-library-empty.hidden{display:none!important}
+.roblox-invite-row{display:flex;gap:7px;align-items:center}
+.roblox-invite-row select{flex:1}
+.roblox-safety-note{border-top:1px solid var(--line);padding-top:10px;font-size:10px}
+.roblox-copy-status{min-height:15px;font-size:11px;color:var(--blue);font-weight:700}
+@media(max-width:760px){.roblox-hub-content{grid-template-columns:minmax(0,1fr)}.roblox-add-form{grid-template-columns:minmax(0,1fr)}.roblox-hub-view{padding:14px 12px max(18px,env(safe-area-inset-bottom))}.roblox-hub-header{gap:10px}}
 </style>
 
 <style id="chatly-mini-flappy-home-styles">
@@ -724,7 +727,7 @@ body.dark #app #emptyState.mini-flappy-empty{background:radial-gradient(ellipse 
 </div>
 <div id="app" class="app hidden">
   <aside class="list-pane">
-    <header class="list-head"><div class="brand">chat<span>ly</span></div><div class="spacer"></div><button class="round-btn" id="newChat" title="New message or group">＋</button></header>
+    <header class="list-head"><div class="brand">chat<span>ly</span></div><div class="spacer"></div><button class="round-btn roblox-top-button" id="robloxHubButton" title="Roblox hub" aria-label="Open Roblox hub"><span class="roblox-top-glyph" aria-hidden="true"></span></button><button class="round-btn" id="newChat" title="New message or group" aria-label="Add a new contact or group">＋</button></header>
     <div class="search-wrap"><input class="search" id="searchChats" placeholder="Search conversations"></div>
     <div class="list-label">Messages</div>
     <div class="conversation-list" id="conversationList"><div class="empty">Your conversations will appear here.</div></div>
@@ -736,7 +739,7 @@ body.dark #app #emptyState.mini-flappy-empty{background:radial-gradient(ellipse 
   </aside>
   <main class="chat-pane" id="chatPane">
     <section class="empty mini-flappy-empty" id="emptyState" aria-label="Mini Flappy game">
-      <div class="mini-flappy-home mini-flappy-roblox-home">
+      <div class="mini-flappy-home">
         <div class="mini-flappy-game-card">
           <div class="mini-flappy-eyebrow">A tiny game while you wait</div>
           <h2 class="mini-flappy-title">Flap a little. Chat a lot.</h2>
@@ -747,24 +750,30 @@ body.dark #app #emptyState.mini-flappy-empty{background:radial-gradient(ellipse 
           <div id="miniFlappyHint" aria-live="polite">Tap Start, then flap through the gaps.</div>
           <div class="mini-flappy-footnote">A small original Chatly mini-game · No downloads or extra setup</div>
         </div>
-        <aside class="roblox-launch-card roblox-hub-card" aria-label="Roblox hub inside Chatly">
-          <div class="roblox-hub-topline"><div><div class="roblox-launch-eyebrow">CHATLY GAMES</div><div class="roblox-launch-title">ROBLOX HUB</div></div><div class="roblox-launch-icon" aria-hidden="true">🎮</div></div>
-          <p class="roblox-launch-copy">Keep your Roblox game links and friend invites together in Chatly. Add more experiences whenever you like.</p>
-          <div class="roblox-featured-game">
-            <div class="roblox-featured-label">FEATURED EXPERIENCE</div>
-            <div class="roblox-featured-title"><span aria-hidden="true">⚔️</span> RIVALS</div>
-            <div class="roblox-featured-copy">The RIVALS experience you shared.</div>
-            <button class="roblox-play-button" id="robloxPlayRivals" type="button">Play in Roblox <span aria-hidden="true">↗</span></button>
-            <div class="roblox-feature-actions"><button class="roblox-copy-button" id="robloxCopyInvite" type="button">Copy invite</button><button class="roblox-copy-button" id="robloxShareInvite" type="button">Share in chat</button></div>
-          </div>
-          <details class="roblox-add-game-details">
-            <summary>＋ Add another Roblox game</summary>
-            <div class="roblox-add-game-form"><input id="robloxGameName" class="roblox-hub-input" maxlength="40" placeholder="Game name" aria-label="Game name"><input id="robloxGameUrl" class="roblox-hub-input" inputmode="url" placeholder="Paste a Roblox game link" aria-label="Roblox game link"><button class="roblox-copy-button" id="robloxAddGame" type="button">Add to my games</button></div>
-          </details>
+
+      </div>
+    </section>
+    <section class="roblox-hub-view hidden" id="robloxHubView" aria-label="Roblox hub">
+      <header class="roblox-hub-header">
+        <button class="round-btn" id="robloxHubBack" type="button" aria-label="Back to Chatly home" title="Back to Chatly home">‹</button>
+        <div class="roblox-hub-heading"><div class="roblox-hub-kicker">CHATLY INTEGRATION</div><h1>Roblox</h1><p>Your Roblox library and friend invites, organized inside Chatly.</p></div>
+        <div class="roblox-hub-mark" aria-hidden="true"><span class="roblox-top-glyph"></span></div>
+      </header>
+      <div class="roblox-hub-content">
+        <section class="roblox-hub-card">
+          <div class="roblox-card-title-row"><div><div class="roblox-card-kicker">YOUR GAME LIBRARY</div><h2>Saved experiences</h2></div><span class="roblox-count-pill" id="robloxGameCount">0 games</span></div>
+          <p class="roblox-hub-description">Add Roblox experience or share links. Your saved list stays on this device.</p>
+          <div class="roblox-add-form"><input id="robloxGameName" class="roblox-hub-input" maxlength="48" placeholder="Game name (optional)" aria-label="Roblox game name"><input id="robloxGameUrl" class="roblox-hub-input" inputmode="url" placeholder="Paste a Roblox experience link" aria-label="Roblox experience link"><button class="roblox-primary-button" id="robloxAddGame" type="button">＋ Add experience</button></div>
           <div class="roblox-library-list" id="robloxLibraryList" aria-live="polite"></div>
-          <div class="roblox-login-note">Chatly keeps this hub in-app. Roblox gameplay itself must run in the official Roblox app or Roblox website; Chatly never asks for or stores your Roblox password.</div>
+          <div class="roblox-library-empty" id="robloxLibraryEmpty">No saved experiences yet. Add a Roblox game link above to start your library.</div>
+        </section>
+        <section class="roblox-hub-card roblox-friends-card">
+          <div class="roblox-card-kicker">PLAY TOGETHER</div><h2>Invite a Chatly friend</h2>
+          <p class="roblox-hub-description">Choose a saved experience and share its link with someone in your Chatly contacts.</p>
+          <div class="roblox-invite-row"><select id="robloxInviteGame" class="roblox-hub-input" aria-label="Choose a saved Roblox game"><option value="">Choose a saved game</option></select><button class="roblox-secondary-button" id="robloxInviteFriend" type="button">Invite</button></div>
+          <p class="roblox-hub-description roblox-safety-note">Roblox sign-in and gameplay remain in the official Roblox app or website. Chatly does not collect Roblox passwords or bypass school/network restrictions. Some networks may block Roblox independently of Chatly.</p>
           <div class="roblox-copy-status" id="robloxCopyStatus" role="status" aria-live="polite"></div>
-        </aside>
+        </section>
       </div>
     </section>
     <header class="chat-head hidden" id="chatHead">
@@ -3931,67 +3940,89 @@ function resumeMiniFlappyOnHome(){try{miniFlappyState?.resume?.();}catch(error){
 start().catch(err=>{console.error("Chatly startup error:",err);showError(err.message||"Chatly could not initialize. Refresh and try again.");});
 </script>
 
-<script id="chatly-roblox-inapp-hub">
+<script id="chatly-roblox-inapp-hub-v2">
 (function initChatlyRobloxHub(){
-  const RIVALS_URL="https://www.roblox.com/share?code=4727b5fce0116943bd108d218cc5910e&type=ExperienceDetails&stamp=1793759910633";
-  const KEY="chatly-roblox-game-library-v1";
-  const $id=id=>document.getElementById(id);
-  const status=$id("robloxCopyStatus");
-  const library=$id("robloxLibraryList");
-  const copyButton=$id("robloxCopyInvite");
-  const shareButton=$id("robloxShareInvite");
-  const playButton=$id("robloxPlayRivals");
-  const addButton=$id("robloxAddGame");
-  if(!library||!playButton)return;
+  const KEY="chatly-roblox-game-library-v2";
+  const byId=id=>document.getElementById(id);
+  const hubButton=byId("robloxHubButton"), hub=byId("robloxHubView"), home=byId("emptyState");
+  const backButton=byId("robloxHubBack"), status=byId("robloxCopyStatus"), library=byId("robloxLibraryList");
+  const empty=byId("robloxLibraryEmpty"), inviteSelect=byId("robloxInviteGame");
+  if(!hubButton||!hub||!home||!library)return;
   let games=[];
-  try{games=JSON.parse(localStorage.getItem(KEY)||"[]");if(!Array.isArray(games))games=[];}catch{games=[];}
-  if(!games.some(game=>game.url===RIVALS_URL))games.unshift({name:"RIVALS",url:RIVALS_URL,builtin:true});
-  function save(){try{localStorage.setItem(KEY,JSON.stringify(games));}catch(error){console.warn("Could not save Roblox game library:",error);}}
+  try{
+    const current=localStorage.getItem(KEY);
+    const legacy=current===null?localStorage.getItem("chatly-roblox-game-library-v1"):current;
+    const stored=JSON.parse(legacy||"[]");
+    if(Array.isArray(stored))games=stored.filter(g=>g&&!g.builtin&&typeof g.name==="string"&&typeof g.url==="string"&&validRobloxUrl(g.url));
+  }catch(error){console.warn("Could not load Roblox game library:",error);}
+  function validRobloxUrl(raw){
+    try{const url=new URL(raw);const host=url.hostname.toLowerCase();return url.protocol==="https:"&&(host==="roblox.com"||host.endsWith(".roblox.com")||host==="rbx.gg"||host.endsWith(".rbx.gg"));}catch{return false;}
+  }
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(games));}catch(error){say("This browser could not save your Roblox library.");console.warn(error);}}
   function say(message){if(status)status.textContent=message;}
+  function openHub(){
+    if(document.getElementById("app")?.classList.contains("chat-open"))return;
+    home.classList.add("hidden");hub.classList.remove("hidden");document.getElementById("app")?.classList.add("roblox-open");hubButton.setAttribute("aria-expanded","true");render();
+  }
+  function closeHub(){hub.classList.add("hidden");home.classList.remove("hidden");document.getElementById("app")?.classList.remove("roblox-open");hubButton.setAttribute("aria-expanded","false");say("");}
+  function launchGame(url){
+    if(!validRobloxUrl(url)){say("Please add a valid official Roblox experience link first.");return;}
+    say("Opening this experience through Roblox. The Roblox app or site must be available on this device and network.");
+    // Use the current browsing context. Universal links may hand off to the
+    // installed Roblox app; if not, Roblox's own site opens in this same tab.
+    window.location.assign(url);
+  }
   async function copyText(text){
     if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text);return;}
     const field=document.createElement("textarea");field.value=text;field.setAttribute("readonly","");field.style.position="fixed";field.style.opacity="0";document.body.append(field);field.select();const ok=document.execCommand("copy");field.remove();if(!ok)throw new Error("Clipboard access was blocked");
   }
-  function validRobloxUrl(raw){
-    try{const url=new URL(raw);const host=url.hostname.toLowerCase();return url.protocol==="https:"&&(host==="roblox.com"||host.endsWith(".roblox.com")||host==="rbx.gg"||host.endsWith(".rbx.gg"));}catch{return false;}
-  }
-  function launchGame(url){
-    if(!validRobloxUrl(url)){say("That doesn't look like a Roblox game link.");return;}
-    // Keep the launch in the current tab. On devices with the Roblox app,
-    // Roblox universal links may hand off to that app. The game engine itself
-    // is not embeddable inside a normal Chatly webpage.
-    say("Handing off to the official Roblox app or site…");
-    window.location.assign(url);
-  }
-  function shareInCurrentChat(game){
-    const input=$id("messageInput");
-    if(!input||typeof activeConversation==="undefined"||!activeConversation){say("Open a Chatly conversation first, then share this game from the Roblox hub.");return;}
-    input.value=`Want to play ${game.name} with me on Roblox? ${game.url}`;
-    input.dispatchEvent(new Event("input",{bubbles:true}));input.focus();
-    say("Invite added to your message box. Press Send when you're ready.");
+  async function inviteFriend(game){
+    if(!game)return;
+    if(typeof sb==="undefined"||typeof user==="undefined"||!sb||!user){say("Sign in to Chatly before inviting a friend.");return;}
+    const username=window.prompt("Enter your friend's Chatly username:");
+    if(!username)return;
+    const clean=username.trim();if(!clean)return;
+    say("Finding your Chatly friend…");
+    try{
+      const found=await sb.from("profiles").select("id,username,display_name").ilike("username",clean).maybeSingle();
+      if(found.error)throw found.error;
+      if(!found.data){say("No Chatly account found with that username.");return;}
+      if(found.data.id===user.id){say("You cannot invite yourself.");return;}
+      if(typeof isBlockedBetween==="function"&&isBlockedBetween(found.data.id)){say("You cannot message this account while either person has blocked the other.");return;}
+      const result=await sb.rpc("chatly_get_or_create_conversation",{p_other_user:found.data.id});
+      if(result.error)throw result.error;
+      closeHub();
+      await loadConversations();
+      await openConversation(result.data);
+      const input=byId("messageInput");
+      if(input){input.value=`Want to play ${game.name} with me on Roblox? ${game.url}`;input.dispatchEvent(new Event("input",{bubbles:true}));input.focus();say("Invite draft is ready in your chat. Press Send when you're ready.");}
+    }catch(error){console.error("Roblox friend invite failed:",error);say(error.message||"Could not prepare the Chatly invite.");}
   }
   function render(){
     library.innerHTML="";
+    if(empty)empty.classList.toggle("hidden",games.length>0);
+    if(byId("robloxGameCount"))byId("robloxGameCount").textContent=games.length+ (games.length===1?" game":" games");
+    if(inviteSelect){const selected=inviteSelect.value;inviteSelect.innerHTML='<option value="">Choose a saved game</option>';games.forEach((game,index)=>{const option=document.createElement("option");option.value=String(index);option.textContent=game.name;inviteSelect.append(option);});if(games[selected])inviteSelect.value=selected;}
     games.forEach((game,index)=>{
-      if(game.builtin)return;
       const row=document.createElement("div");row.className="roblox-library-item";
       const name=document.createElement("span");name.className="roblox-library-name";name.textContent=game.name;
       const play=document.createElement("button");play.type="button";play.textContent="Play";play.addEventListener("click",()=>launchGame(game.url));
-      const invite=document.createElement("button");invite.type="button";invite.textContent="Share";invite.addEventListener("click",()=>shareInCurrentChat(game));
-      row.append(name,play,invite);library.append(row);
+      const invite=document.createElement("button");invite.type="button";invite.textContent="Invite";invite.addEventListener("click",()=>inviteFriend(game));
+      const remove=document.createElement("button");remove.type="button";remove.textContent="Remove";remove.setAttribute("aria-label","Remove "+game.name);remove.addEventListener("click",()=>{games.splice(index,1);save();render();say(game.name+" removed from your library.");});
+      row.append(name,play,invite,remove);library.append(row);
     });
     save();
   }
-  playButton.addEventListener("click",()=>launchGame(RIVALS_URL));
-  copyButton?.addEventListener("click",async()=>{try{await copyText(RIVALS_URL);say("RIVALS link copied. Paste it into a Chatly chat to invite a friend.");}catch(error){say("Copy was blocked by your browser. You can still share the link from a chat.");}});
-  shareButton?.addEventListener("click",()=>shareInCurrentChat({name:"RIVALS",url:RIVALS_URL}));
-  addButton?.addEventListener("click",()=>{
-    const name=$id("robloxGameName")?.value.trim()||"Roblox experience";
-    const url=$id("robloxGameUrl")?.value.trim()||"";
-    if(!validRobloxUrl(url)){say("Paste a valid https://www.roblox.com game or share link.");return;}
-    if(games.some(game=>game.url===url)){say("That game is already in your library.");return;}
-    games.push({name,url});render();$id("robloxGameName").value="";$id("robloxGameUrl").value="";say(name+" added to your Chatly Roblox hub.");
+  hubButton.addEventListener("click",openHub);
+  backButton?.addEventListener("click",closeHub);
+  byId("robloxAddGame")?.addEventListener("click",()=>{
+    const name=(byId("robloxGameName")?.value||"").trim()||"Roblox experience";
+    const url=(byId("robloxGameUrl")?.value||"").trim();
+    if(!validRobloxUrl(url)){say("Paste a valid https://www.roblox.com experience or share link.");return;}
+    if(games.some(game=>game.url===url)){say("That experience is already saved.");return;}
+    games.push({name:name.slice(0,48),url});save();render();byId("robloxGameName").value="";byId("robloxGameUrl").value="";say(name+" added to your Roblox library.");
   });
+  byId("robloxInviteFriend")?.addEventListener("click",()=>{const index=Number(inviteSelect?.value);if(!Number.isInteger(index)||!games[index]){say("Choose a saved experience first.");return;}inviteFriend(games[index]);});
   render();
 })();
 </script>

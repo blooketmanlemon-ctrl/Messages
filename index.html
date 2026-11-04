@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <title>Chatly</title>
-<meta name="chatly-build" content="chatly-live-typing-mini-flappy-v3-dedicated-broadcast-2026-11-03">
+<meta name="chatly-build" content="chatly-live-typing-mini-flappy-roblox-rivals-launcher-2026-11-03">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -609,6 +609,25 @@ body.chatly-reduce-motion *,body.chatly-reduce-motion *::before,body.chatly-redu
 
 
 
+<style id="chatly-roblox-launcher-styles">
+.mini-flappy-roblox-home{width:min(900px,100%);grid-template-columns:minmax(0,1fr) minmax(220px,258px);align-items:center;gap:clamp(14px,2vw,24px);}
+.mini-flappy-game-card{width:100%;min-width:0;display:grid;justify-items:center;gap:13px;padding:8px 0;}
+.roblox-launch-card{width:100%;min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:11px;padding:20px 18px;border:1px solid var(--line);border-radius:20px;background:linear-gradient(150deg,var(--panel),var(--soft));box-shadow:0 12px 34px #1d2a450b;text-align:left;}
+.roblox-launch-eyebrow{font-size:10px;font-weight:900;letter-spacing:.17em;color:var(--muted);}
+.roblox-launch-icon{width:52px;height:52px;display:grid;place-items:center;border-radius:16px;background:linear-gradient(145deg,#2b8df5,#6957dd);font-size:27px;box-shadow:0 8px 20px #3d7de52e;}
+.roblox-launch-title{font-size:25px;line-height:1;font-weight:950;letter-spacing:-.8px;color:var(--text);}
+.roblox-launch-copy{margin:0;color:var(--muted);font-size:12px;line-height:1.55;}
+.roblox-play-button,.roblox-login-button,.roblox-copy-button{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:40px;padding:10px 12px;border-radius:12px;font-size:12px;font-weight:850;text-decoration:none;cursor:pointer;}
+.roblox-play-button{background:#1685f8;color:white;box-shadow:0 6px 16px #1685f82a;}
+.roblox-play-button:hover{background:#0878ed;}
+.roblox-login-button{background:var(--text);color:var(--panel);}
+.roblox-copy-button{border:1px solid var(--line);background:var(--panel);color:var(--text);}
+.roblox-login-note{font-size:10px;line-height:1.45;color:var(--muted);}
+.roblox-copy-status{min-height:14px;font-size:10px;color:var(--blue);text-align:center;}
+@media(max-width:900px){.mini-flappy-roblox-home{grid-template-columns:minmax(0,1fr) 220px;}}
+@media(max-width:720px){.mini-flappy-roblox-home{grid-template-columns:minmax(0,1fr);width:min(520px,100%);gap:15px;}.roblox-launch-card{max-width:420px;margin:0 auto;padding:17px;}.mini-flappy-game-card{gap:10px;}}
+</style>
+
 <style id="chatly-mini-flappy-home-styles">
 #app #emptyState.mini-flappy-empty{display:flex;align-items:center;justify-content:center;min-height:0;padding:clamp(14px,3vw,34px);overflow:auto;text-align:center;color:var(--text);background:radial-gradient(ellipse at 50% 0%,#d9ecff88,transparent 54%),var(--panel);}
 body.dark #app #emptyState.mini-flappy-empty{background:radial-gradient(ellipse at 50% 0%,#20456a66,transparent 54%),var(--panel);}
@@ -627,6 +646,49 @@ body.dark #app #emptyState.mini-flappy-empty{background:radial-gradient(ellipse 
 #miniFlappyHint{min-height:17px;color:var(--muted);font-size:11px;}
 .mini-flappy-footnote{font-size:10px;color:var(--muted);}
 @media(max-width:720px){#app #emptyState.mini-flappy-empty{padding:14px 12px max(16px,env(safe-area-inset-bottom));}.mini-flappy-home{gap:10px}.mini-flappy-stage{width:min(100%,420px)}.mini-flappy-copy{max-width:320px}}
+</style>
+
+
+<style id="chatly-social-features-styles">
+/* Reactions */
+.message-reactions{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:1px 5px 5px;min-height:0}
+.reaction-chip,.reaction-add{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:999px;padding:4px 8px;font-size:12px;line-height:1.15;display:inline-flex;align-items:center;gap:4px;box-shadow:0 1px 3px #0000000a}
+.reaction-chip.mine{border-color:var(--blue);background:color-mix(in srgb,var(--blue) 12%,var(--panel))}
+.reaction-chip .reaction-count{font-size:11px;color:var(--muted)}
+.reaction-add{color:var(--muted);padding:3px 8px;font-size:15px}
+.reaction-picker{display:flex;gap:4px;flex-wrap:wrap;padding:5px;background:var(--panel);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow)}
+.reaction-picker.hidden{display:none!important}
+.reaction-picker button{background:var(--soft);border-radius:8px;padding:5px 6px;font-size:16px}
+/* Voice messages */
+.voice-message-btn,.create-poll-btn,.cancel-voice-btn{flex:none;min-width:34px;height:36px;border-radius:50%;background:transparent;color:var(--blue);font-size:18px;display:grid;place-items:center;padding:0}
+.voice-message-btn.recording{background:#fee2e2;color:#c62838;animation:chatlyRecordPulse 1.2s infinite}
+.cancel-voice-btn{background:var(--soft);color:var(--muted)}
+.cancel-voice-btn.hidden,.voice-recording-status:empty{display:none!important}
+.voice-recording-status{font-size:11px;white-space:nowrap;color:#c62838;font-weight:700;padding:0 3px}
+@keyframes chatlyRecordPulse{50%{box-shadow:0 0 0 5px #ef444426}}
+/* Presence */
+.presence-dot{display:inline-block;width:8px;height:8px;flex:none;border-radius:50%;margin-left:6px;vertical-align:middle;background:#9ca3af}
+.presence-dot.online{background:#22c55e;box-shadow:0 0 0 2px var(--panel)}
+.presence-dot.away{background:#f59e0b;box-shadow:0 0 0 2px var(--panel)}
+.chat-status.presence-online{color:#16a34a}.chat-status.presence-away{color:#b7791f}
+/* Poll cards */
+.poll-card{width:min(340px,100%);background:var(--panel);border:1px solid var(--line);border-radius:17px;padding:12px;box-shadow:0 4px 14px #0000000a;display:flex;flex-direction:column;gap:9px}
+.poll-card-title{font-size:14px;font-weight:800;overflow-wrap:anywhere}
+.poll-card-subtitle{font-size:10px;color:var(--muted)}
+.poll-option{position:relative;width:100%;text-align:left;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--soft);color:var(--text);overflow:hidden}
+.poll-option.selected{border-color:var(--blue);background:color-mix(in srgb,var(--blue) 10%,var(--soft))}
+.poll-option-fill{position:absolute;inset:0 auto 0 0;background:color-mix(in srgb,var(--blue) 13%,transparent);pointer-events:none}
+.poll-option-content{position:relative;display:flex;justify-content:space-between;gap:8px;font-size:12px}
+.poll-option-content span:first-child{overflow-wrap:anywhere}
+.poll-option-content span:last-child{color:var(--muted);white-space:nowrap}
+.poll-card-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:10px;color:var(--muted)}
+.poll-card-foot button{background:transparent;color:var(--blue);font-size:11px;padding:4px}
+/* Pinned messages */
+.pinned-messages-strip{position:sticky;top:0;z-index:4;flex:none;display:flex;align-items:center;gap:7px;overflow-x:auto;padding:7px 9px;margin:0 0 7px;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 3px 10px #0000000b}
+.pinned-messages-strip .pin-heading{font-size:11px;font-weight:800;color:var(--muted);white-space:nowrap}
+.pinned-message-chip{max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--soft);color:var(--text);border-radius:9px;padding:6px 9px;font-size:11px;text-align:left}
+.pinned-message-chip.unpin{color:#c43e4a;max-width:none}
+@media(max-width:560px){.message-reactions{gap:4px}.reaction-chip,.reaction-add{padding:4px 7px}.voice-recording-status{font-size:10px}.poll-card{max-width:100%}}
 </style>
 
 </head>
@@ -660,15 +722,28 @@ body.dark #app #emptyState.mini-flappy-empty{background:radial-gradient(ellipse 
   </aside>
   <main class="chat-pane" id="chatPane">
     <section class="empty mini-flappy-empty" id="emptyState" aria-label="Mini Flappy game">
-      <div class="mini-flappy-home">
-        <div class="mini-flappy-eyebrow">A tiny game while you wait</div>
-        <h2 class="mini-flappy-title">Flap a little. Chat a lot.</h2>
-        <p class="mini-flappy-copy">Tap the bird, click the game, or press Space to fly between the pipes. Your best score stays on this device.</p>
-        <div class="mini-flappy-scorebar"><span id="miniFlappyScore">Score · 0</span><span id="miniFlappyBest">Best · 0</span></div>
-        <div class="mini-flappy-stage"><canvas id="miniFlappyCanvas" width="420" height="236" role="button" tabindex="0" aria-label="Mini Flappy game. Tap or press Space to flap."></canvas></div>
-        <div class="mini-flappy-actions"><button class="mini-flappy-primary" id="miniFlappyStart" type="button">Start playing</button><button class="mini-flappy-secondary" id="miniFlappySound" type="button" aria-pressed="false">Sound off</button></div>
-        <div id="miniFlappyHint" aria-live="polite">Tap Start, then flap through the gaps.</div>
-        <div class="mini-flappy-footnote">A small original Chatly mini-game · No downloads or extra setup</div>
+      <div class="mini-flappy-home mini-flappy-roblox-home">
+        <div class="mini-flappy-game-card">
+          <div class="mini-flappy-eyebrow">A tiny game while you wait</div>
+          <h2 class="mini-flappy-title">Flap a little. Chat a lot.</h2>
+          <p class="mini-flappy-copy">Tap the bird, click the game, or press Space to fly between the pipes. Your best score stays on this device.</p>
+          <div class="mini-flappy-scorebar"><span id="miniFlappyScore">Score · 0</span><span id="miniFlappyBest">Best · 0</span></div>
+          <div class="mini-flappy-stage"><canvas id="miniFlappyCanvas" width="420" height="236" role="button" tabindex="0" aria-label="Mini Flappy game. Tap or press Space to flap."></canvas></div>
+          <div class="mini-flappy-actions"><button class="mini-flappy-primary" id="miniFlappyStart" type="button">Start playing</button><button class="mini-flappy-secondary" id="miniFlappySound" type="button" aria-pressed="false">Sound off</button></div>
+          <div id="miniFlappyHint" aria-live="polite">Tap Start, then flap through the gaps.</div>
+          <div class="mini-flappy-footnote">A small original Chatly mini-game · No downloads or extra setup</div>
+        </div>
+        <aside class="roblox-launch-card" aria-label="Roblox RIVALS launcher">
+          <div class="roblox-launch-eyebrow">PLAY ON ROBLOX</div>
+          <div class="roblox-launch-icon" aria-hidden="true">🎮</div>
+          <div class="roblox-launch-title">RIVALS</div>
+          <p class="roblox-launch-copy">Jump into the RIVALS experience with your friends. Chatly will hand you off to the official Roblox app or website.</p>
+          <a class="roblox-play-button" href="https://www.roblox.com/share?code=4727b5fce0116943bd108d218cc5910e&amp;type=ExperienceDetails&amp;stamp=1793759910633" target="_blank" rel="noopener noreferrer">Play RIVALS <span aria-hidden="true">↗</span></a>
+          <a class="roblox-login-button" href="https://www.roblox.com/login" target="_blank" rel="noopener noreferrer">Sign in to Roblox</a>
+          <button class="roblox-copy-button" id="robloxCopyInvite" type="button">Copy game invite link</button>
+          <div class="roblox-login-note">Uses your Roblox app/browser sign-in. Chatly never asks for or stores your Roblox password.</div>
+          <div class="roblox-copy-status" id="robloxCopyStatus" role="status" aria-live="polite"></div>
+        </aside>
       </div>
     </section>
     <header class="chat-head hidden" id="chatHead">
@@ -687,13 +762,14 @@ body.dark #app #emptyState.mini-flappy-empty{background:radial-gradient(ellipse 
       <button class="secondary" id="selectionEditBtn" type="button" disabled>Edit</button>
       <button class="secondary" id="selectionDeleteBtn" type="button" disabled>Delete for me</button>
       <button class="secondary board-danger" id="selectionUnsendBtn" type="button" disabled>Unsend</button>
+      <button class="secondary" id="selectionPinBtn" type="button" disabled>Pin</button>
       <button class="text-btn" id="selectionCancelBtn" type="button">Cancel</button>
     </div>
     <div class="blocked-notice hidden" id="blockedNotice" role="status"></div>
     <section class="messages hidden" id="messages" aria-live="polite"></section>
     <form class="composer-area hidden" id="messageForm">
       <div class="upload-status" id="uploadStatus" aria-live="polite"></div>
-      <div class="composer"><button class="attach-button" type="button" id="attachButton" title="Attach a photo, video, audio, or file" aria-label="Attach file">＋</button><input id="chatFileInput" class="hidden" type="file" multiple accept="image/*,video/*,audio/*,.pdf,.txt,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip"><textarea id="messageInput" rows="1" maxlength="4000" placeholder="iMessage"></textarea><button class="send" type="submit" aria-label="Send">↑</button></div>
+      <div class="composer"><button class="attach-button" type="button" id="attachButton" title="Attach a photo, video, audio, or file" aria-label="Attach file">＋</button><button class="voice-message-btn" type="button" id="voiceMessageBtn" title="Record a voice message" aria-label="Record a voice message">🎙</button><button class="cancel-voice-btn hidden" type="button" id="cancelVoiceMessageBtn" title="Cancel recording" aria-label="Cancel recording">×</button><span class="voice-recording-status" id="voiceRecordingStatus" aria-live="polite"></span><button class="create-poll-btn hidden" type="button" id="createPollBtn" title="Create a group poll" aria-label="Create a group poll">▤</button><input id="chatFileInput" class="hidden" type="file" multiple accept="image/*,video/*,audio/*,.pdf,.txt,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip"><textarea id="messageInput" rows="1" maxlength="4000" placeholder="iMessage"></textarea><button class="send" type="submit" aria-label="Send">↑</button></div>
     </form>
   </main>
 </div>
@@ -871,6 +947,11 @@ let activeGroupChannel=null,groupMembershipChannel=null;
 // Ephemeral typing state is sent over Supabase Realtime Broadcast (no database migration).
 let typingChannel=null,typingConversationId=null,typingStopTimer=null,typingActive=false,typingLastSentAt=0,typingChannelReady=false,typingPending=false;
 const remoteTypingUsers=new Map();
+let chatlyPresenceChannel=null,chatlyPresenceState=new Map(),presenceEventsBound=false;
+let chatFeatureChannel=null;
+const messageReactionState=new Map();
+let voiceRecorder=null,voiceStream=null,voiceChunks=[],voiceRecordingTimer=null,voiceRecordingCancelled=false;
+const CHATLY_REACTION_EMOJIS=["❤️","😂","😭","🔥","👍","😮","🎉","💀"];
 let groupCallState=null,groupCallSignalChannel=null,pendingGroupInvite=null;
 let soundEnabled=localStorage.getItem("chatly-sounds")!=="off",audioContextInstance=null,ringtoneInterval=null,messageSoundChannel=null,pendingChatSounds=[],playedMessageSoundIds=new Set();
 const MESSAGE_SOUND_OPTIONS={
@@ -1121,6 +1202,7 @@ document.addEventListener("visibilitychange",()=>{
 });
 function messagePreview(message){
   if(!message)return "Start a conversation";
+  if(message.content&&/^\[\[CHATLY_POLL:[0-9a-f-]{36}\]\]$/i.test(message.content))return "📊 Group poll";
   if(message.content)return message.content;
   const type=message.attachment_type||"";
   if(type.startsWith("image/"))return "📷 Photo";
@@ -1131,6 +1213,7 @@ function messagePreview(message){
 
 function messagePreview(message){
   if(!message)return "Start a conversation";
+  if(message.content&&/^\[\[CHATLY_POLL:[0-9a-f-]{36}\]\]$/i.test(message.content))return "📊 Group poll";
   if(message.content)return message.content;
   const type=message.attachment_type||"";
   if(type.startsWith("image/"))return "📷 Photo";
@@ -1878,7 +1961,7 @@ function updateDirectBlockUI(){
   const isDirect=!!conversation&&!conversation.isGroup;
   notice.classList.add("hidden");
   if(!isDirect){
-    ["messageInput","attachButton"].forEach(id=>{const el=$(id);if(el)el.disabled=false;});
+    ["messageInput","attachButton","voiceMessageBtn","createPollBtn"].forEach(id=>{const el=$(id);if(el)el.disabled=false;});
     const send=$("messageForm")?.querySelector(".send");if(send)send.disabled=false;
     const call=$("videoCallBtn");if(call)call.disabled=false;
     return;
@@ -1888,7 +1971,7 @@ function updateDirectBlockUI(){
     notice.classList.remove("hidden");
     notice.textContent=byMe&&byOther?"You've both blocked each other. Private messages and calls are unavailable.":byMe?`You've blocked ${conversationTitle(conversation)}. They cannot send you private messages or call you.`:`${conversationTitle(conversation)} has blocked you. You cannot send private messages or call them.`;
   }
-  ["messageInput","attachButton"].forEach(id=>{const el=$(id);if(el)el.disabled=blocked;});
+  ["messageInput","attachButton","voiceMessageBtn","createPollBtn"].forEach(id=>{const el=$(id);if(el)el.disabled=blocked;});
   const send=$("messageForm")?.querySelector(".send");if(send)send.disabled=blocked;
   const call=$("videoCallBtn");if(call){call.disabled=blocked;call.title=blocked?"Private calls are unavailable while either person is blocked":"Start video call";}
   const input=$("messageInput");if(input)input.placeholder=blocked?"Private messaging unavailable":"iMessage";
@@ -1946,7 +2029,7 @@ async function enter(authUser){
   setAvatar($("myAvatar"),profile.avatar_url,profile.display_name||profile.username);
   await refreshBlockedUsers();await loadConversations();
   initMiniFlappy();
-  subscribeToBlockChanges();subscribeToCallSignals();subscribeToGroupCallSignals();subscribeToMessageSounds();subscribeToGroupMemberships();subscribeToReadReceiptEvents();
+  subscribeToBlockChanges();subscribeToCallSignals();subscribeToGroupCallSignals();subscribeToMessageSounds();subscribeToGroupMemberships();subscribeToReadReceiptEvents();subscribeChatlyPresence();
   setTimeout(()=>checkPendingIncomingCalls().catch(error=>console.warn("Pending call check failed:",error)),1100);
 }
 function displayName(p){return p?.display_name||p?.username||"Chatly user";}
@@ -2017,7 +2100,9 @@ function renderConversations(){
     const n=conversationTitle(c),blocked=!c.isGroup&&isBlockedBetween(c.otherId),preview=blocked?(isBlockedByMe(c.otherId)?"You blocked this person":"This person blocked you"):c.last?(c.last.sender_id===user.id?"You: ":(c.isGroup?((c.members||[]).find(p=>p.id===c.last.sender_id)?.display_name||"Member")+": ":""))+messagePreview(c.last):c.isGroup?"Group conversation":"Start a conversation";
     const time=c.last?new Date(c.last.created_at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"";
     const avatar=c.isGroup?'<span style="font-size:23px">👥</span>':(c.person.avatar_url?`<img src="${esc(c.person.avatar_url)}" alt="">`:esc(initials(n)));
-    return `<div class="conversation ${activeConversation===c.id?"active":""}" data-conv="${c.id}"><div class="avatar">${avatar}</div><div class="conv-copy"><div class="conv-top"><span class="conv-name">${esc(n)}</span><span class="conv-time">${time}</span></div><div class="conv-preview">${esc(preview)}</div></div></div>`;
+    const presence=!c.isGroup?(chatlyPresenceState.get(c.otherId)?.status||"offline"):"";
+    const presenceMarkup=presence==="online"?'<i class="presence-dot online" title="Online"></i>':presence==="away"?'<i class="presence-dot away" title="Away"></i>':"";
+    return `<div class="conversation ${activeConversation===c.id?"active":""}" data-conv="${c.id}"><div class="avatar">${avatar}</div><div class="conv-copy"><div class="conv-top"><span class="conv-name">${esc(n)}${presenceMarkup}</span><span class="conv-time">${time}</span></div><div class="conv-preview">${esc(preview)}</div></div></div>`;
   }).join(""):'<div class="empty"><div><p>No conversations yet.</p><button class="primary" id="listNewChat">Start a chat</button></div></div>';
   $("conversationList").querySelectorAll("[data-conv]").forEach(el=>el.onclick=()=>openConversation(el.dataset.conv));const btn=$("listNewChat");if(btn)btn.onclick=newChatModal;
 }
@@ -2331,11 +2416,13 @@ function detachTypingBroadcast(){
 }
 
 async function openConversation(id){
+  if(voiceRecorder?.state==="recording")stopVoiceRecording(false);
   pauseMiniFlappyForChat();
   detachTypingBroadcast();
   if(messageSelectionMode)toggleMessageSelectionMode(false);
   const c=conversations.find(x=>x.id===id);if(!c)return;activeConversation=id;activeContact=c.person||null;seen=new Set();readReceiptState.clear();readObserverContext=null;if(messageReadObserver){messageReadObserver.disconnect();messageReadObserver=null;}$("app").classList.add("chat-open");$("emptyState").classList.add("hidden");$("chatHead").classList.remove("hidden");$("messages").classList.remove("hidden");$("messageForm").classList.remove("hidden");
   const name=conversationTitle(c);$("chatName").textContent=name;if(c.isGroup){$("chatAvatar").innerHTML="👥";$("chatStatus").textContent=(c.members||[]).length+" members";$("renameContact").title="Add people to group";}else{setAvatar($("chatAvatar"),c.person.avatar_url,name);$("chatStatus").textContent="Chatly message";$("renameContact").title="Rename contact";}
+  $("createPollBtn")?.classList.toggle("hidden",!c.isGroup);updateActiveChatPresenceStatus();
   updateDirectBlockUI();renderConversations();if(liveChannel){sb.removeChannel(liveChannel);liveChannel=null;}if(activeGroupChannel){sb.removeChannel(activeGroupChannel);activeGroupChannel=null;}
   await loadMessages(true);
   setupMessageReadObserver(id,c.isGroup?"group":"direct");
@@ -2351,6 +2438,7 @@ async function openConversation(id){
     .on("postgres_changes",{event:"DELETE",schema:"public",table:"direct_messages",filter:"conversation_id=eq."+id},async payload=>{removeMessageFromView(payload.old?.id);await loadConversations();})
     .subscribe(status=>{if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("Chatly direct messages channel:",status);});}
   subscribeTypingChannel(c,id);
+  subscribeChatFeatureEvents(c,id);
 }
 function nearBottomNow(){const el=$("messages");return el.scrollHeight-el.scrollTop-el.clientHeight<110;}
 function scrollBottom(){const el=$("messages");requestAnimationFrame(()=>{el.scrollTop=el.scrollHeight;});}
@@ -2369,6 +2457,7 @@ async function loadMessages(scroll){
   const hiddenIds=new Set((hiddenResult.data||[]).map(row=>row.message_id));
   const visibleMessages=(data||[]).filter(message=>!hiddenIds.has(message.id));
   readReceiptState.clear();
+  messageReactionState.clear();
   const messageIds=visibleMessages.map(message=>message.id);
   if(messageIds.length){
     const {data:receipts,error:receiptError}=await sb.from("chat_message_reads")
@@ -2380,7 +2469,13 @@ async function loadMessages(scroll){
       readers.set(receipt.reader_id,receipt.read_at||null);readReceiptState.set(receipt.message_id,readers);
     }
   }
+  if(messageIds.length){
+    const {data:reactionRows,error:reactionError}=await sb.from("chat_message_reactions").select("message_id,user_id,emoji").eq("message_type",type).in("message_id",messageIds);
+    if(reactionError)console.warn("Message reactions unavailable until the Chatly feature SQL is installed:",reactionError.message);
+    else for(const reaction of reactionRows||[]){const list=messageReactionState.get(reaction.message_id)||[];list.push(reaction);messageReactionState.set(reaction.message_id,list);}
+  }
   $("messages").innerHTML="";seen.clear();visibleMessages.forEach(appendMessage);
+  await renderPinnedMessages();
   renderTypingIndicator();
   renderLatestReadReceipt();
   if(scroll)scrollBottom();
@@ -2393,11 +2488,12 @@ function appendMessage(m){
   row.className="message-row"+(m.sender_id===user.id?" mine":"");
   const currentConversation=conversations.find(c=>c.id===activeConversation);
   if(currentConversation?.isGroup&&m.sender_id!==user.id){const sender=(currentConversation.members||[]).find(p=>p.id===m.sender_id);const label=document.createElement("div");label.className="message-sender";label.textContent=displayName(sender)||"Group member";row.append(label);}
-  if(m.content){
-    const bubble=document.createElement("div");
-    bubble.className="bubble";
-    bubble.textContent=m.content;
-    row.append(bubble);
+  const pollMatch=typeof m.content==="string"?m.content.match(/^\[\[CHATLY_POLL:([0-9a-f-]{36})\]\]$/i):null;
+  if(pollMatch){
+    const holder=document.createElement("div");holder.className="poll-card-host";holder.dataset.pollId=pollMatch[1];row.append(holder);
+    renderGroupPoll(m,holder).catch(error=>{holder.textContent="Poll unavailable: "+(error.message||"could not load poll");});
+  }else if(m.content){
+    const bubble=document.createElement("div");bubble.className="bubble";bubble.textContent=m.content;row.append(bubble);
   }
   if(m.attachment_path){
     const holder=document.createElement("div");
@@ -2417,8 +2513,10 @@ function appendMessage(m){
   time.setAttribute("aria-label","Message sent at "+time.textContent);
   row.append(time);
   if(m.sender_id===user.id){const receipt=document.createElement("div");receipt.className="message-read-status hidden";row.append(receipt);}
+  const reactionArea=document.createElement("div");reactionArea.className="message-reactions";row.append(reactionArea);
   row.dataset.messageId=m.id;
   row._chatMessage=m;
+  renderMessageReactions(m,row);
   const indicator=document.createElement("button");
   indicator.type="button";
   indicator.className="message-select-indicator";
@@ -2486,6 +2584,7 @@ function updateMessageSelectionUI(){
   const edit=$("selectionEditBtn");if(edit)edit.disabled=!editAllowed;
   const del=$("selectionDeleteBtn");if(del){del.disabled=items.length===0;del.textContent=items.length>1?`Delete for me (${items.length})`:"Delete for me";}
   const unsend=$("selectionUnsendBtn");if(unsend){unsend.disabled=owned.length===0;unsend.textContent=owned.length>1?`Unsend (${owned.length})`:"Unsend";}
+  const pin=$("selectionPinBtn");if(pin)pin.disabled=items.length===0;
 }
 function toggleMessageSelectionMode(force){
   const next=typeof force==="boolean"?force:!messageSelectionMode;
@@ -2561,6 +2660,235 @@ function editOwnMessage(message){
   modal("Edit message",`<textarea class="field" id="editMessageText" rows="5" maxlength="4000">${esc(message.content||"")}</textarea><div class="modal-actions"><button class="secondary" id="cancelModal">Cancel</button><button class="primary" id="saveEditedMessage">Save changes</button></div>`);
   $("cancelModal").onclick=closeModal;
   $("saveEditedMessage").onclick=async()=>{const content=$("editMessageText").value.trim();if(!content){alert("A message cannot be empty. Use Unsend for everyone to remove it.");return;}const info=messageTableInfo(message);const {data,error}=await sb.from(info.table).update({content}).eq("id",message.id).eq("sender_id",user.id).select("id").maybeSingle();if(error){alert("Could not edit message: "+error.message);return;}if(!data){alert("Chatly couldn't edit that message.");return;}closeModal();await loadMessages(false);await loadConversations();};
+}
+
+
+function currentChatScope(){
+  const c=conversations.find(item=>item.id===activeConversation);
+  return c?.isGroup?{type:"group",field:"group_id",group_id:c.id,conversation_id:null}:{type:"direct",field:"conversation_id",group_id:null,conversation_id:c?.id};
+}
+
+// -------------------- Reactions --------------------
+function renderMessageReactions(message,row){
+  const area=row?.querySelector(".message-reactions");if(!area)return;
+  const reactions=messageReactionState.get(message.id)||[];
+  area.innerHTML="";
+  const groups=new Map();
+  for(const item of reactions){const entry=groups.get(item.emoji)||{count:0,mine:false};entry.count++;if(item.user_id===user?.id)entry.mine=true;groups.set(item.emoji,entry);}
+  for(const [emoji,entry] of groups){
+    const chip=document.createElement("button");chip.type="button";chip.className="reaction-chip"+(entry.mine?" mine":"");chip.title=entry.mine?"Remove your reaction":"React with "+emoji;
+    const face=document.createElement("span");face.textContent=emoji;const count=document.createElement("span");count.className="reaction-count";count.textContent=String(entry.count);chip.append(face,count);
+    chip.onclick=()=>toggleMessageReaction(message,emoji);area.append(chip);
+  }
+  const add=document.createElement("button");add.type="button";add.className="reaction-add";add.textContent="＋";add.title="Add reaction";area.append(add);
+  const picker=document.createElement("div");picker.className="reaction-picker hidden";
+  for(const emoji of CHATLY_REACTION_EMOJIS){const button=document.createElement("button");button.type="button";button.textContent=emoji;button.setAttribute("aria-label","React with "+emoji);button.onclick=()=>toggleMessageReaction(message,emoji);picker.append(button);}
+  add.onclick=event=>{event.stopPropagation();picker.classList.toggle("hidden");};area.append(picker);
+}
+async function refreshMessageReactions(messageId){
+  const scope=currentChatScope();if(!scope.type||!activeConversation)return;
+  const {data,error}=await sb.from("chat_message_reactions").select("message_id,user_id,emoji").eq("message_type",scope.type).eq("message_id",messageId);
+  if(error){console.warn("Could not refresh reactions:",error.message);return;}
+  messageReactionState.set(messageId,data||[]);
+  const row=document.querySelector(`#messages [data-message-id="${messageId}"]`);if(row?._chatMessage)renderMessageReactions(row._chatMessage,row);
+}
+async function toggleMessageReaction(message,emoji){
+  const scope=messageTableInfo(message),current=messageReactionState.get(message.id)||[];
+  const existing=current.find(item=>item.user_id===user.id&&item.emoji===emoji);
+  let result;
+  if(existing){result=await sb.from("chat_message_reactions").delete().eq("message_type",scope.type).eq("message_id",message.id).eq("user_id",user.id).eq("emoji",emoji);}
+  else{
+    const c=conversations.find(item=>item.id===activeConversation);
+    result=await sb.from("chat_message_reactions").insert({message_type:scope.type,message_id:message.id,conversation_id:c?.isGroup?null:c?.id,group_id:c?.isGroup?c.id:null,user_id:user.id,emoji});
+  }
+  if(result.error){alert("Could not update reaction: "+result.error.message);return;}
+  await refreshMessageReactions(message.id);
+}
+
+// -------------------- Voice messages --------------------
+function setVoiceRecordingUI(recording,label=""){
+  const button=$("voiceMessageBtn"),cancel=$("cancelVoiceMessageBtn"),status=$("voiceRecordingStatus");
+  if(button){button.classList.toggle("recording",recording);button.textContent=recording?"■":"🎙";button.title=recording?"Stop and send voice message":"Record a voice message";button.setAttribute("aria-label",button.title);}
+  cancel?.classList.toggle("hidden",!recording);
+  if(status)status.textContent=label;
+}
+async function startVoiceRecording(){
+  if(!activeConversation||!user){showUploadStatus("Open a conversation before recording a voice message.","error",6000);return;}
+  if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==="undefined"){
+    showUploadStatus("Voice recording is not supported in this browser. Try the latest Safari or Chrome over HTTPS.","error",10000);return;
+  }
+  const c=conversations.find(item=>item.id===activeConversation);
+  if(c&&!c.isGroup&&isBlockedBetween(c.otherId)){showUploadStatus("Voice messages are unavailable in this blocked conversation.","error",8000);return;}
+  try{
+    voiceStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+    const candidates=chatlyIsAppleMobile()?['audio/mp4','audio/aac','audio/webm;codecs=opus','audio/webm']:['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/aac'];
+    const mimeType=candidates.find(type=>MediaRecorder.isTypeSupported?.(type))||"";
+    voiceChunks=[];voiceRecordingCancelled=false;
+    voiceRecorder=mimeType?new MediaRecorder(voiceStream,{mimeType}):new MediaRecorder(voiceStream);
+    voiceRecorder.ondataavailable=event=>{if(event.data&&event.data.size)voiceChunks.push(event.data);};
+    voiceRecorder.onerror=event=>{console.error("Voice recording error:",event.error);showUploadStatus("Voice recording failed: "+(event.error?.message||"microphone error"),"error",9000);stopVoiceRecording(false);};
+    voiceRecorder.onstop=async()=>{
+      const recorder=voiceRecorder;voiceRecorder=null;
+      const actualType=recorder?.mimeType||mimeType||"audio/webm";
+      const chunks=voiceChunks.slice();voiceChunks=[];
+      voiceStream?.getTracks().forEach(track=>track.stop());voiceStream=null;
+      if(voiceRecordingTimer){clearInterval(voiceRecordingTimer);voiceRecordingTimer=null;}
+      setVoiceRecordingUI(false);
+      if(voiceRecordingCancelled||!chunks.length)return;
+      const ext=actualType.includes("mp4")||actualType.includes("aac")?"m4a":"webm";
+      const file=new File(chunks,"Chatly-voice-"+Date.now()+"."+ext,{type:actualType});
+      if(file.size<700){showUploadStatus("That voice message was too short. Try recording again.","error",6000);return;}
+      await uploadChatFiles([file]);
+    };
+    voiceRecorder.start(250);
+    const startedAt=Date.now();setVoiceRecordingUI(true,"Recording · 60s");
+    voiceRecordingTimer=setInterval(()=>{
+      const left=Math.max(0,60-Math.floor((Date.now()-startedAt)/1000));
+      const status=$("voiceRecordingStatus");if(status)status.textContent="Recording · "+left+"s";
+      if(left<=0)stopVoiceRecording(true);
+    },250);
+  }catch(error){voiceStream?.getTracks().forEach(track=>track.stop());voiceStream=null;voiceRecorder=null;setVoiceRecordingUI(false);showUploadStatus("Microphone unavailable: "+(error.message||"allow microphone access"),"error",10000);}
+}
+function stopVoiceRecording(send=true){
+  if(!voiceRecorder||voiceRecorder.state!=="recording"){setVoiceRecordingUI(false);return;}
+  voiceRecordingCancelled=!send;
+  try{voiceRecorder.stop();}catch(error){console.warn("Could not stop voice recorder:",error);}
+}
+
+// -------------------- Online / away / offline presence --------------------
+function recomputeChatlyPresence(){
+  if(!chatlyPresenceChannel)return;
+  const next=new Map();
+  const state=chatlyPresenceChannel.presenceState()||{};
+  for(const metas of Object.values(state)){
+    for(const meta of (Array.isArray(metas)?metas:[])){
+      const id=meta?.userId;if(id&&id!==user?.id)next.set(id,{status:meta.status==="away"?"away":"online",lastActive:meta.lastActive||null});
+    }
+  }
+  chatlyPresenceState=next;renderConversations();updateActiveChatPresenceStatus();
+}
+async function trackChatlyPresence(){
+  if(!chatlyPresenceChannel||!user)return;
+  try{await chatlyPresenceChannel.track({userId:user.id,status:document.hidden?"away":"online",lastActive:new Date().toISOString(),displayName:displayName(profile)});}catch(error){console.warn("Presence tracking failed:",error?.message||error);}
+}
+function updateActiveChatPresenceStatus(){
+  const status=$("chatStatus");if(!status||!activeConversation)return;
+  const c=conversations.find(item=>item.id===activeConversation);if(!c)return;
+  status.classList.remove("presence-online","presence-away");
+  if(c.isGroup){
+    const online=(c.members||[]).filter(member=>chatlyPresenceState.get(member.id)?.status==="online").length;
+    status.textContent=online+" online · "+(c.members||[]).length+" members";return;
+  }
+  const state=chatlyPresenceState.get(c.otherId)?.status||"offline";
+  status.textContent=state==="online"?"Online":state==="away"?"Away":"Offline";
+  if(state==="online")status.classList.add("presence-online");if(state==="away")status.classList.add("presence-away");
+}
+function subscribeChatlyPresence(){
+  if(!sb||!user)return;
+  if(chatlyPresenceChannel){sb.removeChannel(chatlyPresenceChannel);chatlyPresenceChannel=null;}
+  chatlyPresenceChannel=sb.channel("chatly-global-presence",{config:{presence:{key:user.id}}})
+    .on("presence",{event:"sync"},recomputeChatlyPresence)
+    .on("presence",{event:"join"},recomputeChatlyPresence)
+    .on("presence",{event:"leave"},recomputeChatlyPresence)
+    .subscribe(async status=>{if(status==="SUBSCRIBED"){await trackChatlyPresence();recomputeChatlyPresence();}else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("Chatly presence channel:",status);});
+  if(!presenceEventsBound){
+    document.addEventListener("visibilitychange",trackChatlyPresence);
+    window.addEventListener("focus",trackChatlyPresence);
+    window.addEventListener("blur",()=>setTimeout(trackChatlyPresence,150));
+    presenceEventsBound=true;
+  }
+}
+
+// -------------------- Group polls --------------------
+function createGroupPollModal(){
+  const c=conversations.find(item=>item.id===activeConversation);if(!c?.isGroup)return;
+  modal("Create a group poll",`<p class="small muted">Ask your group a question and add 2–6 choices. Everyone in the group can vote.</p><label class="small muted" for="pollQuestion">Question</label><input class="field" id="pollQuestion" maxlength="240" placeholder="What should we play?">${[1,2,3,4].map(i=>`<label class="small muted" for="pollOption${i}">Option ${i}</label><input class="field poll-option-input" id="pollOption${i}" maxlength="100" placeholder="Choice ${i}" ${i>2?'':'required'}>`).join("")}<p class="small" id="pollCreateError" style="color:#d84a5b"></p><div class="modal-actions"><button class="secondary" id="cancelModal" type="button">Cancel</button><button class="primary" id="sendGroupPoll" type="button">Create poll</button></div>`);
+  $("cancelModal").onclick=closeModal;
+  $("sendGroupPoll").onclick=async()=>{
+    const question=$("pollQuestion").value.trim();const options=[1,2,3,4].map(i=>$(`pollOption${i}`).value.trim()).filter(Boolean);
+    if(!question){$("pollCreateError").textContent="Enter a poll question.";return;}
+    if(options.length<2){$("pollCreateError").textContent="Add at least two choices.";return;}
+    if(new Set(options.map(x=>x.toLowerCase())).size!==options.length){$("pollCreateError").textContent="Each choice must be different.";return;}
+    const button=$("sendGroupPoll");button.disabled=true;$("pollCreateError").textContent="Creating poll…";
+    const pollId=crypto.randomUUID(),messageId=crypto.randomUUID();
+    const poll={id:pollId,group_id:c.id,message_id:messageId,created_by:user.id,question,options};
+    const {error:pollError}=await sb.from("chat_group_polls").insert(poll);
+    if(pollError){button.disabled=false;$("pollCreateError").textContent=pollError.message;return;}
+    const {error:messageError}=await sb.from("chat_group_messages").insert({id:messageId,group_id:c.id,sender_id:user.id,content:`[[CHATLY_POLL:${pollId}]]`});
+    if(messageError){await sb.from("chat_group_polls").delete().eq("id",pollId);button.disabled=false;$("pollCreateError").textContent=messageError.message;return;}
+    closeModal();await loadConversations();
+  };
+}
+async function renderGroupPoll(message,holder){
+  if(!holder)return;
+  const match=(message.content||"").match(/^\[\[CHATLY_POLL:([0-9a-f-]{36})\]\]$/i);if(!match)return;
+  const pollId=match[1];
+  const {data:poll,error}=await sb.from("chat_group_polls").select("id,group_id,message_id,created_by,question,options,is_closed,created_at").eq("id",pollId).maybeSingle();
+  if(error)throw error;if(!poll){holder.textContent="Poll not found.";return;}
+  const {data:votes,error:voteError}=await sb.from("chat_group_poll_votes").select("user_id,option_index").eq("poll_id",pollId);
+  if(voteError)throw voteError;
+  const options=Array.isArray(poll.options)?poll.options:[];const total=(votes||[]).length;const mine=(votes||[]).find(v=>v.user_id===user.id);const counts=options.map((_,index)=>(votes||[]).filter(v=>v.option_index===index).length);
+  const card=document.createElement("div");card.className="poll-card";
+  const title=document.createElement("div");title.className="poll-card-title";title.textContent=poll.question;card.append(title);
+  const sub=document.createElement("div");sub.className="poll-card-subtitle";sub.textContent=(poll.is_closed?"Poll closed":"Group poll")+" · "+total+" vote"+(total===1?"":"s");card.append(sub);
+  options.forEach((option,index)=>{
+    const button=document.createElement("button");button.type="button";button.className="poll-option"+(mine?.option_index===index?" selected":"");button.disabled=!!poll.is_closed;
+    const fill=document.createElement("span");fill.className="poll-option-fill";fill.style.width=(total?Math.round(counts[index]/total*100):0)+"%";
+    const content=document.createElement("span");content.className="poll-option-content";const name=document.createElement("span");name.textContent=option;const count=document.createElement("span");count.textContent=total?counts[index]+" · "+Math.round(counts[index]/total*100)+"%": "0";content.append(name,count);button.append(fill,content);
+    button.onclick=async()=>{const {error}=await sb.from("chat_group_poll_votes").upsert({poll_id:poll.id,group_id:poll.group_id,user_id:user.id,option_index:index},{onConflict:"poll_id,user_id"});if(error){alert("Could not save your vote: "+error.message);return;}await renderGroupPoll(message,holder);};card.append(button);
+  });
+  const foot=document.createElement("div");foot.className="poll-card-foot";const voted=document.createElement("span");voted.textContent=mine?"Your vote is recorded":"Choose an option";foot.append(voted);
+  if(poll.created_by===user.id&&!poll.is_closed){const close=document.createElement("button");close.type="button";close.textContent="Close poll";close.onclick=async()=>{const {error}=await sb.from("chat_group_polls").update({is_closed:true}).eq("id",poll.id).eq("created_by",user.id);if(error){alert("Could not close poll: "+error.message);return;}await renderGroupPoll(message,holder);};foot.append(close);}
+  card.append(foot);holder.replaceChildren(card);
+}
+async function refreshVisiblePolls(){
+  document.querySelectorAll("#messages .poll-card-host").forEach(holder=>{const row=holder.closest(".message-row");if(row?._chatMessage)renderGroupPoll(row._chatMessage,holder).catch(error=>console.warn("Poll refresh:",error.message));});
+}
+
+// -------------------- Pinned messages --------------------
+async function renderPinnedMessages(){
+  const root=$("messages");if(!root||!activeConversation)return;
+  root.querySelector(".pinned-messages-strip")?.remove();
+  const scope=currentChatScope();if(!scope.type)return;
+  let query=sb.from("chat_message_pins").select("id,message_id,pinned_by,created_at").eq("message_type",scope.type);
+  query=query.eq(scope.field,activeConversation);
+  const {data:pins,error}=await query.order("created_at",{ascending:false}).limit(4);
+  if(error){if(!/does not exist|schema cache/i.test(error.message))console.warn("Pinned messages unavailable:",error.message);return;}
+  if(!pins?.length)return;
+  const table=scope.type==="group"?"chat_group_messages":"direct_messages";
+  const {data:messagesForPins}=await sb.from(table).select("id,content,attachment_name,attachment_type").in("id",pins.map(pin=>pin.message_id));
+  const map=new Map((messagesForPins||[]).map(message=>[message.id,message]));
+  const bar=document.createElement("div");bar.className="pinned-messages-strip";
+  const heading=document.createElement("span");heading.className="pin-heading";heading.textContent="📌 Pinned";bar.append(heading);
+  for(const pin of pins){
+    const msg=map.get(pin.message_id);if(!msg)continue;
+    const text=msg.content&&msg.content.startsWith("[[CHATLY_POLL:")?"📊 Group poll":msg.content||msg.attachment_name|| (msg.attachment_type?.startsWith("image/")?"Photo":"Attachment");
+    const jump=document.createElement("button");jump.type="button";jump.className="pinned-message-chip";jump.textContent=text;jump.title="Jump to pinned message";jump.onclick=()=>{const row=root.querySelector(`[data-message-id="${pin.message_id}"]`);row?.scrollIntoView({behavior:"smooth",block:"center"});};bar.append(jump);
+    const unpin=document.createElement("button");unpin.type="button";unpin.className="pinned-message-chip unpin";unpin.textContent="×";unpin.title="Unpin message";unpin.onclick=async()=>{const {error}=await sb.from("chat_message_pins").delete().eq("id",pin.id);if(error){alert("Could not unpin message: "+error.message);return;}await renderPinnedMessages();};bar.append(unpin);
+  }
+  if(bar.children.length>1)root.prepend(bar);
+}
+async function pinSelectedMessages(){
+  const items=[...selectedMessages.values()];if(!items.length)return;
+  const scope=currentChatScope();const rows=items.map(message=>({message_type:scope.type,message_id:message.id,conversation_id:scope.conversation_id,group_id:scope.group_id,pinned_by:user.id}));
+  const {error}=await sb.from("chat_message_pins").upsert(rows,{onConflict:"message_type,message_id",ignoreDuplicates:true});
+  if(error){alert("Could not pin selected messages: "+error.message);return;}
+  toggleMessageSelectionMode(false);await renderPinnedMessages();
+}
+
+// -------------------- Realtime feature updates --------------------
+function subscribeChatFeatureEvents(conversation,id){
+  if(chatFeatureChannel){sb.removeChannel(chatFeatureChannel);chatFeatureChannel=null;}
+  const type=conversation?.isGroup?"group":"direct",field=conversation?.isGroup?"group_id":"conversation_id";
+  let channel=sb.channel("chat-features-"+type+"-"+id)
+    .on("postgres_changes",{event:"*",schema:"public",table:"chat_message_reactions",filter:field+"=eq."+id},payload=>{const messageId=(payload.new||payload.old)?.message_id;if(messageId)refreshMessageReactions(messageId);})
+    .on("postgres_changes",{event:"*",schema:"public",table:"chat_message_pins",filter:field+"=eq."+id},()=>renderPinnedMessages());
+  if(conversation?.isGroup){
+    channel=channel
+      .on("postgres_changes",{event:"*",schema:"public",table:"chat_group_polls",filter:"group_id=eq."+id},refreshVisiblePolls)
+      .on("postgres_changes",{event:"*",schema:"public",table:"chat_group_poll_votes",filter:"group_id=eq."+id},refreshVisiblePolls);
+  }
+  chatFeatureChannel=channel.subscribe(status=>{if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("Chatly feature updates:",status);});
 }
 
 function clearUploadStatus(){
@@ -2654,6 +2982,9 @@ $("messageForm").onsubmit=async e=>{
 $("messageInput").addEventListener("input",()=>{const el=$("messageInput");el.style.height="auto";el.style.height=Math.min(el.scrollHeight,120)+"px";updateLocalTyping();});
 $("messageInput").addEventListener("blur",()=>{if(typingStopTimer){clearTimeout(typingStopTimer);typingStopTimer=null;}stopLocalTyping();});
 $("messageInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey&&(sendWithEnter||e.ctrlKey||e.metaKey)){e.preventDefault();$("messageForm").requestSubmit();}});
+$("voiceMessageBtn").onclick=()=>{if(voiceRecorder?.state==="recording")stopVoiceRecording(true);else startVoiceRecording();};
+$("cancelVoiceMessageBtn").onclick=()=>stopVoiceRecording(false);
+$("createPollBtn").onclick=createGroupPollModal;
 $("selectMessagesBtn").onclick=()=>toggleMessageSelectionMode();
 $("selectionCancelBtn").onclick=()=>toggleMessageSelectionMode(false);
 $("selectionEditBtn").onclick=()=>{
@@ -2663,6 +2994,7 @@ $("selectionEditBtn").onclick=()=>{
 };
 $("selectionDeleteBtn").onclick=deleteSelectedForMe;
 $("selectionUnsendBtn").onclick=unsendSelectedForEveryone;
+$("selectionPinBtn").onclick=pinSelectedMessages;
 $("videoCallBtn").onclick=()=>{const c=conversations.find(x=>x.id===activeConversation);if(c?.isGroup)startGroupCall(c);else startVideoCall();};
 const GROUP_CALL_MAX_PARTICIPANTS=6;
 function groupCallStatus(message){const el=$("groupCallStatus");if(el)el.textContent=message||"";updateActiveCallDock();}
@@ -3419,7 +3751,7 @@ function profileModal(){
 function setTheme(dark){document.body.classList.toggle("dark",dark);localStorage.setItem("chatly-theme",dark?"dark":"light");$("lightTheme")?.classList.toggle("selected",!dark);$("darkTheme")?.classList.toggle("selected",dark);}
 setTheme(localStorage.getItem("chatly-theme")==="dark");
 applySavedChatlyCustomizations();
-$("signOut").onclick=async()=>{detachTypingBroadcast();await finishCall(false);await cleanupGroupCall(false);if(callSignalChannel)await sb.removeChannel(callSignalChannel);if(groupCallSignalChannel)await sb.removeChannel(groupCallSignalChannel);if(blockChannel)await sb.removeChannel(blockChannel);await sb.auth.signOut();};
+$("signOut").onclick=async()=>{if(voiceRecorder?.state==="recording")stopVoiceRecording(false);detachTypingBroadcast();if(chatFeatureChannel){await sb.removeChannel(chatFeatureChannel);chatFeatureChannel=null;}if(chatlyPresenceChannel){await sb.removeChannel(chatlyPresenceChannel);chatlyPresenceChannel=null;}await finishCall(false);await cleanupGroupCall(false);if(callSignalChannel)await sb.removeChannel(callSignalChannel);if(groupCallSignalChannel)await sb.removeChannel(groupCallSignalChannel);if(blockChannel)await sb.removeChannel(blockChannel);await sb.auth.signOut();};
 // Calls are kept alive while users move between Chatly views or the page enters
 // the browser's back/forward cache. Closing the tab or force-quitting the browser
 // is still controlled by the browser/OS and cannot be guaranteed by a web app.
@@ -3539,5 +3871,40 @@ function resumeMiniFlappyOnHome(){try{miniFlappyState?.resume?.();}catch(error){
 
 start().catch(err=>{console.error("Chatly startup error:",err);showError(err.message||"Chatly could not initialize. Refresh and try again.");});
 </script>
+
+<script id="chatly-roblox-rivals-launcher">
+(function initRobloxRivalsLauncher(){
+  const inviteUrl = "https://www.roblox.com/share?code=4727b5fce0116943bd108d218cc5910e&type=ExperienceDetails&stamp=1793759910633";
+  const copyButton = document.getElementById("robloxCopyInvite");
+  const status = document.getElementById("robloxCopyStatus");
+  if (!copyButton || !status) return;
+  copyButton.addEventListener("click", async () => {
+    const original = copyButton.textContent;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(inviteUrl);
+      } else {
+        const field = document.createElement("textarea");
+        field.value = inviteUrl;
+        field.setAttribute("readonly", "");
+        field.style.position = "fixed";
+        field.style.opacity = "0";
+        document.body.appendChild(field);
+        field.select();
+        const copied = document.execCommand("copy");
+        field.remove();
+        if (!copied) throw new Error("Clipboard is unavailable");
+      }
+      copyButton.textContent = "Copied!";
+      status.textContent = "Paste the RIVALS link into a Chatly conversation to invite a friend.";
+    } catch (error) {
+      status.textContent = "Copy was blocked. Use the Play RIVALS link and copy its address instead.";
+      console.warn("Could not copy Roblox invite link:", error);
+    }
+    window.setTimeout(() => { copyButton.textContent = original; }, 1800);
+  });
+})();
+</script>
+
 </body>
 </html>

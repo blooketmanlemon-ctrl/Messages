@@ -1,21 +1,7 @@
-CHATLY THEME & WALLPAPER REPAIR
+CHATLY THEME & WALLPAPER CONVERSATION PICKER FIX
 
-WHAT CHANGED
-- Rebuilt the per-conversation theme/wallpaper picker.
-- Each conversation saves its own wallpaper selection.
-- Global Chatly wallpaper remains the fallback for chats set to Default.
-- Added 10 built-in wallpaper presets plus an HTTPS custom wallpaper URL.
-- Applies the selected wallpaper on conversation open and again after messages load.
-- Bumped the service-worker cache name.
+This update fixes Chatly Plus > Chat themes. You can now select a conversation directly inside the themes page, even when no chat is currently open.
+Select a conversation, choose a wallpaper or paste an HTTPS image URL, and save. The selected conversation's theme is applied when you open that conversation.
+No SQL migration is required. Existing per-chat theme preferences are preserved.
 
-INSTALLATION
-1. Extract this ZIP.
-2. Upload the extracted contents to the root of the existing Chatly GitHub repository, replacing matching files.
-3. Merge the supabase folder if GitHub asks; do not create a nested supabase/supabase folder.
-4. Commit, then hard-refresh Chatly. On iPad, close and reopen the Home Screen app.
-
-DATABASE
-No SQL migration is needed. Theme choices are stored in localStorage per device and per conversation.
-
-NOTE
-Custom wallpapers use HTTPS image URLs. This is a browser-based background image, not an uploaded Storage asset.
+Install: replace matching root website files in your existing repository; merge the supabase folder instead of nesting it; commit; then hard-refresh Chatly.

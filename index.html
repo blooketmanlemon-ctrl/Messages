@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <title>Chatly</title>
-<meta name="chatly-build" content="chatly-brain-lab-2026-11-04">
+<meta name="chatly-build" content="chatly-studio-stickers-bubbles-2026-11-04">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -746,7 +746,63 @@ body.dark #app #emptyState.mini-flappy-empty{background:radial-gradient(ellipse 
 .hub-custom-wallpaper .hub-actions{align-items:center}
 .hub-custom-wallpaper input{flex:1 1 220px;min-width:0}
 @media(max-width:500px){.hub-theme-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hub-wallpaper-swatch{height:66px}}
+
+.hub-theme-chat-picker .field{width:100%;min-height:44px}
+.hub-theme-chat-picker{color:var(--text)}
 </style>
+
+<style id="chatly-studio-styles">
+.chatly-studio-open{flex:none;width:36px;height:36px;border-radius:50%;background:transparent;color:var(--blue);display:grid;place-items:center;font-size:19px}
+.chatly-studio-open:hover{background:var(--soft)}
+.chatly-studio-overlay{position:fixed;inset:0;z-index:120;display:grid;grid-template-rows:auto auto minmax(0,1fr);background:var(--bg);color:var(--text);}
+.chatly-studio-overlay.hidden{display:none!important}
+.chatly-studio-topbar{min-height:64px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:10px max(14px,env(safe-area-inset-right)) 10px max(14px,env(safe-area-inset-left));background:var(--panel);border-bottom:1px solid var(--line)}
+.chatly-studio-back,.chatly-studio-close{width:max-content;min-height:40px;padding:9px 13px;border:1px solid var(--line);border-radius:12px;background:var(--soft);color:var(--text);font-size:13px;font-weight:800}
+.chatly-studio-close{justify-self:end;width:40px;padding:0;font-size:22px}
+.chatly-studio-brand{font-size:12px;font-weight:950;letter-spacing:.11em;white-space:nowrap}.chatly-studio-brand span{font-size:21px;vertical-align:middle;margin-right:5px}.chatly-studio-brand b{color:var(--blue)}
+.chatly-studio-tabs{display:flex;gap:8px;overflow-x:auto;padding:9px 13px;border-bottom:1px solid var(--line);background:var(--panel);-webkit-overflow-scrolling:touch}
+.chatly-studio-tabs button{white-space:nowrap;padding:9px 13px;border-radius:999px;background:var(--soft);border:1px solid var(--line);color:var(--text);font-size:12px;font-weight:800}
+.chatly-studio-tabs button.active{background:var(--blue);border-color:var(--blue);color:#fff}
+.chatly-studio-content{min-height:0;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:clamp(14px,3vw,30px);padding-bottom:max(22px,env(safe-area-inset-bottom))}
+.studio-section{width:min(100%,980px);margin:0 auto}
+.studio-hero{padding:19px 21px;border-radius:20px;background:linear-gradient(125deg,#162a49,#27547e);color:#fff;margin-bottom:17px}
+.studio-hero h2{margin:0 0 6px;font-size:clamp(21px,3vw,28px);color:#fff}.studio-hero p{margin:0;color:#dce9fa;font-size:12px;line-height:1.5}
+.studio-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0 15px}
+.studio-toolbar .field{flex:1 1 180px;min-width:140px;padding:10px 12px}
+.studio-primary,.studio-secondary,.studio-icon-btn{border-radius:11px;padding:10px 13px;font-size:12px;font-weight:850}
+.studio-primary{background:var(--blue);color:#fff}.studio-secondary{border:1px solid var(--line);background:var(--soft);color:var(--text)}.studio-icon-btn{background:var(--soft);color:var(--text);padding:8px 10px}
+.studio-filter-row{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}.studio-filter{border-radius:999px;padding:7px 11px;background:var(--soft);border:1px solid var(--line);color:var(--muted);font-size:11px;font-weight:800}.studio-filter.active{color:var(--blue);border-color:var(--blue);background:color-mix(in srgb,var(--blue) 10%,var(--panel))}
+.studio-sticker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:11px;margin-top:14px}
+.studio-sticker-card{min-width:0;border:1px solid var(--line);border-radius:15px;padding:9px;background:var(--panel);display:flex;flex-direction:column;gap:8px;box-shadow:0 3px 12px #172d4a08}
+.studio-sticker-preview{height:112px;display:grid;place-items:center;background:var(--soft);border-radius:10px;overflow:hidden}.studio-sticker-preview img{width:100%;height:100%;object-fit:contain}
+.studio-sticker-name{font-size:11px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.studio-sticker-actions{display:flex;gap:5px;flex-wrap:wrap}.studio-sticker-actions button{flex:1;min-width:0;padding:7px 6px;border-radius:9px;font-size:10px;font-weight:800;background:var(--soft);color:var(--text)}
+.studio-empty{padding:34px 18px;border:1px dashed var(--line);border-radius:16px;text-align:center;color:var(--muted);font-size:13px;line-height:1.5;background:var(--panel)}
+.studio-note{color:var(--muted);font-size:11px;line-height:1.5;margin:8px 0}
+.studio-designer-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin-top:14px}
+.studio-style-card{border:1px solid var(--line);border-radius:17px;background:var(--panel);padding:14px;min-width:0}.studio-style-card h3{margin:0 0 10px;font-size:14px}
+.studio-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.studio-field{display:grid;gap:5px;min-width:0}.studio-field span{font-size:10px;color:var(--muted);font-weight:850}.studio-field select,.studio-field input[type=color]{width:100%;min-width:0;height:40px;border:1px solid var(--line);border-radius:10px;background:var(--soft);color:var(--text);padding:7px}
+.studio-field input[type=color]{padding:4px}
+.studio-bubble-preview{display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:14px;background:var(--soft);margin:12px 0}.studio-preview-row{display:flex}.studio-preview-row.mine{justify-content:flex-end}.studio-preview-bubble{position:relative;max-width:88%;padding:11px 14px;white-space:normal;overflow-wrap:anywhere;box-shadow:0 2px 7px #0000000b;font-size:13px}
+.studio-save-row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}
+.studio-reaction-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;max-height:220px;overflow:auto;padding:6px}
+.studio-reaction-grid button{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:6px;min-width:0;display:grid;place-items:center;gap:3px;color:var(--text);font-size:10px}
+.studio-reaction-grid img{width:48px;height:48px;object-fit:contain}
+.studio-reaction-grid button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.studio-sticker-reaction-chip{display:inline-flex;align-items:center;gap:3px;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:3px 6px;margin:1px 2px;min-height:30px;vertical-align:middle}
+.studio-sticker-reaction-chip img{width:25px;height:25px;object-fit:contain;border-radius:5px}
+.studio-sticker-reaction-chip.mine{border-color:var(--blue);background:color-mix(in srgb,var(--blue) 12%,var(--panel))}
+#messages .message-row .bubble{position:relative;font-family:var(--chatly-studio-font,inherit);}
+#messages .message-row:not(.mine) .bubble{background:var(--chatly-studio-other-bg,var(--bubble));color:var(--chatly-studio-other-text,var(--text));border-radius:var(--chatly-studio-other-radius,20px 20px 20px 6px)}
+#messages .message-row.mine .bubble{background:var(--chatly-studio-mine-bg,var(--blue));color:var(--chatly-studio-mine-text,#fff);border-radius:var(--chatly-studio-mine-radius,20px 20px 6px 20px)}
+#messages .message-row .bubble[data-studio-decor]:not([data-studio-decor="classic"])::after{content:var(--chatly-studio-decor,"✨");position:absolute;top:-10px;right:5px;font-size:15px;line-height:1;filter:drop-shadow(0 1px 1px #0002);pointer-events:none}
+#messages .message-row:not(.mine) .bubble[data-studio-decor]:not([data-studio-decor="classic"])::after{right:auto;left:5px}
+#messages .message-row .bubble[data-studio-decor="cloud"]::after{font-size:13px}
+#messages .message-row .bubble[data-studio-decor="paw"]::after{font-size:16px}
+.message-reactions .studio-sticker-reaction-chip{margin-top:2px}
+@media(max-width:650px){.chatly-studio-topbar{grid-template-columns:1fr auto;}.chatly-studio-brand{display:none}.studio-designer-grid{grid-template-columns:1fr}.studio-sticker-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.studio-sticker-preview{height:90px}}
+@media(max-width:390px){.studio-sticker-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.studio-form-grid{grid-template-columns:1fr}}
+</style>
+
 </head>
 <body>
 <div id="auth" class="auth">
@@ -815,7 +871,7 @@ body.dark #app #emptyState.mini-flappy-empty{background:radial-gradient(ellipse 
     <section class="messages hidden" id="messages" aria-live="polite"></section>
     <form class="composer-area hidden" id="messageForm">
       <div class="upload-status" id="uploadStatus" aria-live="polite"></div>
-      <div class="composer"><button class="attach-button" type="button" id="attachButton" title="Attach a photo, video, audio, or file" aria-label="Attach file">＋</button><button class="voice-message-btn" type="button" id="voiceMessageBtn" title="Record a voice message" aria-label="Record a voice message">🎙</button><button class="cancel-voice-btn hidden" type="button" id="cancelVoiceMessageBtn" title="Cancel recording" aria-label="Cancel recording">×</button><span class="voice-recording-status" id="voiceRecordingStatus" aria-live="polite"></span><button class="create-poll-btn hidden" type="button" id="createPollBtn" title="Create a group poll" aria-label="Create a group poll">▤</button><input id="chatFileInput" class="hidden" type="file" multiple accept="image/*,video/*,audio/*,.pdf,.txt,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip"><textarea id="messageInput" rows="1" maxlength="4000" placeholder="iMessage"></textarea><button class="send" type="submit" aria-label="Send">↑</button></div>
+      <div class="composer"><button class="attach-button" type="button" id="attachButton" title="Attach a photo, video, audio, or file" aria-label="Attach file">＋</button><button class="chatly-studio-open" type="button" id="chatlyStudioOpen" title="Stickers, GIFs & bubble styles" aria-label="Open Chatly Studio">✨</button><button class="voice-message-btn" type="button" id="voiceMessageBtn" title="Record a voice message" aria-label="Record a voice message">🎙</button><button class="cancel-voice-btn hidden" type="button" id="cancelVoiceMessageBtn" title="Cancel recording" aria-label="Cancel recording">×</button><span class="voice-recording-status" id="voiceRecordingStatus" aria-live="polite"></span><button class="create-poll-btn hidden" type="button" id="createPollBtn" title="Create a group poll" aria-label="Create a group poll">▤</button><input id="chatFileInput" class="hidden" type="file" multiple accept="image/*,video/*,audio/*,.pdf,.txt,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip"><textarea id="messageInput" rows="1" maxlength="4000" placeholder="iMessage"></textarea><button class="send" type="submit" aria-label="Send">↑</button></div>
     </form>
   </main>
 </div>
@@ -1032,6 +1088,7 @@ const remoteTypingUsers=new Map();
 let chatlyPresenceChannel=null,chatlyPresenceState=new Map(),presenceEventsBound=false;
 let chatFeatureChannel=null;
 const messageReactionState=new Map();
+const messageStickerReactionState=new Map();
 let voiceRecorder=null,voiceStream=null,voiceChunks=[],voiceRecordingTimer=null,voiceRecordingCancelled=false;
 const CHATLY_REACTION_EMOJIS=["❤️","😂","😭","🔥","👍","😮","🎉","💀"];
 let groupCallState=null,groupCallSignalChannel=null,pendingGroupInvite=null;
@@ -2546,7 +2603,7 @@ async function loadMessages(scroll){
   const hiddenIds=new Set((hiddenResult.data||[]).map(row=>row.message_id));
   const visibleMessages=(data||[]).filter(message=>!hiddenIds.has(message.id));
   readReceiptState.clear();
-  messageReactionState.clear();
+  messageReactionState.clear();messageStickerReactionState.clear();
   const messageIds=visibleMessages.map(message=>message.id);
   if(messageIds.length){
     const {data:receipts,error:receiptError}=await sb.from("chat_message_reads")
@@ -2562,6 +2619,9 @@ async function loadMessages(scroll){
     const {data:reactionRows,error:reactionError}=await sb.from("chat_message_reactions").select("message_id,user_id,emoji").eq("message_type",type).in("message_id",messageIds);
     if(reactionError)console.warn("Message reactions unavailable until the Chatly feature SQL is installed:",reactionError.message);
     else for(const reaction of reactionRows||[]){const list=messageReactionState.get(reaction.message_id)||[];list.push(reaction);messageReactionState.set(reaction.message_id,list);}
+    const {data:stickerRows,error:stickerRowsError}=await sb.from("chat_message_sticker_reactions").select("id,message_id,user_id,storage_path,mime_type,sticker_name,sticker_key").eq("message_type",type).in("message_id",messageIds);
+    if(stickerRowsError){if(stickerRowsError.code!=="42P01")console.warn("Chatly sticker reactions:",stickerRowsError.message);}
+    else for(const reaction of stickerRows||[]){const list=messageStickerReactionState.get(reaction.message_id)||[];list.push(reaction);messageStickerReactionState.set(reaction.message_id,list);}
   }
   $("messages").innerHTML="";seen.clear();visibleMessages.forEach(appendMessage);
   await renderPinnedMessages();
@@ -2582,7 +2642,7 @@ function appendMessage(m){
     const holder=document.createElement("div");holder.className="poll-card-host";holder.dataset.pollId=pollMatch[1];row.append(holder);
     renderGroupPoll(m,holder).catch(error=>{holder.textContent="Poll unavailable: "+(error.message||"could not load poll");});
   }else if(m.content){
-    const bubble=document.createElement("div");bubble.className="bubble";bubble.textContent=m.content;row.append(bubble);
+    const bubble=document.createElement("div");bubble.className="bubble";bubble.textContent=m.content;if(window.chatlyApplyBubbleToElement)window.chatlyApplyBubbleToElement(bubble,m.sender_id===user.id);row.append(bubble);
   }
   if(m.attachment_path){
     const holder=document.createElement("div");
@@ -2770,6 +2830,7 @@ function renderMessageReactions(message,row){
     const face=document.createElement("span");face.textContent=emoji;const count=document.createElement("span");count.className="reaction-count";count.textContent=String(entry.count);chip.append(face,count);
     chip.onclick=event=>{event.stopPropagation();toggleMessageReaction(message,emoji);};area.append(chip);
   }
+  if(window.chatlyRenderStickerReactionChips)window.chatlyRenderStickerReactionChips(message,area);
 }
 function closeMessageReactionPickers(except=null){
   document.querySelectorAll(".reaction-picker.reaction-picker-open").forEach(picker=>{
@@ -2801,14 +2862,14 @@ function wireMessageReactionLongPress(message,row){
       if(event.pointerType==="mouse"&&event.button!==0)return;
       if(event.target.closest("button,a,input"))return;
       clear();opened=false;startX=event.clientX;startY=event.clientY;
-      timer=setTimeout(()=>{timer=0;opened=true;showMessageReactionPicker(message,row);},520);
+      timer=setTimeout(()=>{timer=0;opened=true;(window.chatlyShowStudioReactionPicker||showMessageReactionPicker)(message,row);},520);
     },{passive:true});
     target.addEventListener("pointermove",event=>{
       if(!timer)return;
       if(Math.abs(event.clientX-startX)>12||Math.abs(event.clientY-startY)>12)clear();
     },{passive:true});
     ["pointerup","pointercancel","pointerleave"].forEach(type=>target.addEventListener(type,clear,{passive:true}));
-    target.addEventListener("contextmenu",event=>{event.preventDefault();opened=true;showMessageReactionPicker(message,row);});
+    target.addEventListener("contextmenu",event=>{event.preventDefault();opened=true;(window.chatlyShowStudioReactionPicker||showMessageReactionPicker)(message,row);});
     target.addEventListener("click",event=>{if(opened){event.preventDefault();event.stopPropagation();opened=false;}},true);
   });
 }
@@ -3009,6 +3070,7 @@ function subscribeChatFeatureEvents(conversation,id){
   const type=conversation?.isGroup?"group":"direct",field=conversation?.isGroup?"group_id":"conversation_id";
   let channel=sb.channel("chat-features-"+type+"-"+id)
     .on("postgres_changes",{event:"*",schema:"public",table:"chat_message_reactions",filter:field+"=eq."+id},payload=>{const messageId=(payload.new||payload.old)?.message_id;if(messageId)refreshMessageReactions(messageId);})
+    .on("postgres_changes",{event:"*",schema:"public",table:"chat_message_sticker_reactions",filter:field+"=eq."+id},payload=>{const messageId=(payload.new||payload.old)?.message_id;if(messageId&&window.chatlyRefreshStickerReactions)window.chatlyRefreshStickerReactions(messageId);})
     .on("postgres_changes",{event:"*",schema:"public",table:"chat_message_pins",filter:field+"=eq."+id},()=>renderPinnedMessages());
   if(conversation?.isGroup){
     channel=channel
@@ -4179,7 +4241,10 @@ start().catch(err=>{console.error("Chatly startup error:",err);showError(err.mes
     return next;
   }
   function applyThreadTheme(conversationId){
-    const messages=$h('messages');if(!messages||!conversationId)return;
+    // A theme edited in Chatly Plus must never repaint a different open chat.
+    // Saved themes are applied when their own conversation is opened.
+    if(!conversationId||conversationId!==activeConversation)return;
+    const messages=$h('messages');if(!messages)return;
     const appearance=getThreadAppearance(conversationId);
     messages.classList.remove('hub-theme-ocean','hub-theme-sunset','hub-theme-lavender','hub-theme-forest','hub-theme-midnight','hub-theme-rose','hub-theme-aurora','hub-theme-dots','hub-theme-linen');
     messages.removeAttribute('data-chat-wallpaper');
@@ -4202,30 +4267,71 @@ start().catch(err=>{console.error("Chatly startup error:",err);showError(err.mes
   }
   window.chatlyApplyThreadTheme=applyThreadTheme;
   async function renderThemes(){
-    const scope=requireChat();if(!scope)return;
-    const id=scope.chat.id,appearance=getThreadAppearance(id);
-    const previewBackground=id=>{
-      const opt=CHATLY_THREAD_WALLPAPERS[id];
-      if(id==='default')return (CHATLY_WALLPAPERS[localStorage.getItem('chatly-wallpaper')]||CHATLY_WALLPAPERS.plain).background;
+    // Chat themes should work from Chatly Plus even when no conversation is open.
+    // Let the user choose a conversation here instead of requiring a round trip.
+    let chats=Array.isArray(conversations)?conversations:[];
+    if(!chats.length&&typeof loadConversations==='function'){
+      try{await loadConversations();chats=Array.isArray(conversations)?conversations:[];}
+      catch(error){console.warn('Could not load conversations for chat themes:',error?.message||error);}
+    }
+    if(!chats.length){
+      content.innerHTML=`<h2 class="hub-section-title">Chat themes & wallpapers</h2><p class="hub-section-sub">Your conversations will appear here once they have loaded.</p><div class="hub-empty">No conversations are available yet. Return to Messages, refresh your conversation list, then open Chat themes again.</div><button class="primary" id="hubBackToMessages">Back to messages</button>`;
+      $h('hubBackToMessages').onclick=closeHub;
+      return;
+    }
+    const validId=id=>chats.some(chat=>chat.id===id);
+    let id=state.themeConversationId;
+    if(!validId(id))id=activeConversation&&validId(activeConversation)?activeConversation:'';
+    if(!validId(id)){
+      try{const remembered=localStorage.getItem('chatly-theme-selected-conversation');if(validId(remembered))id=remembered;}catch{}
+    }
+    if(!validId(id))id=chats[0].id;
+    state.themeConversationId=id;
+    try{localStorage.setItem('chatly-theme-selected-conversation',id);}catch{}
+
+    const chat=chats.find(item=>item.id===id);
+    const appearance=getThreadAppearance(id);
+    const previewBackground=key=>{
+      const opt=CHATLY_THREAD_WALLPAPERS[key];
+      if(key==='default')return (CHATLY_WALLPAPERS[localStorage.getItem('chatly-wallpaper')]||CHATLY_WALLPAPERS.plain).background;
       return opt?.background||'var(--soft)';
     };
-    content.innerHTML=`<h2 class="hub-section-title">Chat theme & wallpaper</h2>
-      <p class="hub-section-sub">Customize <strong>${escH(conversationTitle(scope.chat))}</strong>. Its wallpaper is saved separately from other conversations on this device.</p>
+    content.innerHTML=`<h2 class="hub-section-title">Chat themes & wallpapers</h2>
+      <p class="hub-section-sub">Choose a conversation below, then customize only that chat. You no longer need to open the conversation first.</p>
+      <label class="hub-theme-chat-picker" style="display:block;max-width:560px;margin:12px 0 16px"><span class="small muted" style="display:block;margin-bottom:6px">Choose conversation</span><select class="field" id="hubThemeChatSelect">${chats.map(item=>`<option value="${escH(item.id)}" ${item.id===id?'selected':''}>${escH(conversationTitle(item))}${item.isGroup?' · Group':''}</option>`).join('')}</select></label>
+      <p class="hub-section-sub">Customizing: <strong>${escH(conversationTitle(chat))}</strong></p>
       <div class="hub-theme-grid">${Object.entries(CHATLY_THREAD_WALLPAPERS).map(([key,item])=>`<button type="button" class="hub-wallpaper-card ${appearance.wallpaper===key&&!appearance.customUrl?'selected':''}" data-thread-wallpaper="${key}" aria-pressed="${appearance.wallpaper===key&&!appearance.customUrl?'true':'false'}"><span class="hub-wallpaper-swatch" style="background:${previewBackground(key)}"></span><span class="hub-wallpaper-name">${escH(item.label)}</span>${appearance.wallpaper===key&&!appearance.customUrl?'<span class="hub-tag">Selected</span>':''}</button>`).join('')}</div>
-      <section class="hub-custom-wallpaper"><strong>Use your own wallpaper</strong><p class="hub-item-sub">Paste a direct HTTPS image URL. This only changes this conversation.</p><div class="hub-actions"><input class="field" id="hubCustomWallpaperUrl" type="url" maxlength="1000" placeholder="https://example.com/wallpaper.jpg" value="${escH(appearance.customUrl)}"><button type="button" class="primary" id="hubApplyCustomWallpaper">Apply</button></div><div class="hub-actions" style="margin-top:10px"><button type="button" class="secondary" id="hubResetWallpaper">Reset this chat to global wallpaper</button><span class="hub-item-sub" id="hubWallpaperStatus" role="status" aria-live="polite"></span></div></section>`;
+      <section class="hub-custom-wallpaper"><strong>Use your own wallpaper</strong><p class="hub-item-sub">Paste a direct HTTPS image URL. This only changes the selected conversation.</p><div class="hub-actions"><input class="field" id="hubCustomWallpaperUrl" type="url" maxlength="1000" placeholder="https://example.com/wallpaper.jpg" value="${escH(appearance.customUrl)}"><button type="button" class="primary" id="hubApplyCustomWallpaper">Apply</button></div><div class="hub-actions" style="margin-top:10px"><button type="button" class="secondary" id="hubResetWallpaper">Reset this chat to global wallpaper</button><button type="button" class="secondary" id="hubPreviewThemeInChat">Open conversation</button><span class="hub-item-sub" id="hubWallpaperStatus" role="status" aria-live="polite"></span></div></section>`;
+
+    $h('hubThemeChatSelect').onchange=()=>{
+      state.themeConversationId=$h('hubThemeChatSelect').value;
+      try{localStorage.setItem('chatly-theme-selected-conversation',state.themeConversationId);}catch{}
+      renderThemes();
+    };
     content.querySelectorAll('[data-thread-wallpaper]').forEach(button=>button.addEventListener('click',()=>{
       saveThreadAppearance(id,{wallpaper:button.dataset.threadWallpaper,customUrl:''});
-      applyThreadTheme(id);renderThemes();
+      if(id===activeConversation)applyThreadTheme(id);
+      renderThemes();
     }));
     $h('hubApplyCustomWallpaper').onclick=()=>{
       const raw=$h('hubCustomWallpaperUrl').value.trim();
       if(!raw){$h('hubWallpaperStatus').textContent='Paste an HTTPS image URL first.';return;}
       let parsed;try{parsed=new URL(raw);}catch{$h('hubWallpaperStatus').textContent='That URL is not valid.';return;}
       if(parsed.protocol!=='https:'){$h('hubWallpaperStatus').textContent='Use an HTTPS image URL.';return;}
-      saveThreadAppearance(id,{wallpaper:'default',customUrl:parsed.href});applyThreadTheme(id);renderThemes();
-      const statusNode=$h('hubWallpaperStatus');if(statusNode)statusNode.textContent='Wallpaper applied.';
+      saveThreadAppearance(id,{wallpaper:'default',customUrl:parsed.href});
+      if(id===activeConversation)applyThreadTheme(id);
+      renderThemes();
+      const statusNode=$h('hubWallpaperStatus');if(statusNode)statusNode.textContent='Wallpaper saved for '+conversationTitle(chat)+'.';
     };
-    $h('hubResetWallpaper').onclick=()=>{saveThreadAppearance(id,{wallpaper:'default',customUrl:''});applyThreadTheme(id);renderThemes();};
+    $h('hubResetWallpaper').onclick=()=>{
+      saveThreadAppearance(id,{wallpaper:'default',customUrl:''});
+      if(id===activeConversation)applyThreadTheme(id);
+      renderThemes();
+    };
+    $h('hubPreviewThemeInChat').onclick=()=>{
+      closeHub();
+      if(typeof openConversation==='function')openConversation(id);
+    };
   }
   async function renderProfile(){
     const {data,error}=await sb.from('chat_profile_customizations').select('*').eq('user_id',user.id).maybeSingle();if(error)throw error;state.profileCustom=data||{};
@@ -4280,6 +4386,282 @@ start().catch(err=>{console.error("Chatly startup error:",err);showError(err.mes
       .subscribe(status=>{if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.warn('Notification Center realtime:',status);});}catch(e){console.warn(e);}},1000);
   // Apply theme on initial chat if a conversation is already selected.
   if(activeConversation)applyThreadTheme(activeConversation);
+})();
+</script>
+
+
+<div id="chatlyStudioOverlay" class="chatly-studio-overlay hidden" role="dialog" aria-modal="true" aria-label="Chatly Studio">
+  <header class="chatly-studio-topbar">
+    <button id="chatlyStudioBack" class="chatly-studio-back" type="button">← Back to chat</button>
+    <div class="chatly-studio-brand"><span>✨</span> CHATLY <b>STUDIO</b></div>
+    <button id="chatlyStudioClose" class="chatly-studio-close" type="button" aria-label="Close Chatly Studio">×</button>
+  </header>
+  <nav class="chatly-studio-tabs" aria-label="Studio sections">
+    <button type="button" data-studio-tab="library" class="active">Stickers & GIFs</button>
+    <button type="button" data-studio-tab="bubbles">Bubble designer</button>
+  </nav>
+  <main id="chatlyStudioContent" class="chatly-studio-content"></main>
+  <input id="chatlyStudioFileInput" class="hidden" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple>
+</div>
+
+
+<script id="chatly-studio-runtime">
+(()=>{
+  "use strict";
+  const STUDIO_DB='chatlyStudioMediaV1',STUDIO_STORE='stickers',STUDIO_MAX_BYTES=10*1024*1024;
+  const STUDIO_TYPES=new Set(['image/png','image/jpeg','image/webp','image/gif']);
+  const STUDIO_SHAPES={
+    classic:{label:'Classic',emoji:'',radius:'20px 20px 6px 20px'},
+    cat:{label:'Kitten',emoji:'🐱',radius:'19px 19px 7px 19px'},
+    dog:{label:'Puppy',emoji:'🐶',radius:'18px 18px 7px 18px'},
+    frog:{label:'Frog',emoji:'🐸',radius:'18px 18px 18px 6px'},
+    bear:{label:'Bear',emoji:'🐻',radius:'17px 17px 8px 17px'},
+    bunny:{label:'Bunny',emoji:'🐰',radius:'21px 21px 7px 21px'},
+    duck:{label:'Duck',emoji:'🐥',radius:'18px 18px 18px 6px'},
+    cloud:{label:'Cloud',emoji:'☁️',radius:'24px'},
+    heart:{label:'Heart',emoji:'💗',radius:'24px 24px 24px 8px'},
+    paw:{label:'Paw',emoji:'🐾',radius:'18px 18px 18px 6px'}
+  };
+  const STUDIO_PRESETS={
+    mine:{shape:'classic',color:'#1685f8',text:'#ffffff'},
+    other:{shape:'classic',color:'#e9eaf0',text:'#20212a'}
+  };
+  const STUDIO_KEY='chatly-studio-bubbles-v1';
+  let dbPromise=null,studioFilter='all',studioSearch='',studioTab='library',reactionTarget=null;
+  const urlCache=new Map();
+  const $s=id=>document.getElementById(id);
+  const escStudio=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const safeName=value=>String(value||'sticker').replace(/[^a-z0-9._-]/gi,'_').slice(-80)||'sticker';
+  function getBubbleConfig(){
+    const defaults={mine:{...STUDIO_PRESETS.mine},other:{...STUDIO_PRESETS.other},texture:'solid',font:'system'};
+    try{const saved=JSON.parse(localStorage.getItem(STUDIO_KEY)||'null');if(saved&&typeof saved==='object'){
+      for(const side of ['mine','other'])if(saved[side]&&typeof saved[side]==='object'){
+        if(STUDIO_SHAPES[saved[side].shape])defaults[side].shape=saved[side].shape;
+        if(/^#[0-9a-f]{6}$/i.test(saved[side].color||''))defaults[side].color=saved[side].color;
+        if(/^#[0-9a-f]{6}$/i.test(saved[side].text||''))defaults[side].text=saved[side].text;
+      }
+      if(['solid','gradient','dots','stripes'].includes(saved.texture))defaults.texture=saved.texture;
+      if(['system','rounded','mono'].includes(saved.font))defaults.font=saved.font;
+    }}catch{}
+    return defaults;
+  }
+  let bubbleConfig=getBubbleConfig();
+  function shade(hex,amount){const n=parseInt(hex.slice(1),16),r=Math.max(0,Math.min(255,(n>>16)+amount)),g=Math.max(0,Math.min(255,((n>>8)&255)+amount)),b=Math.max(0,Math.min(255,(n&255)+amount));return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');}
+  function makeTexture(color,texture){
+    if(texture==='gradient')return `linear-gradient(135deg,${color},${shade(color,-17)})`;
+    if(texture==='dots')return `radial-gradient(circle at 2px 2px,${shade(color,-25)}55 1px,transparent 1.5px) 0 0/12px 12px,${color}`;
+    if(texture==='stripes')return `repeating-linear-gradient(135deg,${color} 0 9px,${shade(color,-12)} 9px 11px)`;
+    return color;
+  }
+  function applyBubbleStyles(){
+    const messages=$s('messages');if(!messages)return;
+    const mine=bubbleConfig.mine,other=bubbleConfig.other;
+    messages.style.setProperty('--chatly-studio-mine-bg',makeTexture(mine.color,bubbleConfig.texture));
+    messages.style.setProperty('--chatly-studio-other-bg',makeTexture(other.color,bubbleConfig.texture));
+    messages.style.setProperty('--chatly-studio-mine-text',mine.text);
+    messages.style.setProperty('--chatly-studio-other-text',other.text);
+    messages.style.setProperty('--chatly-studio-mine-radius',STUDIO_SHAPES[mine.shape].radius);
+    messages.style.setProperty('--chatly-studio-other-radius',STUDIO_SHAPES[other.shape].radius);
+    messages.style.setProperty('--chatly-studio-font',bubbleConfig.font==='rounded'?'ui-rounded,system-ui,sans-serif':bubbleConfig.font==='mono'?'ui-monospace,SFMono-Regular,monospace':'inherit');
+    messages.querySelectorAll('.message-row .bubble').forEach(bubble=>{
+      const isMine=bubble.closest('.message-row')?.classList.contains('mine');
+      const cfg=isMine?mine:other;bubble.dataset.studioDecor=cfg.shape;
+      bubble.style.setProperty('--chatly-studio-decor',JSON.stringify(STUDIO_SHAPES[cfg.shape].emoji||''));
+    });
+  }
+  window.chatlyApplyBubbleToElement=(bubble,isMine)=>{
+    if(!bubble)return;const cfg=isMine?bubbleConfig.mine:bubbleConfig.other;
+    bubble.dataset.studioDecor=cfg.shape;
+    bubble.style.setProperty('--chatly-studio-decor',JSON.stringify(STUDIO_SHAPES[cfg.shape].emoji||''));
+  };
+  function persistBubbleConfig(){localStorage.setItem(STUDIO_KEY,JSON.stringify(bubbleConfig));applyBubbleStyles();}
+  function openStudioDB(){
+    if(!('indexedDB' in window))return Promise.reject(new Error('This browser does not support local sticker storage.'));
+    if(dbPromise)return dbPromise;
+    dbPromise=new Promise((resolve,reject)=>{
+      const req=indexedDB.open(STUDIO_DB,1);
+      req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(STUDIO_STORE)){const store=db.createObjectStore(STUDIO_STORE,{keyPath:'id'});store.createIndex('createdAt','createdAt');store.createIndex('favorite','favorite');}};
+      req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('Could not open sticker storage.'));
+    });return dbPromise;
+  }
+  async function dbRun(mode,callback){const db=await openStudioDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STUDIO_STORE,mode),store=tx.objectStore(STUDIO_STORE);let value;try{value=callback(store,resolve,reject);}catch(e){reject(e);}tx.onerror=()=>reject(tx.error||new Error('Sticker storage failed.'));if(mode==='readwrite')tx.oncomplete=()=>{};});}
+  async function listStickers(){const db=await openStudioDB();return new Promise((resolve,reject)=>{const req=db.transaction(STUDIO_STORE,'readonly').objectStore(STUDIO_STORE).getAll();req.onsuccess=()=>resolve((req.result||[]).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)));req.onerror=()=>reject(req.error);});}
+  async function saveStickerBlob(blob,name,type){
+    if(!STUDIO_TYPES.has(type))throw new Error('Use PNG, JPG, WebP, or GIF images.');
+    if(!blob||!blob.size||blob.size>STUDIO_MAX_BYTES)throw new Error('Each sticker or GIF must be smaller than 10 MB.');
+    const item={id:crypto.randomUUID(),name:safeName(name||'chatly-sticker'),type,blob,favorite:false,createdAt:Date.now()};
+    const db=await openStudioDB();await new Promise((resolve,reject)=>{const tx=db.transaction(STUDIO_STORE,'readwrite');tx.objectStore(STUDIO_STORE).add(item);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});return item;
+  }
+  async function updateSticker(id,patch){const db=await openStudioDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STUDIO_STORE,'readwrite'),store=tx.objectStore(STUDIO_STORE),req=store.get(id);req.onsuccess=()=>{if(!req.result)return resolve(null);store.put({...req.result,...patch});};tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});}
+  async function deleteSticker(id){const db=await openStudioDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STUDIO_STORE,'readwrite');tx.objectStore(STUDIO_STORE).delete(id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});}
+  function currentChat(){return (typeof conversations!=='undefined'?conversations:[]).find(c=>c.id===activeConversation)||null;}
+  function studioStatus(message,error=false){const node=$s('studioStatus');if(node){node.textContent=message;node.style.color=error?'#dc4a56':'var(--muted)';}}
+  function renderStudio(){
+    const content=$s('chatlyStudioContent');if(!content)return;
+    if(studioTab==='bubbles'){renderBubbleDesigner(content);return;}
+    content.innerHTML=`<section class="studio-section"><div class="studio-hero"><h2>Your stickers. Your style.</h2><p>Save your own stickers and animated GIFs on this device, send them in conversations, or use them as custom message reactions.</p></div><div class="studio-toolbar"><button type="button" class="studio-primary" id="studioAddSticker">＋ Add stickers / GIFs</button><input class="field" id="studioSearch" type="search" placeholder="Search your library…" value="${escStudio(studioSearch)}"><span class="small muted" id="studioCount">Loading library…</span></div><div class="studio-filter-row"><button type="button" class="studio-filter ${studioFilter==='all'?'active':''}" data-studio-filter="all">All</button><button type="button" class="studio-filter ${studioFilter==='favorites'?'active':''}" data-studio-filter="favorites">Favorites</button><button type="button" class="studio-filter ${studioFilter==='gif'?'active':''}" data-studio-filter="gif">GIFs</button></div><p class="studio-note">Sticker files are saved privately in this browser on this device. When sent to a chat, the file is uploaded through your existing Chatly chat-media storage.</p><div id="studioStickerGrid" class="studio-sticker-grid"><div class="studio-empty">Loading your stickers…</div></div><p class="studio-note" id="studioStatus" role="status" aria-live="polite"></p></section>`;
+    $s('studioAddSticker').onclick=()=>$s('chatlyStudioFileInput').click();
+    $s('studioSearch').oninput=e=>{studioSearch=e.target.value;renderStickerGrid();};
+    content.querySelectorAll('[data-studio-filter]').forEach(b=>b.onclick=()=>{studioFilter=b.dataset.studioFilter;renderStudio();});
+    renderStickerGrid();
+  }
+  async function renderStickerGrid(){
+    const grid=$s('studioStickerGrid');if(!grid)return;
+    try{
+      let items=await listStickers();
+      if(studioFilter==='favorites')items=items.filter(x=>x.favorite);
+      if(studioFilter==='gif')items=items.filter(x=>x.type==='image/gif');
+      if(studioSearch)items=items.filter(x=>String(x.name).toLowerCase().includes(studioSearch.toLowerCase()));
+      const count=$s('studioCount');if(count)count.textContent=items.length+' item'+(items.length===1?'':'s');
+      grid.innerHTML='';
+      if(!items.length){grid.innerHTML='<div class="studio-empty" style="grid-column:1/-1">Your library is empty. Add PNG, JPG, WebP stickers or animated GIFs to get started.</div>';return;}
+      for(const item of items){
+        const card=document.createElement('article');card.className='studio-sticker-card';
+        const preview=document.createElement('div');preview.className='studio-sticker-preview';const img=document.createElement('img');img.alt=item.name;img.src=URL.createObjectURL(item.blob);preview.append(img);
+        const name=document.createElement('div');name.className='studio-sticker-name';name.textContent=item.name;
+        const actions=document.createElement('div');actions.className='studio-sticker-actions';
+        const send=document.createElement('button');send.type='button';send.textContent='Send';send.disabled=!activeConversation;send.title=activeConversation?'Send this sticker to the open chat':'Open a chat to send';send.onclick=()=>sendStickerAsMessage(item);
+        const react=document.createElement('button');react.type='button';react.textContent='React';react.disabled=!activeConversation||!reactionTarget;react.title=reactionTarget?'Use as reaction on selected message':'Open a message reaction menu first';react.onclick=()=>reactionTarget&&toggleStickerReaction(reactionTarget,item);
+        const fav=document.createElement('button');fav.type='button';fav.textContent=item.favorite?'★':'☆';fav.title=item.favorite?'Remove favorite':'Add favorite';fav.onclick=async()=>{await updateSticker(item.id,{favorite:!item.favorite});renderStickerGrid();};
+        const del=document.createElement('button');del.type='button';del.textContent='×';del.title='Delete sticker';del.onclick=async()=>{if(confirm('Delete '+item.name+' from your local Studio library?')){await deleteSticker(item.id);renderStickerGrid();}};
+        actions.append(send,react,fav,del);card.append(preview,name,actions);grid.append(card);
+      }
+    }catch(error){grid.innerHTML='<div class="studio-empty" style="grid-column:1/-1">Sticker library could not load: '+escStudio(error.message||error)+'</div>';}
+  }
+  function renderBubbleDesigner(content){
+    bubbleConfig=getBubbleConfig();
+    const shapeOptions=Object.entries(STUDIO_SHAPES).map(([key,item])=>`<option value="${key}">${item.emoji?item.emoji+' ':''}${item.label}</option>`).join('');
+    const sideCard=(side,label)=>`<section class="studio-style-card" data-side-card="${side}"><h3>${label}</h3><div class="studio-form-grid"><label class="studio-field"><span>Bubble character</span><select id="studio-${side}-shape">${shapeOptions}</select></label><label class="studio-field"><span>Bubble color</span><input id="studio-${side}-color" type="color" value="${bubbleConfig[side].color}"></label><label class="studio-field"><span>Text color</span><input id="studio-${side}-text" type="color" value="${bubbleConfig[side].text}"></label></div></section>`;
+    content.innerHTML=`<section class="studio-section"><div class="studio-hero"><h2>Design your message bubbles</h2><p>These styles change only how messages look on your device. Other people keep their own Chatly appearance.</p></div><div class="studio-designer-grid">${sideCard('mine','Your messages')}${sideCard('other',"Other people's messages")}</div><section class="studio-style-card" style="margin-top:13px"><h3>Finish and texture</h3><div class="studio-form-grid"><label class="studio-field"><span>Texture</span><select id="studio-texture"><option value="solid">Solid color</option><option value="gradient">Soft gradient</option><option value="dots">Tiny dots</option><option value="stripes">Soft stripes</option></select></label><label class="studio-field"><span>Message font</span><select id="studio-font"><option value="system">System</option><option value="rounded">Rounded</option><option value="mono">Monospace</option></select></label></div><div class="studio-bubble-preview"><div class="studio-preview-row"><div class="studio-preview-bubble" id="studio-preview-other">Hiii! This is how received messages look.</div></div><div class="studio-preview-row mine"><div class="studio-preview-bubble" id="studio-preview-mine">Hey!! This is your bubble ✨</div></div></div><div class="studio-save-row"><button type="button" class="studio-secondary" id="studioBubbleReset">Reset bubbles</button><button type="button" class="studio-primary" id="studioBubbleSave">Save my bubble style</button></div><p class="studio-note" id="studioBubbleStatus" role="status"></p></section></section>`;
+    for(const side of ['mine','other']){
+      $s(`studio-${side}-shape`).value=bubbleConfig[side].shape;$s(`studio-${side}-color`).value=bubbleConfig[side].color;$s(`studio-${side}-text`).value=bubbleConfig[side].text;
+    }
+    $s('studio-texture').value=bubbleConfig.texture;$s('studio-font').value=bubbleConfig.font;
+    const preview=()=>{
+      const next=readDesignerValues();
+      for(const side of ['mine','other']){
+        const node=$s(`studio-preview-${side}`),cfg=next[side],shape=STUDIO_SHAPES[cfg.shape];
+        node.style.background=makeTexture(cfg.color,next.texture);node.style.color=cfg.text;node.style.borderRadius=shape.radius;node.style.fontFamily=next.font==='rounded'?'ui-rounded,system-ui,sans-serif':next.font==='mono'?'ui-monospace,monospace':'inherit';
+        node.dataset.shape=cfg.shape;node.style.setProperty('--studio-preview-emoji',JSON.stringify(shape.emoji||''));
+        node.style.position='relative';node.style.boxShadow='0 2px 7px #0000000b';
+      }
+    };
+    const style=document.createElement('style');style.textContent='.studio-preview-bubble[data-shape]:not([data-shape="classic"])::after{content:var(--studio-preview-emoji);position:absolute;right:5px;top:-10px;font-size:15px}.studio-preview-row:not(.mine) .studio-preview-bubble::after{right:auto;left:5px}';content.append(style);
+    content.querySelectorAll('select,input').forEach(el=>el.addEventListener('input',preview));preview();
+    $s('studioBubbleSave').onclick=()=>{bubbleConfig=readDesignerValues();persistBubbleConfig();$s('studioBubbleStatus').textContent='Saved! Your bubble styles are now applied on this device.';};
+    $s('studioBubbleReset').onclick=()=>{bubbleConfig={mine:{...STUDIO_PRESETS.mine},other:{...STUDIO_PRESETS.other},texture:'solid',font:'system'};persistBubbleConfig();renderBubbleDesigner(content);$s('studioBubbleStatus').textContent='Bubble styles reset.';};
+  }
+  function readDesignerValues(){const out={mine:{},other:{},texture:$s('studio-texture').value,font:$s('studio-font').value};for(const side of ['mine','other']){out[side]={shape:$s(`studio-${side}-shape`).value,color:$s(`studio-${side}-color`).value,text:$s(`studio-${side}-text`).value};}return out;}
+  function setStudioTab(tab){studioTab=tab;document.querySelectorAll('[data-studio-tab]').forEach(b=>b.classList.toggle('active',b.dataset.studioTab===tab));renderStudio();}
+  function openStudio(tab='library'){
+    const overlay=$s('chatlyStudioOverlay');if(!overlay)return;
+    overlay.classList.remove('hidden');document.body.classList.add('chatly-studio-open');setStudioTab(tab);
+  }
+  function closeStudio(){const overlay=$s('chatlyStudioOverlay');overlay?.classList.add('hidden');document.body.classList.remove('chatly-studio-open');reactionTarget=null;}
+  async function handleStudioFiles(files){
+    const list=Array.from(files||[]);if(!list.length)return;
+    for(const file of list){try{await saveStickerBlob(file,file.name,file.type);}catch(error){alert(file.name+': '+(error.message||error));}}
+    const input=$s('chatlyStudioFileInput');if(input)input.value='';if(studioTab==='library')renderStickerGrid();
+  }
+  async function sendStickerAsMessage(item){
+    if(!activeConversation){alert('Open a conversation before sending a sticker.');return;}
+    if(typeof uploadChatFiles!=='function'){alert('Chatly attachment upload is unavailable.');return;}
+    const ext=item.type==='image/gif'?'gif':item.type==='image/png'?'png':item.type==='image/webp'?'webp':'jpg';
+    const file=new File([item.blob],safeName(item.name||'chatly-sticker.'+ext),{type:item.type,lastModified:Date.now()});
+    closeStudio();await uploadChatFiles([file]);
+  }
+  async function saveMessageAttachmentAsSticker(message){
+    if(!message?.attachment_path||!String(message.attachment_type||'').startsWith('image/'))return;
+    try{
+      const {data,error}=await sb.storage.from('chat-media').download(message.attachment_path);if(error)throw error;
+      await saveStickerBlob(data,message.attachment_name||'saved-chat-sticker',message.attachment_type||data.type||'image/png');
+      const status=$s('studioStatus');if(status)status.textContent='Saved '+(message.attachment_name||'image')+' to your Studio library.';
+      alert('Saved to Chatly Studio!');
+    }catch(error){alert('Could not save this image: '+(error.message||error));}
+  }
+  async function toggleStickerReaction(message,item){
+    if(!activeConversation||!user||!sb)return;
+    const conversation=currentChat();if(!conversation)return;
+    const type=conversation.isGroup?'group':'direct',scopeId=conversation.id;
+    const existing=(messageStickerReactionState.get(message.id)||[]).find(row=>row.user_id===user.id&&row.sticker_key===item.id);
+    if(existing){
+      const {error}=await sb.from('chat_message_sticker_reactions').delete().eq('id',existing.id).eq('user_id',user.id);
+      if(error){alert('Could not remove sticker reaction: '+error.message);return;}
+      if(existing.storage_path)await sb.storage.from('chatly-stickers').remove([existing.storage_path]);
+      await refreshStickerReactions(message.id);return;
+    }
+    const ext=item.type==='image/gif'?'gif':item.type==='image/png'?'png':item.type==='image/webp'?'webp':'jpg';
+    const path=`${scopeId}/${user.id}/${crypto.randomUUID()}.${ext}`;
+    const {error:uploadError}=await sb.storage.from('chatly-stickers').upload(path,item.blob,{cacheControl:'3600',upsert:false,contentType:item.type});
+    if(uploadError){alert('Could not upload sticker reaction. Run the Chatly Studio sticker SQL migration first. '+uploadError.message);return;}
+    const row={message_type:type,message_id:message.id,conversation_id:conversation.isGroup?null:conversation.id,group_id:conversation.isGroup?conversation.id:null,user_id:user.id,storage_path:path,mime_type:item.type,sticker_name:item.name,sticker_key:item.id};
+    const {error}=await sb.from('chat_message_sticker_reactions').insert(row);
+    if(error){await sb.storage.from('chatly-stickers').remove([path]);alert('Could not save sticker reaction: '+error.message);return;}
+    await refreshStickerReactions(message.id);
+    closeMessageReactionPickers();
+  }
+  async function renderStickerReactionChips(message,area){
+    const rows=messageStickerReactionState.get(message.id)||[];
+    for(const reaction of rows){
+      const chip=document.createElement('button');chip.type='button';chip.className='studio-sticker-reaction-chip'+(reaction.user_id===user?.id?' mine':'');chip.title=(reaction.sticker_name||'Sticker reaction')+(reaction.user_id===user?.id?' · tap to remove':'');
+      const img=document.createElement('img');img.alt=reaction.sticker_name||'Sticker';img.loading='lazy';
+      const cached=urlCache.get(reaction.storage_path);if(cached&&cached.until>Date.now())img.src=cached.url;else{
+        sb.storage.from('chatly-stickers').createSignedUrl(reaction.storage_path,3600).then(({data,error})=>{if(!error&&data?.signedUrl){urlCache.set(reaction.storage_path,{url:data.signedUrl,until:Date.now()+3300000});img.src=data.signedUrl;}else img.alt='Sticker unavailable';}).catch(()=>{img.alt='Sticker unavailable';});
+      }
+      chip.append(img);if(reaction.user_id===user?.id)chip.onclick=async()=>{const {error}=await sb.from('chat_message_sticker_reactions').delete().eq('id',reaction.id).eq('user_id',user.id);if(error){alert('Could not remove sticker reaction: '+error.message);return;}await sb.storage.from('chatly-stickers').remove([reaction.storage_path]);await refreshStickerReactions(message.id);};
+      area.append(chip);
+    }
+  }
+  async function refreshStickerReactions(messageId){
+    if(!activeConversation||!messageId)return;const conversation=currentChat();if(!conversation)return;
+    const type=conversation.isGroup?'group':'direct';
+    const {data,error}=await sb.from('chat_message_sticker_reactions').select('id,message_id,user_id,storage_path,mime_type,sticker_name,sticker_key').eq('message_type',type).eq('message_id',messageId);
+    if(error){console.warn('Sticker reaction refresh:',error.message);return;}
+    messageStickerReactionState.set(messageId,data||[]);
+    const row=document.querySelector(`#messages [data-message-id="${messageId}"]`);if(row?._chatMessage&&window.chatlyRenderStickerReactionChips){const area=row.querySelector('.message-reactions');if(area){area.querySelectorAll('.studio-sticker-reaction-chip').forEach(n=>n.remove());window.chatlyRenderStickerReactionChips(row._chatMessage,area);}}
+  }
+  window.chatlyRenderStickerReactionChips=renderStickerReactionChips;
+  window.chatlyRefreshStickerReactions=refreshStickerReactions;
+
+  // Replace the emoji-only long-press chooser with Emoji + Sticker/GIF tabs.
+  window.chatlyShowStudioReactionPicker=async function(message,row){
+    if(!row||!row.isConnected)return;
+    closeMessageReactionPickers();reactionTarget=message;
+    const picker=document.createElement('div');picker.className='reaction-picker reaction-picker-open';picker.setAttribute('role','group');picker.setAttribute('aria-label','Choose a reaction');
+    picker.style.maxWidth='min(330px,calc(100vw - 36px))';picker.style.zIndex='15';
+    const tabs=document.createElement('div');tabs.style.cssText='display:flex;gap:5px;margin-bottom:7px;width:100%';
+    const emojiTab=document.createElement('button');emojiTab.type='button';emojiTab.textContent='Emoji';
+    const stickerTab=document.createElement('button');stickerTab.type='button';stickerTab.textContent='Stickers / GIFs';
+    [emojiTab,stickerTab].forEach(b=>{b.style.cssText='border-radius:9px;padding:6px 9px;background:var(--soft);color:var(--text);font-size:11px;font-weight:800';});
+    tabs.append(emojiTab,stickerTab);
+    const panel=document.createElement('div');panel.style.cssText='display:flex;flex-wrap:wrap;gap:5px;max-height:190px;overflow:auto';
+    const renderEmojis=()=>{panel.innerHTML='';for(const emoji of CHATLY_REACTION_EMOJIS){const b=document.createElement('button');b.type='button';b.textContent=emoji;b.setAttribute('aria-label','React with '+emoji);b.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();picker.remove();row.classList.remove('reaction-picker-open');toggleMessageReaction(message,emoji);});panel.append(b);}emojiTab.style.background='var(--blue)';emojiTab.style.color='#fff';stickerTab.style.background='var(--soft)';stickerTab.style.color='var(--text)';};
+    const renderStickers=async()=>{panel.innerHTML='<span class="small muted">Loading your sticker library…</span>';emojiTab.style.background='var(--soft)';emojiTab.style.color='var(--text)';stickerTab.style.background='var(--blue)';stickerTab.style.color='#fff';try{const items=await listStickers();panel.innerHTML='';if(!items.length){const empty=document.createElement('div');empty.className='studio-empty';empty.textContent='No saved stickers yet. Open Chatly Studio to add PNG, JPG, WebP or GIF files.';panel.append(empty);const open=document.createElement('button');open.type='button';open.className='studio-secondary';open.textContent='Open Chatly Studio';open.onclick=()=>{picker.remove();row.classList.remove('reaction-picker-open');openStudio('library');};panel.append(open);return;}panel.className='studio-reaction-grid';for(const item of items){const b=document.createElement('button');b.type='button';const img=document.createElement('img');img.src=URL.createObjectURL(item.blob);img.alt=item.name;b.append(img);const label=document.createElement('span');label.textContent=item.name;b.append(label);b.onclick=event=>{event.preventDefault();event.stopPropagation();picker.remove();row.classList.remove('reaction-picker-open');toggleStickerReaction(message,item);};panel.append(b);}}catch(error){panel.textContent='Sticker library unavailable: '+error.message;}};
+    picker.append(tabs,panel);
+    if(message?.attachment_path&&String(message.attachment_type||'').startsWith('image/')){const save=document.createElement('button');save.type='button';save.textContent='＋ Save this image/GIF to Studio';save.style.cssText='width:100%;margin-top:7px;background:var(--soft);color:var(--text);border-radius:9px;padding:7px;font-size:11px;font-weight:800';save.onclick=()=>saveMessageAttachmentAsSticker(message);picker.append(save);}
+    row.append(picker);row.classList.add('reaction-picker-open');renderEmojis();
+    emojiTab.onclick=renderEmojis;stickerTab.onclick=renderStickers;
+    if(navigator.vibrate)try{navigator.vibrate(12);}catch{}
+    const outside=event=>{if(!picker.contains(event.target)){picker.remove();row.classList.remove('reaction-picker-open');document.removeEventListener('pointerdown',outside,true);}};
+    setTimeout(()=>document.addEventListener('pointerdown',outside,true),0);
+  };
+  // Long-press code calls this wrapper instead of the emoji-only picker.
+  const originalPicker=window.showMessageReactionPicker;
+  if(typeof originalPicker==='function'){
+    window.showMessageReactionPicker=(message,row)=>window.chatlyShowStudioReactionPicker(message,row);
+  }
+
+  function studioSelectTab(tab){studioTab=tab;document.querySelectorAll('[data-studio-tab]').forEach(b=>b.classList.toggle('active',b.dataset.studioTab===tab));renderStudio();}
+  $s('chatlyStudioOpen')?.addEventListener('click',()=>openStudio('library'));
+  $s('chatlyStudioBack')?.addEventListener('click',closeStudio);
+  $s('chatlyStudioClose')?.addEventListener('click',closeStudio);
+  $s('chatlyStudioOverlay')?.addEventListener('click',e=>{if(e.target===$s('chatlyStudioOverlay'))closeStudio();});
+  document.querySelectorAll('[data-studio-tab]').forEach(b=>b.addEventListener('click',()=>studioSelectTab(b.dataset.studioTab)));
+  $s('chatlyStudioFileInput')?.addEventListener('change',e=>handleStudioFiles(e.target.files));
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$s('chatlyStudioOverlay')?.classList.contains('hidden'))closeStudio();});
+  applyBubbleStyles();
+  const initialOpen=window.openConversation;
+  if(typeof initialOpen==='function'&&!window.chatlyStudioOpenConversationWrapped){window.chatlyStudioOpenConversationWrapped=true;window.openConversation=async function(...args){const result=await initialOpen.apply(this,args);setTimeout(applyBubbleStyles,30);return result;};}
 })();
 </script>
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = "chatly-live-typing-mini-flappy-roblox-rivals-20261103";
+const CACHE_NAME = "chatly-roblox-hub-longpress-reactions-20261104";
 const STATIC_ASSETS = [
   "./manifest.webmanifest",
   "./icon.svg",

@@ -711,7 +711,9 @@ body.dark #app #emptyState.mini-flappy-empty{background:radial-gradient(ellipse 
 
 
 <style id="chatly-all-features-style">
-#chatlyHubOpen{font-weight:900;color:var(--blue)}
+#chatlyHubOpen{font-weight:900;color:var(--blue);position:relative}
+#chatlyHubOpen::after{content:"";position:absolute;top:3px;right:3px;width:9px;height:9px;border-radius:50%;background:#ef4444;border:2px solid var(--panel);opacity:0;transform:scale(.65);transition:opacity .15s,transform .15s;pointer-events:none}
+#chatlyHubOpen[data-unread="true"]::after{opacity:1;transform:scale(1)}
 .chatly-hub-overlay{position:fixed;inset:0;z-index:1300;background:rgba(8,13,24,.62);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:16px}
 .chatly-hub-overlay.hidden{display:none!important}
 .chatly-hub-shell{width:min(1120px,100%);height:min(850px,100%);background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:22px;box-shadow:0 22px 80px #0005;display:flex;flex-direction:column;overflow:hidden;min-height:0}
@@ -728,6 +730,9 @@ body.dark #app #emptyState.mini-flappy-empty{background:radial-gradient(ellipse 
 .hub-section-title{font-size:22px;font-weight:900;margin:0 0 5px}.hub-section-sub{font-size:12px;color:var(--muted);margin:0 0 17px;line-height:1.5}
 .hub-form{display:grid;gap:11px;max-width:700px}.hub-form label{display:grid;gap:5px;font-size:12px;color:var(--muted);font-weight:750}.hub-form .field,.hub-form select,.hub-form textarea{width:100%;box-sizing:border-box}.hub-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.hub-list{display:grid;gap:9px}.hub-item{border:1px solid var(--line);border-radius:13px;padding:12px;background:var(--panel);display:flex;gap:12px;align-items:flex-start;min-width:0}.hub-item-main{min-width:0;flex:1}.hub-item-title{font-size:13px;font-weight:850}.hub-item-sub{font-size:11px;color:var(--muted);line-height:1.45;margin-top:4px;overflow-wrap:anywhere}.hub-empty{border:1px dashed var(--line);border-radius:14px;padding:24px;text-align:center;color:var(--muted);font-size:13px}
 .hub-media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:10px}.hub-media-card{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--soft);min-width:0}.hub-media-card img,.hub-media-card video{width:100%;height:120px;object-fit:cover;display:block;background:#101827}.hub-media-card a{display:block;padding:9px;font-size:11px;overflow-wrap:anywhere;color:var(--blue)}
+#hubMediaFilters button.active{background:var(--blue);border-color:var(--blue);color:#fff}
+.hub-media-card audio{max-width:100%}
+#hubRolesGroup{max-width:560px}
 .hub-note-editor{width:100%;min-height:95px;resize:vertical}.hub-tag{font-size:10px;font-weight:800;border-radius:999px;padding:4px 8px;background:var(--soft);border:1px solid var(--line);color:var(--muted)}
 .hub-notice-unread{border-left:3px solid var(--blue)}.hub-theme-preview{border:1px solid var(--line);border-radius:13px;padding:14px;min-height:74px;display:flex;align-items:center;gap:8px;margin:12px 0;background:var(--soft)}
 .hub-banner-preview{height:110px;border-radius:14px;border:1px solid var(--line);background:linear-gradient(120deg,#273e72,#8b5cf6,#e9a8c7);background-position:center;background-size:cover;margin:10px 0}
@@ -1074,6 +1079,7 @@ async function ensureSupabaseClient(){
   catch(error){sb=undefined;supabaseInitPromise=null;throw error;}
 }
 let conversationLoadToken=0;
+let messagePageOffset=0,messageHasMore=false,messagePageLoading=false,messagePageConversationId=null,messagePageAnchor=null;
 let messageReadObserver=null,readReceiptChannel=null,uploadStatusTimer=null;
 const readReceiptState=new Map(),readMarkedIds=new Set();
 let readObserverContext=null,readScanFrame=0,activeMessageSwipe=null;
@@ -2590,47 +2596,131 @@ function nearBottomNow(){const el=$("messages");return el.scrollHeight-el.scroll
 function scrollBottom(){const el=$("messages");requestAnimationFrame(()=>{el.scrollTop=el.scrollHeight;});}
 async function loadMessages(scroll){
   if(messageSelectionMode)toggleMessageSelectionMode(false);
-  const c=conversations.find(x=>x.id===activeConversation);
-  const table=c?.isGroup?"chat_group_messages":"direct_messages";
-  const filter=c?.isGroup?"group_id":"conversation_id";
-  const type=c?.isGroup?"group":"direct";
-  const {data,error}=await sb.from(table)
-    .select("id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size")
-    .eq(filter,activeConversation).order("created_at",{ascending:true}).limit(200);
-  if(error){$("messages").textContent=error.message;return;}
-  const hiddenResult=await sb.from("chat_message_hidden").select("message_id").eq("user_id",user.id).eq("message_type",type);
-  if(hiddenResult.error)console.warn("Message hide settings unavailable:",hiddenResult.error.message);
-  const hiddenIds=new Set((hiddenResult.data||[]).map(row=>row.message_id));
-  const visibleMessages=(data||[]).filter(message=>!hiddenIds.has(message.id));
-  readReceiptState.clear();
-  messageReactionState.clear();messageStickerReactionState.clear();
-  const messageIds=visibleMessages.map(message=>message.id);
-  if(messageIds.length){
-    const {data:receipts,error:receiptError}=await sb.from("chat_message_reads")
-      .select("message_id,reader_id,read_at").eq("message_type",type).in("message_id",messageIds);
-    if(receiptError)console.warn("Chatly read receipts are unavailable until the read-receipts SQL is installed:",receiptError.message);
-    else for(const receipt of receipts||[]){
-      if(receipt.reader_id===user.id)continue;
-      const readers=readReceiptState.get(receipt.message_id)||new Map();
-      readers.set(receipt.reader_id,receipt.read_at||null);readReceiptState.set(receipt.message_id,readers);
+  const conversationId=activeConversation;
+  const c=conversations.find(x=>x.id===conversationId);
+  if(!c||!conversationId)return;
+  const table=c.isGroup?"chat_group_messages":"direct_messages";
+  const filter=c.isGroup?"group_id":"conversation_id";
+  const type=c.isGroup?"group":"direct";
+  const messagesEl=$("messages");
+  const previousHeight=messagesEl.scrollHeight;
+  const previousTop=messagesEl.scrollTop;
+  // Rebuild exactly the amount of history already on screen, in small pages.
+  // This avoids the 1,000-row response ceiling and keeps older history available.
+  const targetCount=messagePageConversationId===conversationId?Math.max(200,messagePageOffset):200;
+  const pageSize=200;
+  let allRows=[],cursor=null,lastBatchLength=0;
+  while(allRows.length<targetCount){
+    let query=sb.from(table)
+      .select("id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size")
+      .eq(filter,conversationId)
+      .order("created_at",{ascending:false})
+      .order("id",{ascending:false})
+      .limit(Math.min(pageSize,targetCount-allRows.length));
+    if(cursor){
+      const stamp=String(cursor.created_at).replace(/,/g,"\\,");
+      query=query.or(`created_at.lt.${stamp},and(created_at.eq.${stamp},id.lt.${cursor.id})`);
     }
+    const {data,error}=await query;
+    if(error){console.warn("Could not load Chatly message history:",error.message);return;}
+    if(activeConversation!==conversationId)return;
+    const rows=data||[];
+    lastBatchLength=rows.length;
+    if(!rows.length)break;
+    allRows.push(...rows);
+    cursor=rows[rows.length-1];
+    if(rows.length<Math.min(pageSize,targetCount-(allRows.length-rows.length)))break;
   }
-  if(messageIds.length){
-    const {data:reactionRows,error:reactionError}=await sb.from("chat_message_reactions").select("message_id,user_id,emoji").eq("message_type",type).in("message_id",messageIds);
-    if(reactionError)console.warn("Message reactions unavailable until the Chatly feature SQL is installed:",reactionError.message);
-    else for(const reaction of reactionRows||[]){const list=messageReactionState.get(reaction.message_id)||[];list.push(reaction);messageReactionState.set(reaction.message_id,list);}
-    const {data:stickerRows,error:stickerRowsError}=await sb.from("chat_message_sticker_reactions").select("id,message_id,user_id,storage_path,mime_type,sticker_name,sticker_key").eq("message_type",type).in("message_id",messageIds);
-    if(stickerRowsError){if(stickerRowsError.code!=="42P01")console.warn("Chatly sticker reactions:",stickerRowsError.message);}
-    else for(const reaction of stickerRows||[]){const list=messageStickerReactionState.get(reaction.message_id)||[];list.push(reaction);messageStickerReactionState.set(reaction.message_id,list);}
+  if(activeConversation!==conversationId)return;
+  messagePageConversationId=conversationId;
+  messagePageOffset=allRows.length;
+  messagePageAnchor=allRows.length?allRows[allRows.length-1]:null;
+  messageHasMore=lastBatchLength===Math.min(pageSize,targetCount);
+
+  const messageIds=allRows.map(message=>message.id);
+  const hiddenIds=new Set();
+  const receiptsRows=[],reactionRows=[],stickerRows=[];
+  // Keep IN() requests small so very long chats do not exceed URL limits.
+  for(let i=0;i<messageIds.length;i+=200){
+    const ids=messageIds.slice(i,i+200);
+    const [hiddenResult,receiptResult,reactionResult,stickerResult]=await Promise.all([
+      sb.from("chat_message_hidden").select("message_id").eq("user_id",user.id).eq("message_type",type).in("message_id",ids),
+      sb.from("chat_message_reads").select("message_id,reader_id,read_at").eq("message_type",type).in("message_id",ids),
+      sb.from("chat_message_reactions").select("message_id,user_id,emoji").eq("message_type",type).in("message_id",ids),
+      sb.from("chat_message_sticker_reactions").select("id,message_id,user_id,storage_path,mime_type,sticker_name,sticker_key").eq("message_type",type).in("message_id",ids)
+    ]);
+    for(const row of hiddenResult.data||[])hiddenIds.add(row.message_id);
+    if(receiptResult.error)console.warn("Chatly read receipts:",receiptResult.error.message);else receiptsRows.push(...(receiptResult.data||[]));
+    if(reactionResult.error)console.warn("Chatly message reactions:",reactionResult.error.message);else reactionRows.push(...(reactionResult.data||[]));
+    if(stickerResult.error){if(stickerResult.error.code!=="42P01")console.warn("Chatly sticker reactions:",stickerResult.error.message);}else stickerRows.push(...(stickerResult.data||[]));
   }
-  $("messages").innerHTML="";seen.clear();visibleMessages.forEach(appendMessage);
+  readReceiptState.clear();messageReactionState.clear();messageStickerReactionState.clear();
+  for(const receipt of receiptsRows){if(receipt.reader_id===user.id)continue;const readers=readReceiptState.get(receipt.message_id)||new Map();readers.set(receipt.reader_id,receipt.read_at||null);readReceiptState.set(receipt.message_id,readers);}
+  for(const reaction of reactionRows){const list=messageReactionState.get(reaction.message_id)||[];list.push(reaction);messageReactionState.set(reaction.message_id,list);}
+  for(const reaction of stickerRows){const list=messageStickerReactionState.get(reaction.message_id)||[];list.push(reaction);messageStickerReactionState.set(reaction.message_id,list);}
+  const visibleMessages=allRows.slice().reverse().filter(message=>!hiddenIds.has(message.id));
+  messagesEl.innerHTML="";seen.clear();visibleMessages.forEach(message=>appendMessage(message));
   await renderPinnedMessages();
   renderTypingIndicator();
   renderLatestReadReceipt();
   if(scroll)scrollBottom();
+  else requestAnimationFrame(()=>{messagesEl.scrollTop=Math.max(0,previousTop+(messagesEl.scrollHeight-previousHeight));});
   scheduleVisibleReadScan();
 }
-function appendMessage(m){
+
+async function loadOlderMessages(){
+  const conversationId=activeConversation;
+  if(!conversationId||messagePageLoading||!messageHasMore||messagePageConversationId!==conversationId||!messagePageAnchor)return;
+  const c=conversations.find(item=>item.id===conversationId);
+  if(!c)return;
+  messagePageLoading=true;
+  const messagesEl=$("messages");
+  const oldHeight=messagesEl.scrollHeight,oldTop=messagesEl.scrollTop;
+  const table=c.isGroup?"chat_group_messages":"direct_messages";
+  const filter=c.isGroup?"group_id":"conversation_id";
+  const type=c.isGroup?"group":"direct";
+  const anchor=messagePageAnchor;
+  try{
+    const stamp=String(anchor.created_at).replace(/,/g,"\\,");
+    const {data,error}=await sb.from(table)
+      .select("id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size")
+      .eq(filter,conversationId)
+      .or(`created_at.lt.${stamp},and(created_at.eq.${stamp},id.lt.${anchor.id})`)
+      .order("created_at",{ascending:false}).order("id",{ascending:false}).limit(200);
+    if(error)throw error;
+    if(activeConversation!==conversationId)return;
+    const rows=data||[];
+    if(!rows.length){messageHasMore=false;return;}
+    messagePageAnchor=rows[rows.length-1];
+    messagePageOffset+=rows.length;
+    messageHasMore=rows.length===200;
+    const ids=rows.map(row=>row.id);
+    const [hiddenResult,receiptResult,reactionResult,stickerResult]=await Promise.all([
+      sb.from("chat_message_hidden").select("message_id").eq("user_id",user.id).eq("message_type",type).in("message_id",ids),
+      sb.from("chat_message_reads").select("message_id,reader_id,read_at").eq("message_type",type).in("message_id",ids),
+      sb.from("chat_message_reactions").select("message_id,user_id,emoji").eq("message_type",type).in("message_id",ids),
+      sb.from("chat_message_sticker_reactions").select("id,message_id,user_id,storage_path,mime_type,sticker_name,sticker_key").eq("message_type",type).in("message_id",ids)
+    ]);
+    const hiddenIds=new Set((hiddenResult.data||[]).map(row=>row.message_id));
+    for(const receipt of receiptResult.data||[]){if(receipt.reader_id===user.id)continue;const readers=readReceiptState.get(receipt.message_id)||new Map();readers.set(receipt.reader_id,receipt.read_at||null);readReceiptState.set(receipt.message_id,readers);}
+    for(const reaction of reactionResult.data||[]){const list=messageReactionState.get(reaction.message_id)||[];list.push(reaction);messageReactionState.set(reaction.message_id,list);}
+    for(const reaction of stickerResult.data||[]){const list=messageStickerReactionState.get(reaction.message_id)||[];list.push(reaction);messageStickerReactionState.set(reaction.message_id,list);}
+    // Query order is newest-to-oldest; prepending keeps the timeline chronological.
+    rows.forEach(message=>{if(!hiddenIds.has(message.id))appendMessage(message,true);});
+    requestAnimationFrame(()=>{messagesEl.scrollTop=oldTop+(messagesEl.scrollHeight-oldHeight);});
+    renderLatestReadReceipt();scheduleVisibleReadScan();
+  }catch(error){console.warn("Could not load older Chatly messages:",error.message||error);}
+  finally{messagePageLoading=false;}
+}
+
+if(!window.chatlyOlderMessagesScrollBound){
+  window.chatlyOlderMessagesScrollBound=true;
+  $("messages").addEventListener("scroll",()=>{
+    if($("messages").scrollTop<90)loadOlderMessages().catch(error=>console.warn("Older message pagination failed:",error));
+  },{passive:true});
+}
+
+function appendMessage(m,prepend=false){
   if(seen.has(m.id))return;
   seen.add(m.id);
   const row=document.createElement("div");
@@ -2680,7 +2770,7 @@ function appendMessage(m){
     toggleMessageSelection(m,row);
   });
   if(messageSelectionMode&&selectedMessages.has(m.id))row.classList.add("selected-message");
-  $("messages").append(row);
+  if(prepend)$("messages").insertBefore(row,$("messages").firstChild);else $("messages").append(row);
   updateMessageReadReceipt(row,m);
   renderTypingIndicator();
   if(m.sender_id!==user?.id)scheduleVisibleReadScan();
@@ -3155,18 +3245,36 @@ async function uploadChatFiles(fileList){
 }
 function refreshPreview(id,m){const c=conversations.find(x=>x.id===id);if(c){c.last=m;conversations.sort((a,b)=>new Date(b.last?.created_at||b.created_at)-new Date(a.last?.created_at||a.created_at));renderConversations();}}
 $("messageForm").onsubmit=async e=>{
-  e.preventDefault();const content=$("messageInput").value.trim();if(!content||!activeConversation)return;
-  const c=conversations.find(x=>x.id===activeConversation);
-  if(c&&!c.isGroup&&isBlockedBetween(c.otherId)){updateDirectBlockUI();return;}
-  const table=c?.isGroup?"chat_group_messages":"direct_messages";
-  const field=c?.isGroup?"group_id":"conversation_id";
-  const messageId=crypto.randomUUID(),btn=$("messageForm").querySelector("button");btn.disabled=true;
-  const {error}=await sb.from(table).insert({id:messageId,[field]:activeConversation,sender_id:user.id,content});
-  btn.disabled=false;
-  if(error){alert("Message could not send: "+error.message);return;}
-  notifyChatlyPush("notify-message",{messageId,messageType:c?.isGroup?"group":"direct"});
-  stopLocalTyping();
-  $("messageInput").value="";$("messageInput").style.height="auto";
+  e.preventDefault();
+  const input=$("messageInput"),content=input.value.trim(),conversationId=activeConversation;
+  if(!content||!conversationId)return;
+  if(content.length>4000){alert("Messages can contain up to 4,000 characters.");return;}
+  const c=conversations.find(x=>x.id===conversationId);
+  if(!c){alert("That conversation is no longer available. Refresh your conversation list and try again.");return;}
+  if(!c.isGroup&&isBlockedBetween(c.otherId)){updateDirectBlockUI();return;}
+  if(!sb||!sb.auth){alert("Chatly is not connected to Supabase yet. Refresh and sign in again.");return;}
+  const btn=$("messageForm").querySelector(".send");
+  if(btn)btn.disabled=true;
+  try{
+    let sessionResult=await sb.auth.getSession();
+    if(sessionResult.error)throw sessionResult.error;
+    if(!sessionResult.data?.session?.access_token){
+      const refreshed=await sb.auth.refreshSession();
+      if(refreshed.error)throw refreshed.error;
+      if(!refreshed.data?.session?.access_token)throw new Error("Your sign-in session expired. Sign out and sign back in.");
+    }
+    const table=c.isGroup?"chat_group_messages":"direct_messages";
+    const field=c.isGroup?"group_id":"conversation_id";
+    const messageId=crypto.randomUUID();
+    const {error}=await sb.from(table).insert({id:messageId,[field]:conversationId,sender_id:user.id,content});
+    if(error){const detail=[error.message,error.details,error.hint,error.code].filter(Boolean).join(" · ");throw new Error(detail||"Supabase rejected the message.");}
+    if(activeConversation===conversationId){input.value="";input.style.height="auto";stopLocalTyping();await loadMessages(false);}
+    notifyChatlyPush("notify-message",{messageId,messageType:c.isGroup?"group":"direct"});
+    if(typeof loadConversations==='function')await loadConversations();
+  }catch(error){
+    console.error("Chatly message send failed:",error);
+    alert("Message could not send: "+(error.message||String(error))+"\n\nYour text has been kept in the message box so you can try again.");
+  }finally{if(btn)btn.disabled=false;}
 };
 $("messageInput").addEventListener("input",()=>{const el=$("messageInput");el.style.height="auto";el.style.height=Math.min(el.scrollHeight,120)+"px";updateLocalTyping();});
 $("messageInput").addEventListener("blur",()=>{if(typingStopTimer){clearTimeout(typingStopTimer);typingStopTimer=null;}stopLocalTyping();});
@@ -3853,6 +3961,7 @@ function profileModal(){
       </div>
       <label class="small muted" for="chatLayoutSelect">Message spacing</label>
       <select class="field" id="chatLayoutSelect"><option value="spacious" ${layout==="spacious"?"selected":""}>Comfortable</option><option value="compact" ${layout==="compact"?"selected":""}>Compact</option></select>
+      <div class="settings-control"><span class="small muted">Custom message bubbles</span><button class="secondary" id="openBubbleDesignerFromSettings" type="button">🎨 Open bubble designer</button><p class="settings-help">Set a global default for this device, or override the style for individual conversations. Other people do not see your local choices.</p></div>
       <label class="settings-toggle"><input id="sendWithEnterInput" type="checkbox" ${sendWithEnter?"checked":""}><span>Press Enter to send (turn off to use Ctrl/⌘ + Enter)</span></label>
       <label class="settings-toggle"><input id="reduceMotionInput" type="checkbox" ${reducedMotion?"checked":""}><span>Reduce animations</span></label>
       <p class="settings-help">Appearance choices are saved on this device. Change them whenever you like.</p>
@@ -3911,6 +4020,7 @@ function profileModal(){
   $("messageTextSizeSelect").onchange=()=>applyChatlyTextSize($("messageTextSizeSelect").value);
   $("chatLayoutSelect").onchange=()=>applyChatlyLayout($("chatLayoutSelect").value);
   $("bubbleShapeSelect").onchange=()=>applyChatlyBubbleShape($("bubbleShapeSelect").value);
+  $("openBubbleDesignerFromSettings").onclick=()=>{closeModal();if(typeof window.openChatlyStudioBubbles==='function')window.openChatlyStudioBubbles();else alert('Chatly Studio is still loading. Try again in a moment.');};
   $("sendWithEnterInput").onchange=()=>{sendWithEnter=$("sendWithEnterInput").checked;localStorage.setItem("chatly-send-enter",sendWithEnter?"on":"off");};
   $("reduceMotionInput").onchange=()=>applyChatlyReducedMotion($("reduceMotionInput").checked);
   $("pushNotificationsBtn").onclick=async()=>{
@@ -4131,7 +4241,6 @@ start().catch(err=>{console.error("Chatly startup error:",err);showError(err.mes
       <button type="button" data-hub-page="home" class="active">Home</button>
       <button type="button" data-hub-page="notifications">Notifications</button>
       <button type="button" data-hub-page="media">Shared media</button>
-      <button type="button" data-hub-page="schedule">Schedule</button>
       <button type="button" data-hub-page="leaderboard">Brain Lab scores</button>
       <button type="button" data-hub-page="themes">Chat themes</button>
       <button type="button" data-hub-page="profile">Profile banner</button>
@@ -4149,7 +4258,7 @@ start().catch(err=>{console.error("Chatly startup error:",err);showError(err.mes
 (()=>{
   const $h=id=>document.getElementById(id);
   const overlay=$h('chatlyHubOverlay'),content=$h('chatlyHubContent'),tabs=$h('chatlyHubTabs');
-  const state={page:'home',scheduledTimer:null,calendarTimer:null,initUser:null,profileCustom:null,lastNotifications:[]};
+  const state={page:'home',calendarTimer:null,initUser:null,profileCustom:null,lastNotifications:[],mediaConversationId:null,rolesGroupId:null};
   const escH=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const currentChat=()=>conversations?.find(c=>c.id===activeConversation)||null;
   const scopeInfo=()=>{const c=currentChat();return c?{type:c.isGroup?'group':'direct',field:c.isGroup?'group_id':'conversation_id',conversation_id:c.isGroup?null:c.id,group_id:c.isGroup?c.id:null,chat:c}:null;};
@@ -4160,7 +4269,6 @@ start().catch(err=>{console.error("Chatly startup error:",err);showError(err.mes
   function homeHTML(){return `<div class="hub-home-head"><div><h1>Chatly extras</h1><p>Useful tools and shared spaces for your conversations.</p></div><span class="hub-tag">${escH(profile?.display_name||profile?.username||'Your account')}</span></div><div class="hub-feature-grid">
     <button class="hub-feature-card" data-open-page="notifications"><span class="hub-feature-icon">🔔</span><span><strong>Notification Center</strong><small>Unread messages, reminders, and activity in one place.</small></span></button>
     <button class="hub-feature-card" data-open-page="media"><span class="hub-feature-icon">🖼️</span><span><strong>Shared Media Gallery</strong><small>Photos, videos, audio, and files from a conversation.</small></span></button>
-    <button class="hub-feature-card" data-open-page="schedule"><span class="hub-feature-icon">🕒</span><span><strong>Scheduled Messages</strong><small>Prepare a message and send it at a chosen time.</small></span></button>
     <button class="hub-feature-card" data-open-page="leaderboard"><span class="hub-feature-icon">🏆</span><span><strong>Brain Lab Leaderboards</strong><small>Compare scores across Chatly's original challenges.</small></span></button>
     <button class="hub-feature-card" data-open-page="themes"><span class="hub-feature-icon">🎨</span><span><strong>Individual Chat Themes</strong><small>Choose a separate wallpaper for each conversation.</small></span></button>
     <button class="hub-feature-card" data-open-page="profile"><span class="hub-feature-icon">🌄</span><span><strong>Profile Banner & Status</strong><small>Customize your banner image and short status.</small></span></button>
@@ -4175,7 +4283,6 @@ start().catch(err=>{console.error("Chatly startup error:",err);showError(err.mes
     if(page==='home'){content.innerHTML=homeHTML();content.querySelectorAll('[data-open-page]').forEach(b=>b.onclick=()=>setTab(b.dataset.openPage));return;}
     if(page==='notifications')return renderNotifications();
     if(page==='media')return renderMedia();
-    if(page==='schedule')return renderSchedule();
     if(page==='leaderboard')return renderLeaderboard();
     if(page==='themes')return renderThemes();
     if(page==='profile')return renderProfile();
@@ -4190,19 +4297,62 @@ start().catch(err=>{console.error("Chatly startup error:",err);showError(err.mes
     $h('hubRefreshNotifications').onclick=()=>load().catch(e=>alert(e.message));$h('hubMarkAllRead').onclick=async()=>{const {error}=await sb.from('chat_notifications').update({read_at:new Date().toISOString()}).eq('user_id',user.id).is('read_at',null);if(error){alert(error.message);return;}load();refreshHubUnreadCount();};await load();
   }
   async function renderMedia(){
-    const scope=requireChat();if(!scope)return;
-    content.innerHTML=`<h2 class="hub-section-title">Shared media</h2><p class="hub-section-sub">Files shared in <strong>${escH(conversationTitle(scope.chat))}</strong>.</p><div class="hub-media-grid" id="hubMediaGrid"><div class="hub-empty">Loading shared media…</div></div>`;
-    const table=scope.type==='group'?'chat_group_messages':'direct_messages',field=scope.field;
-    const {data,error}=await sb.from(table).select('id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size').eq(field,activeConversation).not('attachment_path','is',null).order('created_at',{ascending:false}).limit(100);if(error)throw error;
-    const grid=$h('hubMediaGrid');if(!data?.length){grid.innerHTML='<div class="hub-empty">No shared files in this conversation yet.</div>';return;}
-    const cards=await Promise.all(data.map(async m=>{const signed=await sb.storage.from('chat-media').createSignedUrl(m.attachment_path,3600);if(signed.error)return `<div class="hub-media-card"><a>${escH(m.attachment_name||'Attachment')}<br>${escH(signed.error.message)}</a></div>`;const url=signed.data.signedUrl,type=m.attachment_type||'';let preview='';if(type.startsWith('image/'))preview=`<img loading="lazy" src="${escH(url)}" alt="${escH(m.attachment_name||'Shared image')}">`;else if(type.startsWith('video/'))preview=`<video controls preload="metadata" src="${escH(url)}"></video>`;else preview=`<div style="height:120px;display:grid;place-items:center;font-size:32px;background:var(--soft)">${type.startsWith('audio/')?'🎧':'📄'}</div>`;return `<div class="hub-media-card">${preview}<a href="${escH(url)}" target="_blank" rel="noopener">${escH(m.attachment_name||'Open attachment')}</a></div>`;}));grid.innerHTML=cards.join('');
-  }
-  async function renderSchedule(){
-    const scope=requireChat();if(!scope)return;
-    content.innerHTML=`<h2 class="hub-section-title">Scheduled messages</h2><p class="hub-section-sub">Schedule a plain-text message for ${escH(conversationTitle(scope.chat))}. Chatly sends it when your account is online; if Chatly is closed at the chosen time, it sends next time you open Chatly.</p><form class="hub-form" id="hubScheduleForm"><label>Message<textarea class="field" id="hubScheduleText" maxlength="4000" rows="3" required placeholder="Write your message…"></textarea></label><label>Send at<input class="field" type="datetime-local" id="hubScheduleAt" required></label><div class="hub-actions"><button class="primary" type="submit">Schedule message</button></div><div class="hub-list" id="hubScheduledList"></div></form>`;
-    const min=new Date(Date.now()+60000);$h('hubScheduleAt').min=new Date(min-min.getTimezoneOffset()*60000).toISOString().slice(0,16);
-    const load=async()=>{const {data,error}=await sb.from('chat_scheduled_messages').select('*').eq('sender_id',user.id).order('scheduled_for',{ascending:true}).limit(50);if(error)throw error;const list=$h('hubScheduledList');const rows=(data||[]).filter(r=>(r.conversation_id===scope.chat.id&&scope.type==='direct')||(r.group_id===scope.chat.id&&scope.type==='group'));list.innerHTML='<h3 style="font-size:14px;margin:18px 0 4px">Your scheduled messages</h3>'+(rows.length?rows.map(r=>`<div class="hub-item"><div class="hub-item-main"><div class="hub-item-title">${escH(r.content)}</div><div class="hub-item-sub">${new Date(r.scheduled_for).toLocaleString()} · ${escH(r.status)}</div></div>${r.status==='scheduled'?`<button class="secondary" data-cancel-schedule="${r.id}">Cancel</button>`:''}</div>`).join(''):'<div class="hub-empty">No scheduled messages in this conversation.</div>');list.querySelectorAll('[data-cancel-schedule]').forEach(b=>b.onclick=async()=>{const {error}=await sb.from('chat_scheduled_messages').update({status:'cancelled'}).eq('id',b.dataset.cancelSchedule).eq('sender_id',user.id).eq('status','scheduled');if(error)alert(error.message);else load();});};
-    $h('hubScheduleForm').onsubmit=async e=>{e.preventDefault();const text=$h('hubScheduleText').value.trim(),when=new Date($h('hubScheduleAt').value);if(!text)return alert('Write a message first.');if(!Number.isFinite(when.getTime())||when.getTime()<Date.now()+30000)return alert('Choose a time at least 30 seconds from now.');const payload={sender_id:user.id,content:text,scheduled_for:when.toISOString(),status:'scheduled',conversation_id:scope.type==='direct'?scope.chat.id:null,group_id:scope.type==='group'?scope.chat.id:null};const {error}=await sb.from('chat_scheduled_messages').insert(payload);if(error){alert('Could not schedule message: '+error.message);return;}$h('hubScheduleText').value='';await load();};await load();
+    let chats=Array.isArray(conversations)?conversations:[];
+    if(!chats.length&&typeof loadConversations==='function'){try{await loadConversations();chats=Array.isArray(conversations)?conversations:[];}catch(error){console.warn('Could not load conversations for Shared Media:',error);}}
+    if(!chats.length){content.innerHTML='<h2 class="hub-section-title">Shared media</h2><div class="hub-empty">Your conversations will appear here once they have loaded.</div>';return;}
+    let selectedId=state.mediaConversationId||activeConversation||chats[0].id;
+    if(!chats.some(chat=>chat.id===selectedId))selectedId=chats[0].id;
+    let activeFilter='all',searchText='',offset=0,hasMore=true,loading=false,mediaRows=[];
+    content.innerHTML=`<h2 class="hub-section-title">Shared media</h2><p class="hub-section-sub">Browse photos, videos, audio, and files shared in any of your conversations. This gallery does not require opening the chat first.</p>
+      <div class="hub-form" style="max-width:640px;margin-bottom:14px"><label>Conversation<select class="field" id="hubMediaConversation">${chats.map(chat=>`<option value="${escH(chat.id)}" ${chat.id===selectedId?'selected':''}>${escH(conversationTitle(chat))}${chat.isGroup?' · Group':''}</option>`).join('')}</select></label>
+      <input class="field" id="hubMediaSearch" type="search" placeholder="Search shared filenames…" aria-label="Search shared filenames"></div>
+      <div class="hub-actions" id="hubMediaFilters"><button type="button" class="secondary" data-media-filter="all">All</button><button type="button" class="secondary" data-media-filter="image">Photos</button><button type="button" class="secondary" data-media-filter="video">Videos</button><button type="button" class="secondary" data-media-filter="audio">Audio</button><button type="button" class="secondary" data-media-filter="file">Files</button></div>
+      <p class="hub-item-sub" id="hubMediaStatus" role="status" aria-live="polite" style="margin:12px 0"></p>
+      <div class="hub-media-grid" id="hubMediaGrid"><div class="hub-empty">Loading shared media…</div></div>
+      <div class="hub-actions" style="justify-content:center;margin-top:14px"><button type="button" class="secondary" id="hubMediaMore" disabled>Load more</button></div>`;
+    const grid=$h('hubMediaGrid'),status=$h('hubMediaStatus'),more=$h('hubMediaMore'),picker=$h('hubMediaConversation');
+    const selectedChat=()=>chats.find(chat=>chat.id===selectedId)||null;
+    const kindOf=m=>{const type=String(m.attachment_type||'').toLowerCase();if(type.startsWith('image/'))return'image';if(type.startsWith('video/'))return'video';if(type.startsWith('audio/'))return'audio';return'file';};
+    const filteredRows=()=>mediaRows.filter(m=>(activeFilter==='all'||kindOf(m)===activeFilter)&&(!searchText||String(m.attachment_name||'').toLowerCase().includes(searchText)));
+    async function drawCards(){
+      const rows=filteredRows();
+      if(!rows.length){grid.innerHTML=`<div class="hub-empty" style="grid-column:1/-1">${mediaRows.length?'No loaded files match this filter. Try another filter or load more.':'No shared attachments found in this conversation yet.'}</div>`;}
+      else{
+        const cards=await Promise.all(rows.map(async m=>{
+          const name=escH(m.attachment_name||'Shared attachment'),type=String(m.attachment_type||'application/octet-stream').toLowerCase(),kind=kindOf(m);
+          const signed=await sb.storage.from('chat-media').createSignedUrl(m.attachment_path,3600);
+          if(signed.error)return `<article class="hub-media-card"><div style="height:120px;display:grid;place-items:center;font-size:28px;background:var(--soft)">⚠️</div><div class="hub-item-sub" style="padding:9px">${name}<br>${escH(signed.error.message)}</div></article>`;
+          const url=escH(signed.data.signedUrl);let preview='';
+          if(kind==='image')preview=`<a href="${url}" target="_blank" rel="noopener"><img loading="lazy" src="${url}" alt="${name}"></a>`;
+          else if(kind==='video')preview=`<video controls preload="metadata" playsinline src="${url}"></video>`;
+          else if(kind==='audio')preview=`<div style="min-height:120px;display:grid;place-items:center;padding:8px;background:var(--soft)"><div style="font-size:26px;margin-bottom:7px">🎧</div><audio controls preload="none" src="${url}" style="width:100%"></audio></div>`;
+          else preview=`<div style="height:120px;display:grid;place-items:center;font-size:34px;background:var(--soft)">${type.includes('pdf')?'📕':type.includes('zip')?'🗜️':'📄'}</div>`;
+          return `<article class="hub-media-card">${preview}<a href="${url}" target="_blank" rel="noopener">${name}</a><div class="hub-item-sub" style="padding:0 9px 9px">${new Date(m.created_at).toLocaleDateString()}</div></article>`;
+        }));
+        grid.innerHTML=cards.join('');
+      }
+      status.textContent=`${mediaRows.length} file${mediaRows.length===1?'':'s'} loaded · ${rows.length} shown`;
+      more.disabled=loading||!hasMore;more.textContent=loading?'Loading…':hasMore?'Load more':'All caught up';
+    }
+    async function loadPage(reset=false){
+      if(loading)return;
+      if(reset){offset=0;hasMore=true;mediaRows=[];grid.innerHTML='<div class="hub-empty">Loading shared media…</div>';}
+      const chat=selectedChat();if(!chat)return;
+      loading=true;more.disabled=true;picker.disabled=true;more.textContent='Loading…';
+      try{
+        const table=chat.isGroup?'chat_group_messages':'direct_messages',field=chat.isGroup?'group_id':'conversation_id';
+        const {data,error}=await sb.from(table).select('id,content,created_at,sender_id,attachment_path,attachment_name,attachment_type,attachment_size').eq(field,chat.id).not('attachment_path','is',null).order('created_at',{ascending:false}).order('id',{ascending:false}).range(offset,offset+49);
+        if(error)throw error;
+        const rows=data||[];mediaRows.push(...rows);offset+=rows.length;hasMore=rows.length===50;
+        await drawCards();
+      }catch(error){grid.innerHTML=`<div class="hub-empty" style="grid-column:1/-1">Could not load shared media: ${escH(error.message||error)}</div>`;status.textContent='Check that the chat-media bucket and attachment access policies are available.';}
+      finally{loading=false;picker.disabled=false;more.disabled=!hasMore;more.textContent=hasMore?'Load more':'All caught up';}
+    }
+    picker.onchange=()=>{selectedId=picker.value;state.mediaConversationId=selectedId;loadPage(true);};
+    $h('hubMediaSearch').oninput=()=>{searchText=$h('hubMediaSearch').value.trim().toLowerCase();drawCards();};
+    content.querySelectorAll('[data-media-filter]').forEach(button=>button.onclick=()=>{activeFilter=button.dataset.mediaFilter;content.querySelectorAll('[data-media-filter]').forEach(b=>b.classList.toggle('active',b===button));drawCards();});
+    more.onclick=()=>loadPage(false);
+    await loadPage(true);
   }
   async function renderLeaderboard(){
     const games=[['reflex','Reflex Tap','ms'],['sequence','Sequence Echo','rounds'],['number','Number Recall','digits'],['verbal','Word Watch','words'],['visual','Grid Recall','level'],['chimp','Order Memory','tiles'],['aim','Target Tap','targets'],['typing','Typing Sprint','WPM']];
@@ -4357,19 +4507,61 @@ start().catch(err=>{console.error("Chatly startup error:",err);showError(err.mes
     $h('hubNoteForm').onsubmit=async e=>{e.preventDefault();const payload={user_id:user.id,title:$h('hubNoteTitle').value.trim(),body:$h('hubNoteBody').value.trim(),updated_at:new Date().toISOString()};const edit=e.target.dataset.editId;const result=edit?await sb.from('chatly_notes').update(payload).eq('id',edit).eq('user_id',user.id):await sb.from('chatly_notes').insert(payload);if(result.error){alert('Could not save note: '+result.error.message);return;}e.target.reset();delete e.target.dataset.editId;e.target.querySelector('button').textContent='Save note';await load();};await load();
   }
   async function renderRoles(){
-    const scope=requireChat();if(!scope)return;if(!scope.chat.isGroup){content.innerHTML='<div class="hub-empty">Group roles are available inside group conversations.</div>';return;}
-    const g=scope.chat;const [{data:members,error:mErr},{data:roles,error:rErr}]=await Promise.all([sb.from('chat_group_members').select('user_id').eq('group_id',g.id),sb.from('chat_group_roles').select('user_id,role').eq('group_id',g.id)]);if(mErr)throw mErr;if(rErr)throw rErr;const ids=(members||[]).map(x=>x.user_id);const people=ids.length?await sb.from('profiles').select('id,username,display_name').in('id',ids):{data:[]};const map=new Map((people.data||[]).map(p=>[p.id,p]));
-    content.innerHTML=`<h2 class="hub-section-title">Group member roles</h2><p class="hub-section-sub">Manage roles for <strong>${escH(g.name)}</strong>. Group owner is always the owner; admins and moderators are stored in Chatly group roles.</p><div class="hub-list">${ids.map(id=>{const role=(roles||[]).find(r=>r.user_id===id)?.role||(g.created_by===id?'owner':'member');const p=map.get(id)||{};return `<div class="hub-item"><div class="hub-item-main"><div class="hub-item-title">${escH(displayName(p))}${id===user.id?' (You)':''}</div><div class="hub-item-sub">@${escH(p.username||'')}</div></div><select class="field" data-role-user="${id}" ${g.created_by===user.id&&id===user.id?'disabled':''}><option value="member" ${role==='member'?'selected':''}>Member</option><option value="moderator" ${role==='moderator'?'selected':''}>Moderator</option><option value="admin" ${role==='admin'?'selected':''}>Admin</option><option value="owner" ${role==='owner'?'selected':''} disabled>Owner</option></select></div>`;}).join('')}</div><p class="hub-section-sub" id="hubRolesStatus">Only the group owner or an existing admin can change roles.</p>`;
-    content.querySelectorAll('[data-role-user]').forEach(sel=>sel.onchange=async()=>{const target=sel.dataset.roleUser,role=sel.value;if(role==='member'){const {error}=await sb.from('chat_group_roles').delete().eq('group_id',g.id).eq('user_id',target);if(error)$h('hubRolesStatus').textContent=error.message;else $h('hubRolesStatus').textContent='Role reset to Member.';}else{const {error}=await sb.from('chat_group_roles').upsert({group_id:g.id,user_id:target,role,assigned_by:user.id},{onConflict:'group_id,user_id'});if(error)$h('hubRolesStatus').textContent=error.message;else $h('hubRolesStatus').textContent='Role saved.';}});
+    let groups=(Array.isArray(conversations)?conversations:[]).filter(chat=>chat.isGroup);
+    if(!groups.length&&typeof loadConversations==='function'){try{await loadConversations();groups=(Array.isArray(conversations)?conversations:[]).filter(chat=>chat.isGroup);}catch(error){console.warn('Could not load groups for role manager:',error);}}
+    if(!groups.length){content.innerHTML='<h2 class="hub-section-title">Group roles</h2><div class="hub-empty">You are not in any groups yet. Create or join a group, then return here to manage roles.</div>';return;}
+    let selectedId=state.rolesGroupId||(currentChat()?.isGroup?currentChat().id:groups[0].id);
+    if(!groups.some(group=>group.id===selectedId))selectedId=groups[0].id;
+    content.innerHTML=`<h2 class="hub-section-title">Group roles</h2><p class="hub-section-sub">Assign Admin or Moderator roles to group members. The group owner stays the owner and cannot be replaced.</p><label class="hub-form" style="max-width:560px;margin-bottom:15px">Group<select class="field" id="hubRolesGroup">${groups.map(group=>`<option value="${escH(group.id)}" ${group.id===selectedId?'selected':''}>${escH(group.name||'Group conversation')}</option>`).join('')}</select></label><div id="hubRolesList"><div class="hub-empty">Loading group roles…</div></div>`;
+    const list=$h('hubRolesList');
+    async function loadGroup(){
+      const group=groups.find(item=>item.id===selectedId);if(!group)return;
+      state.rolesGroupId=selectedId;list.innerHTML='<div class="hub-empty">Loading members and permissions…</div>';
+      const [{data:members,error:membersError},{data:roles,error:rolesError}]=await Promise.all([
+        sb.from('chat_group_members').select('user_id').eq('group_id',group.id),
+        sb.from('chat_group_roles').select('user_id,role,assigned_by,created_at').eq('group_id',group.id)
+      ]);
+      if(membersError)throw membersError;if(rolesError)throw rolesError;
+      const ids=[...new Set([...(members||[]).map(row=>row.user_id),...(group.created_by?[group.created_by]:[])])];
+      const peopleResult=ids.length?await sb.from('profiles').select('id,username,display_name').in('id',ids):{data:[],error:null};
+      if(peopleResult.error)throw peopleResult.error;
+      const people=new Map((peopleResult.data||[]).map(person=>[person.id,person]));
+      const rolesMap=new Map((roles||[]).map(row=>[row.user_id,row.role]));
+      const isOwner=group.created_by===user.id;
+      const myRole=isOwner?'owner':(rolesMap.get(user.id)||'member');
+      const canManage=isOwner||myRole==='admin';
+      list.innerHTML=`<div class="hub-actions" style="margin-bottom:12px"><span class="hub-tag">You: ${escH(myRole)}</span><span class="hub-tag">${ids.length} member${ids.length===1?'':'s'}</span></div>
+        <div class="hub-list">${ids.map(id=>{
+          const person=people.get(id)||{},role=id===group.created_by?'owner':(rolesMap.get(id)||'member');
+          const label=escH(displayName(person)||person.username||'Group member');
+          const sub=person.username?`@${escH(person.username)}`:`Member ID: ${escH(id.slice(0,8))}`;
+          const control=id===group.created_by?'<span class="hub-tag">Owner</span>':canManage?`<select class="field" data-role-user="${escH(id)}" data-prev-role="${escH(role)}" aria-label="Role for ${label}"><option value="member" ${role==='member'?'selected':''}>Member</option><option value="moderator" ${role==='moderator'?'selected':''}>Moderator</option><option value="admin" ${role==='admin'?'selected':''}>Admin</option></select>`:`<span class="hub-tag">${escH(role)}</span>`;
+          return `<div class="hub-item"><div class="hub-item-main"><div class="hub-item-title">${label}${id===user.id?' (You)':''}</div><div class="hub-item-sub">${sub}</div></div>${control}</div>`;
+        }).join('')}</div><p class="hub-section-sub" id="hubRolesStatus" role="status" aria-live="polite" style="margin-top:13px">${canManage?'You can change roles for this group. Changes are checked again by Supabase security policies.':'Only the group owner or an existing admin can change roles. You can still view everyone’s role.'}</p>`;
+      list.querySelectorAll('[data-role-user]').forEach(select=>select.onchange=async()=>{
+        if(!canManage){select.value=select.dataset.prevRole;return;}
+        const target=select.dataset.roleUser,newRole=select.value,previous=select.dataset.prevRole;
+        select.disabled=true;const status=$h('hubRolesStatus');if(status)status.textContent='Saving role…';
+        try{
+          let result;
+          if(newRole==='member')result=await sb.from('chat_group_roles').delete().eq('group_id',group.id).eq('user_id',target);
+          else result=await sb.from('chat_group_roles').upsert({group_id:group.id,user_id:target,role:newRole,assigned_by:user.id},{onConflict:'group_id,user_id'});
+          if(result.error)throw result.error;
+          if(status)status.textContent=`${displayName(people.get(target))||'Member'} is now ${newRole}.`;
+          await loadGroup();
+        }catch(error){select.value=previous;select.disabled=false;if(status)status.textContent='Could not save this role: '+(error.message||error);}
+      });
+    }
+    $h('hubRolesGroup').onchange=()=>{selectedId=$h('hubRolesGroup').value;loadGroup().catch(error=>{list.innerHTML=`<div class="hub-empty">Could not load roles: ${escH(error.message||error)}</div>`;});};
+    await loadGroup();
   }
-  async function refreshHubUnreadCount(){if(!user||!sb)return;const {count,error}=await sb.from('chat_notifications').select('id',{count:'exact',head:true}).eq('user_id',user.id).is('read_at',null);if(error){if(error.code!=='42P01')console.warn('Notification count:',error.message);return;}const button=$h('chatlyHubOpen');if(button){button.textContent=count?`✦ ${Math.min(99,count)}`:'✦';button.title=count?`${count} unread Chatly notifications`:'Chatly features';}}
+  async function refreshHubUnreadCount(){if(!user||!sb)return;const {count,error}=await sb.from('chat_notifications').select('id',{count:'exact',head:true}).eq('user_id',user.id).is('read_at',null);if(error){if(error.code!=='42P01')console.warn('Notification count:',error.message);return;}const button=$h('chatlyHubOpen');if(button){button.textContent='✦';button.dataset.unread=String((count||0)>0);button.title=count?`${count} unread Chatly notifications`:'Chatly features';button.setAttribute('aria-label',count?`Chatly features, ${count} unread notifications`:'Open Chatly features');}}
   async function createHubNotification(fields){const {error}=await sb.from('chat_notifications').insert({user_id:user.id,...fields});if(error&&error.code!=='23505')console.warn('Chatly notification center:',error.message);else refreshHubUnreadCount();}
   async function recordIncomingMessage(table,row){if(!row||row.sender_id===user?.id)return;const isGroup=table==='chat_group_messages';const chat=conversations.find(c=>isGroup?c.isGroup&&c.id===row.group_id:!c.isGroup&&c.id===row.conversation_id);if(!chat)return;const actor=chat.isGroup?(chat.members||[]).find(m=>m.id===row.sender_id):chat.person;await createHubNotification({actor_id:row.sender_id,kind:'message',title:chat.isGroup?`${displayName(actor)} in ${chat.name}`:displayName(actor),body:(row.content||row.attachment_name||'New attachment').slice(0,180),conversation_id:chat.isGroup?null:chat.id,group_id:chat.isGroup?chat.id:null,message_id:row.id});}
-  async function processDueScheduled(){if(!user||!sb||document.visibilityState==='hidden')return;const {data,error}=await sb.from('chat_scheduled_messages').select('*').eq('sender_id',user.id).eq('status','scheduled').lte('scheduled_for',new Date().toISOString()).order('scheduled_for').limit(10);if(error){if(error.code!=='42P01')console.warn('Scheduled messages:',error.message);return;}for(const item of data||[]){const claim=await sb.from('chat_scheduled_messages').update({status:'sending'}).eq('id',item.id).eq('status','scheduled').select('id').maybeSingle();if(claim.error||!claim.data)continue;const isGroup=!!item.group_id,table=isGroup?'chat_group_messages':'direct_messages',field=isGroup?'group_id':'conversation_id';const inserted=await sb.from(table).insert({[field]:isGroup?item.group_id:item.conversation_id,sender_id:user.id,content:item.content}).select('id').single();if(inserted.error){await sb.from('chat_scheduled_messages').update({status:'scheduled',last_error:inserted.error.message}).eq('id',item.id);continue;}await sb.from('chat_scheduled_messages').update({status:'sent',sent_at:new Date().toISOString(),last_error:null}).eq('id',item.id);notifyChatlyPush('notify-message',{messageId:inserted.data.id,messageType:isGroup?'group':'direct'});}}
   async function processCalendarReminders(){if(!user||!sb||document.visibilityState==='hidden')return;const now=Date.now(),from=new Date(now).toISOString(),to=new Date(now+60000).toISOString();const {data,error}=await sb.from('chat_calendar_events').select('*').gte('starts_at',new Date(now-86400000).toISOString()).lte('starts_at',new Date(now+2*86400000).toISOString()).limit(100);if(error){if(error.code!=='42P01')console.warn('Calendar reminders:',error.message);return;}for(const ev of data||[]){if(!(ev.attendee_ids||[]).includes(user.id))continue;const reminderAt=new Date(new Date(ev.starts_at).getTime()-(Number(ev.reminder_minutes)||0)*60000);if(reminderAt.getTime()>now||new Date(ev.starts_at).getTime()<now-60000)continue;await sb.from('chat_notifications').upsert({user_id:user.id,kind:'calendar_reminder',title:'Upcoming event: '+ev.title,body:'Starts '+new Date(ev.starts_at).toLocaleString(),event_id:ev.id}, {onConflict:'user_id,kind,event_id',ignoreDuplicates:true});}}
   window.chatlySaveBrainLabScore=async(gameKey,score)=>{if(!user||!sb||!Number.isFinite(Number(score))||(gameKey==='reflex'&&Number(score)<=0))return;const labels={reflex:Number(score)+' ms',sequence:Number(score)+' rounds',number:Number(score)+' digits',verbal:Number(score)+' words',visual:Number(score)+' level',chimp:Number(score)+' tiles',aim:Number(score)+' targets',typing:Number(score)+' WPM'};const {error}=await sb.from('chat_brainlab_scores').insert({user_id:user.id,game_key:gameKey,score_value:Number(score),score_label:labels[gameKey]||String(score)});if(error)console.warn('Brain Lab leaderboard save:',error.message);};
-  async function startForUser(){if(!user||!sb||state.initUser===user.id)return;state.initUser=user.id;refreshHubUnreadCount().catch(console.warn);try{const {data,error}=await sb.from('chat_profile_customizations').select('banner_url,status_text').eq('user_id',user.id).maybeSingle();if(error)console.warn('Profile customization:',error.message);state.profileCustom=data||{};applyProfileBanner();}catch(error){console.warn('Profile customization:',error.message||error);}processDueScheduled().catch(console.warn);processCalendarReminders().catch(console.warn);if(state.scheduledTimer)clearInterval(state.scheduledTimer);if(state.calendarTimer)clearInterval(state.calendarTimer);state.scheduledTimer=setInterval(()=>processDueScheduled().catch(console.warn),20000);state.calendarTimer=setInterval(()=>processCalendarReminders().catch(console.warn),60000);}
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden){processDueScheduled().catch(console.warn);processCalendarReminders().catch(console.warn);}});
+  async function startForUser(){if(!user||!sb||state.initUser===user.id)return;state.initUser=user.id;refreshHubUnreadCount().catch(console.warn);try{const {data,error}=await sb.from('chat_profile_customizations').select('banner_url,status_text').eq('user_id',user.id).maybeSingle();if(error)console.warn('Profile customization:',error.message);state.profileCustom=data||{};applyProfileBanner();}catch(error){console.warn('Profile customization:',error.message||error);}processCalendarReminders().catch(console.warn);if(state.calendarTimer)clearInterval(state.calendarTimer);state.calendarTimer=setInterval(()=>processCalendarReminders().catch(console.warn),60000);}
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden){processCalendarReminders().catch(console.warn);}});
   $h('chatlyHubOpen')?.addEventListener('click',()=>openHub());$h('chatlyHubBack')?.addEventListener('click',closeHub);$h('chatlyHubClose')?.addEventListener('click',closeHub);tabs?.addEventListener('click',e=>{const b=e.target.closest('[data-hub-page]');if(b)setTab(b.dataset.hubPage);});
   overlay?.addEventListener('click',e=>{if(e.target===overlay)closeHub();});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!overlay?.classList.contains('hidden'))closeHub();});
   const originalEnter=window.enter;
@@ -4446,6 +4638,27 @@ start().catch(err=>{console.error("Chatly startup error:",err);showError(err.mes
     return defaults;
   }
   let bubbleConfig=getBubbleConfig();
+  const CONTACT_BUBBLE_KEY='chatly_contact_bubble_styles_v1';
+  function getContactBubbleStyles(){try{return JSON.parse(localStorage.getItem(CONTACT_BUBBLE_KEY)||'{}')||{};}catch{return {};}}
+  function getEffectiveBubbleConfig(){
+    const base=getBubbleConfig();
+    const chat=(typeof conversations!=='undefined'?conversations:[]).find(c=>c.id===activeConversation);
+    const saved=chat?getContactBubbleStyles()[`${chat.isGroup?'group':'direct'}:${chat.id}`]:null;
+    if(!saved)return base;
+    return {...base,...saved,mine:{...base.mine,...(saved.mine||{})},other:{...base.other,...(saved.other||{})}};
+  }
+  function getBubbleConfigForChat(chat){
+    const base=getBubbleConfig();if(!chat)return base;
+    const saved=getContactBubbleStyles()[`${chat.isGroup?'group':'direct'}:${chat.id}`];
+    return saved?{...base,...saved,mine:{...base.mine,...(saved.mine||{})},other:{...base.other,...(saved.other||{})}}:base;
+  }
+  function saveBubbleStyleForChat(chatId,config){
+    const chat=(typeof conversations!=='undefined'?conversations:[]).find(c=>c.id===chatId);
+    if(!chat)throw new Error('Choose a conversation first.');
+    const all=getContactBubbleStyles();all[`${chat.isGroup?'group':'direct'}:${chat.id}`]=JSON.parse(JSON.stringify(config));
+    localStorage.setItem(CONTACT_BUBBLE_KEY,JSON.stringify(all));applyBubbleStyles();
+  }
+
   function shade(hex,amount){const n=parseInt(hex.slice(1),16),r=Math.max(0,Math.min(255,(n>>16)+amount)),g=Math.max(0,Math.min(255,((n>>8)&255)+amount)),b=Math.max(0,Math.min(255,(n&255)+amount));return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');}
   function makeTexture(color,texture){
     if(texture==='gradient')return `linear-gradient(135deg,${color},${shade(color,-17)})`;
@@ -4455,14 +4668,15 @@ start().catch(err=>{console.error("Chatly startup error:",err);showError(err.mes
   }
   function applyBubbleStyles(){
     const messages=$s('messages');if(!messages)return;
-    const mine=bubbleConfig.mine,other=bubbleConfig.other;
-    messages.style.setProperty('--chatly-studio-mine-bg',makeTexture(mine.color,bubbleConfig.texture));
-    messages.style.setProperty('--chatly-studio-other-bg',makeTexture(other.color,bubbleConfig.texture));
+    const effective=getEffectiveBubbleConfig();
+    const mine=effective.mine,other=effective.other;
+    messages.style.setProperty('--chatly-studio-mine-bg',makeTexture(mine.color,effective.texture));
+    messages.style.setProperty('--chatly-studio-other-bg',makeTexture(other.color,effective.texture));
     messages.style.setProperty('--chatly-studio-mine-text',mine.text);
     messages.style.setProperty('--chatly-studio-other-text',other.text);
     messages.style.setProperty('--chatly-studio-mine-radius',STUDIO_SHAPES[mine.shape].radius);
     messages.style.setProperty('--chatly-studio-other-radius',STUDIO_SHAPES[other.shape].radius);
-    messages.style.setProperty('--chatly-studio-font',bubbleConfig.font==='rounded'?'ui-rounded,system-ui,sans-serif':bubbleConfig.font==='mono'?'ui-monospace,SFMono-Regular,monospace':'inherit');
+    messages.style.setProperty('--chatly-studio-font',effective.font==='rounded'?'ui-rounded,system-ui,sans-serif':effective.font==='mono'?'ui-monospace,SFMono-Regular,monospace':'inherit');
     messages.querySelectorAll('.message-row .bubble').forEach(bubble=>{
       const isMine=bubble.closest('.message-row')?.classList.contains('mine');
       const cfg=isMine?mine:other;bubble.dataset.studioDecor=cfg.shape;
@@ -4470,7 +4684,7 @@ start().catch(err=>{console.error("Chatly startup error:",err);showError(err.mes
     });
   }
   window.chatlyApplyBubbleToElement=(bubble,isMine)=>{
-    if(!bubble)return;const cfg=isMine?bubbleConfig.mine:bubbleConfig.other;
+    if(!bubble)return;const effective=getEffectiveBubbleConfig();const cfg=isMine?effective.mine:effective.other;
     bubble.dataset.studioDecor=cfg.shape;
     bubble.style.setProperty('--chatly-studio-decor',JSON.stringify(STUDIO_SHAPES[cfg.shape].emoji||''));
   };
@@ -4528,28 +4742,31 @@ start().catch(err=>{console.error("Chatly startup error:",err);showError(err.mes
       }
     }catch(error){grid.innerHTML='<div class="studio-empty" style="grid-column:1/-1">Sticker library could not load: '+escStudio(error.message||error)+'</div>';}
   }
-  function renderBubbleDesigner(content){
-    bubbleConfig=getBubbleConfig();
+  function renderBubbleDesigner(content,targetValue='global'){
+    const chats=Array.isArray(conversations)?conversations:[];
+    const chatOptions=chats.map(chat=>`<option value="${chat.isGroup?'group':'direct'}:${escStudio(chat.id)}">${escStudio(conversationTitle(chat))}${chat.isGroup?' · Group':''}</option>`).join('');
+    const selectedChat=targetValue==='global'?null:chats.find(chat=>`${chat.isGroup?'group':'direct'}:${chat.id}`===targetValue);
+    bubbleConfig=selectedChat?getBubbleConfigForChat(selectedChat):getBubbleConfig();
     const shapeOptions=Object.entries(STUDIO_SHAPES).map(([key,item])=>`<option value="${key}">${item.emoji?item.emoji+' ':''}${item.label}</option>`).join('');
     const sideCard=(side,label)=>`<section class="studio-style-card" data-side-card="${side}"><h3>${label}</h3><div class="studio-form-grid"><label class="studio-field"><span>Bubble character</span><select id="studio-${side}-shape">${shapeOptions}</select></label><label class="studio-field"><span>Bubble color</span><input id="studio-${side}-color" type="color" value="${bubbleConfig[side].color}"></label><label class="studio-field"><span>Text color</span><input id="studio-${side}-text" type="color" value="${bubbleConfig[side].text}"></label></div></section>`;
-    content.innerHTML=`<section class="studio-section"><div class="studio-hero"><h2>Design your message bubbles</h2><p>These styles change only how messages look on your device. Other people keep their own Chatly appearance.</p></div><div class="studio-designer-grid">${sideCard('mine','Your messages')}${sideCard('other',"Other people's messages")}</div><section class="studio-style-card" style="margin-top:13px"><h3>Finish and texture</h3><div class="studio-form-grid"><label class="studio-field"><span>Texture</span><select id="studio-texture"><option value="solid">Solid color</option><option value="gradient">Soft gradient</option><option value="dots">Tiny dots</option><option value="stripes">Soft stripes</option></select></label><label class="studio-field"><span>Message font</span><select id="studio-font"><option value="system">System</option><option value="rounded">Rounded</option><option value="mono">Monospace</option></select></label></div><div class="studio-bubble-preview"><div class="studio-preview-row"><div class="studio-preview-bubble" id="studio-preview-other">Hiii! This is how received messages look.</div></div><div class="studio-preview-row mine"><div class="studio-preview-bubble" id="studio-preview-mine">Hey!! This is your bubble ✨</div></div></div><div class="studio-save-row"><button type="button" class="studio-secondary" id="studioBubbleReset">Reset bubbles</button><button type="button" class="studio-primary" id="studioBubbleSave">Save my bubble style</button></div><p class="studio-note" id="studioBubbleStatus" role="status"></p></section></section>`;
-    for(const side of ['mine','other']){
-      $s(`studio-${side}-shape`).value=bubbleConfig[side].shape;$s(`studio-${side}-color`).value=bubbleConfig[side].color;$s(`studio-${side}-text`).value=bubbleConfig[side].text;
-    }
+    content.innerHTML=`<section class="studio-section"><div class="studio-hero"><h2>Design your message bubbles</h2><p>These styles are saved locally on this device only. Other Chatly users keep their own appearance.</p></div>
+      <label class="studio-field" style="display:block;margin:12px 0 15px"><span>Customize</span><select class="field" id="studioBubbleTarget" style="margin-top:6px"><option value="global" ${targetValue==='global'?'selected':''}>Global default · all conversations on this device</option>${chatOptions}</select></label>
+      <div class="studio-designer-grid">${sideCard('mine','Your messages')}${sideCard('other',"Other people's messages")}</div>
+      <section class="studio-style-card" style="margin-top:13px"><h3>Finish and texture</h3><div class="studio-form-grid"><label class="studio-field"><span>Texture</span><select id="studio-texture"><option value="solid">Solid color</option><option value="gradient">Soft gradient</option><option value="dots">Tiny dots</option><option value="stripes">Soft stripes</option></select></label><label class="studio-field"><span>Message font</span><select id="studio-font"><option value="system">System</option><option value="rounded">Rounded</option><option value="mono">Monospace</option></select></label></div>
+      <div class="studio-bubble-preview"><div class="studio-preview-row"><div class="studio-preview-bubble" id="studio-preview-other">Hiii! This is how received messages look.</div></div><div class="studio-preview-row mine"><div class="studio-preview-bubble" id="studio-preview-mine">Hey!! This is your bubble ✨</div></div></div>
+      <div class="studio-save-row"><button type="button" class="studio-secondary" id="studioBubbleReset">Reset selected style</button><button type="button" class="studio-primary" id="studioBubbleSave">Save global default</button><button type="button" class="studio-secondary" id="studioBubbleSaveContact" ${selectedChat?'':'disabled'}>Save for selected conversation</button></div><p class="studio-note" id="studioBubbleStatus" role="status">${selectedChat?`Editing only ${escStudio(conversationTitle(selectedChat))}.`:'Editing the global default for this device.'}</p></section></section>`;
+    for(const side of ['mine','other']){$s(`studio-${side}-shape`).value=bubbleConfig[side].shape;$s(`studio-${side}-color`).value=bubbleConfig[side].color;$s(`studio-${side}-text`).value=bubbleConfig[side].text;}
     $s('studio-texture').value=bubbleConfig.texture;$s('studio-font').value=bubbleConfig.font;
-    const preview=()=>{
-      const next=readDesignerValues();
-      for(const side of ['mine','other']){
-        const node=$s(`studio-preview-${side}`),cfg=next[side],shape=STUDIO_SHAPES[cfg.shape];
-        node.style.background=makeTexture(cfg.color,next.texture);node.style.color=cfg.text;node.style.borderRadius=shape.radius;node.style.fontFamily=next.font==='rounded'?'ui-rounded,system-ui,sans-serif':next.font==='mono'?'ui-monospace,monospace':'inherit';
-        node.dataset.shape=cfg.shape;node.style.setProperty('--studio-preview-emoji',JSON.stringify(shape.emoji||''));
-        node.style.position='relative';node.style.boxShadow='0 2px 7px #0000000b';
-      }
-    };
+    const preview=()=>{const next=readDesignerValues();for(const side of ['mine','other']){const node=$s(`studio-preview-${side}`),cfg=next[side],shape=STUDIO_SHAPES[cfg.shape];node.style.background=makeTexture(cfg.color,next.texture);node.style.color=cfg.text;node.style.borderRadius=shape.radius;node.style.fontFamily=next.font==='rounded'?'ui-rounded,system-ui,sans-serif':next.font==='mono'?'ui-monospace,monospace':'inherit';node.dataset.shape=cfg.shape;node.style.setProperty('--studio-preview-emoji',JSON.stringify(shape.emoji||''));node.style.position='relative';node.style.boxShadow='0 2px 7px #0000000b';}};
     const style=document.createElement('style');style.textContent='.studio-preview-bubble[data-shape]:not([data-shape="classic"])::after{content:var(--studio-preview-emoji);position:absolute;right:5px;top:-10px;font-size:15px}.studio-preview-row:not(.mine) .studio-preview-bubble::after{right:auto;left:5px}';content.append(style);
-    content.querySelectorAll('select,input').forEach(el=>el.addEventListener('input',preview));preview();
-    $s('studioBubbleSave').onclick=()=>{bubbleConfig=readDesignerValues();persistBubbleConfig();$s('studioBubbleStatus').textContent='Saved! Your bubble styles are now applied on this device.';};
-    $s('studioBubbleReset').onclick=()=>{bubbleConfig={mine:{...STUDIO_PRESETS.mine},other:{...STUDIO_PRESETS.other},texture:'solid',font:'system'};persistBubbleConfig();renderBubbleDesigner(content);$s('studioBubbleStatus').textContent='Bubble styles reset.';};
+    content.querySelectorAll('select:not(#studioBubbleTarget),input').forEach(el=>el.addEventListener('input',preview));preview();
+    $s('studioBubbleTarget').onchange=()=>renderBubbleDesigner(content,$s('studioBubbleTarget').value);
+    $s('studioBubbleSave').onclick=()=>{bubbleConfig=readDesignerValues();persistBubbleConfig();$s('studioBubbleStatus').textContent='Global default saved on this device. It does not change anyone else’s Chatly.';};
+    $s('studioBubbleSaveContact').onclick=()=>{try{if(!selectedChat)throw new Error('Choose a conversation in the Customize menu first.');const config=readDesignerValues();saveBubbleStyleForChat(selectedChat.id,config);$s('studioBubbleStatus').textContent=`Saved specifically for ${conversationTitle(selectedChat)} on this device.`;}catch(e){$s('studioBubbleStatus').textContent=e.message;}};
+    $s('studioBubbleReset').onclick=()=>{
+      if(selectedChat){const all=getContactBubbleStyles();delete all[`${selectedChat.isGroup?'group':'direct'}:${selectedChat.id}`];localStorage.setItem(CONTACT_BUBBLE_KEY,JSON.stringify(all));applyBubbleStyles();renderBubbleDesigner(content,targetValue);const note=$s('studioBubbleStatus');if(note)note.textContent='Conversation override removed. This chat now uses the global default.';}
+      else{bubbleConfig={mine:{...STUDIO_PRESETS.mine},other:{...STUDIO_PRESETS.other},texture:'solid',font:'system'};persistBubbleConfig();renderBubbleDesigner(content,'global');const note=$s('studioBubbleStatus');if(note)note.textContent='Global default reset on this device.';}
+    };
   }
   function readDesignerValues(){const out={mine:{},other:{},texture:$s('studio-texture').value,font:$s('studio-font').value};for(const side of ['mine','other']){out[side]={shape:$s(`studio-${side}-shape`).value,color:$s(`studio-${side}-color`).value,text:$s(`studio-${side}-text`).value};}return out;}
   function setStudioTab(tab){studioTab=tab;document.querySelectorAll('[data-studio-tab]').forEach(b=>b.classList.toggle('active',b.dataset.studioTab===tab));renderStudio();}
@@ -4558,6 +4775,7 @@ start().catch(err=>{console.error("Chatly startup error:",err);showError(err.mes
     overlay.classList.remove('hidden');document.body.classList.add('chatly-studio-open');setStudioTab(tab);
   }
   function closeStudio(){const overlay=$s('chatlyStudioOverlay');overlay?.classList.add('hidden');document.body.classList.remove('chatly-studio-open');reactionTarget=null;}
+  window.openChatlyStudioBubbles=()=>openStudio('bubbles');
   async function handleStudioFiles(files){
     const list=Array.from(files||[]);if(!list.length)return;
     for(const file of list){try{await saveStickerBlob(file,file.name,file.type);}catch(error){alert(file.name+': '+(error.message||error));}}

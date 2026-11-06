@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <title>Chatly</title>
-<meta name="chatly-build" content="chatly-complete-plus-2026-11-05-scroll-stability-v4">
+<meta name="chatly-build" content="chatly-complete-plus-2026-11-06-scroll-stability-v5">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -809,7 +809,7 @@ body.dark #app #emptyState.mini-flappy-empty{background:radial-gradient(ellipse 
 </style>
 
 
-<style id="chatly-scroll-stability-repair-v4">
+<style id="chatly-scroll-stability-repair-v5">
 /* One vertical layout model for the conversation pane. The message list is the
    only flexible/scrolling region; header, toolbars, notices and composer keep
    their natural height. */
@@ -848,7 +848,7 @@ body { position: fixed !important; inset: 0 !important; }
   max-height: none !important; margin: 0;
   overflow-x: hidden !important; overflow-y: auto !important;
   overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch;
-  touch-action: pan-y; overflow-anchor: none !important;
+  touch-action: pan-y; overflow-anchor: auto !important;
 }
 #app.app.chat-open > .chat-pane > #messageForm {
   display: flex !important; flex: 0 0 auto !important;
@@ -2647,7 +2647,9 @@ async function openConversation(id){
     // pagination guard. A stale open operation must never move the new thread.
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     if(openToken!==window.chatlyOpenConversationToken||activeConversation!==id)return;
-    const thread=$("messages");thread.scrollTop=thread.scrollHeight;
+    const thread=$("messages");
+    // This is the sole initial scroll for a newly opened conversation.
+    thread.scrollTop=thread.scrollHeight;
   }catch(error){
     console.warn("Could not finish opening Chatly conversation:",error?.message||error);
     return;
@@ -2672,60 +2674,26 @@ async function openConversation(id){
   subscribeChatFeatureEvents(c,id);
 }
 function setupChatlyMessageScrollStability(){
+  // Keep one lightweight scroll-state listener. Do not observe every message
+  // row with ResizeObserver: late image/font/layout measurements caused a
+  // second stream of programmatic scrolls while the thread was opening.
   const el=$("messages");
   if(!el||el.dataset.chatlyScrollObserverReady==="1")return;
   el.dataset.chatlyScrollObserverReady="1";
-  const priorHeights=new WeakMap();
-  let pendingFrame=0;
-  const scrollToLatest=()=>{
-    if(pendingFrame)return;
-    pendingFrame=requestAnimationFrame(()=>{
-      pendingFrame=0;
-      if(window.chatlyFollowLatestMessages&&activeConversation&&!window.chatlyOpeningConversation){
-        el.scrollTop=el.scrollHeight;
-      }
-    });
-  };
-  if(typeof ResizeObserver==="function"){
-    const rowResizeObserver=new ResizeObserver(entries=>{
-      let heightAboveViewport=0;
-      const viewport=el.getBoundingClientRect();
-      for(const entry of entries){
-        const row=entry.target;
-        const nextHeight=entry.borderBoxSize?.[0]?.blockSize||entry.contentRect.height;
-        const previousHeight=priorHeights.get(row);
-        priorHeights.set(row,nextHeight);
-        if(previousHeight!==undefined&& !window.chatlyFollowLatestMessages){
-          const rect=row.getBoundingClientRect();
-          if(rect.bottom<=viewport.top+1)heightAboveViewport+=nextHeight-previousHeight;
-        }
-      }
-      if(window.chatlyFollowLatestMessages)scrollToLatest();
-      else if(heightAboveViewport)el.scrollTop=Math.max(0,el.scrollTop+heightAboveViewport);
-    });
-    const observeRows=root=>{
-      root.querySelectorAll?.(".message-row").forEach(row=>rowResizeObserver.observe(row));
-      if(root.matches?.(".message-row"))rowResizeObserver.observe(root);
-    };
-    observeRows(el);
-    if(typeof MutationObserver==="function"){
-      const additions=new MutationObserver(records=>{
-        for(const record of records)for(const node of record.addedNodes){
-          if(node.nodeType===1)observeRows(node);
-        }
-      });
-      additions.observe(el,{childList:true,subtree:true});
-    }
-  }
   el.addEventListener("scroll",()=>{
     if(window.chatlyOpeningConversation)return;
     const distance=el.scrollHeight-el.scrollTop-el.clientHeight;
-    if(distance<110)window.chatlyFollowLatestMessages=true;
-    else window.chatlyFollowLatestMessages=false;
+    window.chatlyFollowLatestMessages=distance<110;
   },{passive:true});
 }
-function nearBottomNow(){const el=$("messages");return el.scrollHeight-el.scrollTop-el.clientHeight<110;}
-function scrollBottom(){const el=$("messages");window.chatlyFollowLatestMessages=true;requestAnimationFrame(()=>{el.scrollTop=el.scrollHeight;});}
+function nearBottomNow(){const el=$("messages");return !!el&&el.scrollHeight-el.scrollTop-el.clientHeight<110;}
+function scrollBottom(){
+  const el=$("messages");
+  if(!el)return;
+  window.chatlyFollowLatestMessages=true;
+  // A single immediate assignment avoids competing animation-frame scrolls.
+  el.scrollTop=el.scrollHeight;
+}
 async function loadMessages(scroll){
   if(messageSelectionMode)toggleMessageSelectionMode(false);
   const conversationId=activeConversation;
@@ -2795,8 +2763,14 @@ async function loadMessages(scroll){
   await renderPinnedMessages();
   renderTypingIndicator();
   renderLatestReadReceipt();
-  if(scroll)scrollBottom();
-  else requestAnimationFrame(()=>{messagesEl.scrollTop=Math.max(0,previousTop+(messagesEl.scrollHeight-previousHeight));});
+  if(scroll){
+    // openConversation performs the one initial bottom placement after layout.
+    // Other callers may still request an immediate jump to the latest message.
+    if(!window.chatlyOpeningConversation)scrollBottom();
+  }else requestAnimationFrame(()=>{
+    if(activeConversation!==conversationId)return;
+    messagesEl.scrollTop=Math.max(0,previousTop+(messagesEl.scrollHeight-previousHeight));
+  });
   scheduleVisibleReadScan();
 }
 

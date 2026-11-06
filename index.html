@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <title>Chatly</title>
-<meta name="chatly-build" content="chatly-studio-stickers-bubbles-2026-11-04">
+<meta name="chatly-build" content="chatly-complete-plus-2026-11-05-v2">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -4060,7 +4060,14 @@ $("signOut").onclick=async()=>{if(voiceRecorder?.state==="recording")stopVoiceRe
 // is still controlled by the browser/OS and cannot be guaranteed by a web app.
 window.addEventListener("pagehide",()=>{if(callState?.minimized)updateActiveCallDock();});
 if("serviceWorker"in navigator&&location.protocol!=="file:"){
-  chatlyServiceWorkerPromise=navigator.serviceWorker.register("./sw.js").then(reg=>{chatlyServiceWorkerRegistration=reg;return reg;}).catch(error=>{console.warn("Chatly service worker registration failed:",error);throw error;});
+  // Version the service-worker URL and bypass the browser HTTP cache when checking
+  // for updates. This preserves the existing push-notification worker while making
+  // the browser fetch a new worker script URL for this Chatly build.
+  chatlyServiceWorkerPromise=navigator.serviceWorker.register("./sw.js?chatlyBuild=20261105v2",{updateViaCache:"none"}).then(reg=>{
+    chatlyServiceWorkerRegistration=reg;
+    reg.update().catch(error=>console.warn("Chatly service-worker update check:",error));
+    return reg;
+  }).catch(error=>{console.warn("Chatly service worker registration failed:",error);throw error;});
   navigator.serviceWorker.addEventListener("message",event=>{
     if(event.data?.type==="CHATLY_NOTIFICATION_CLICK"){
       checkPendingIncomingCalls().catch(error=>console.warn("Could not restore incoming call from notification:",error));

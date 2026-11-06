@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <title>Chatly</title>
-<meta name="chatly-build" content="chatly-complete-plus-2026-11-05-v2">
+<meta name="chatly-build" content="chatly-complete-plus-2026-11-06-scroll-fix-v3">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -2567,6 +2567,8 @@ function detachTypingBroadcast(){
 }
 
 async function openConversation(id){
+  // Suppress the older-history trigger while a newly opened thread is being laid out.
+  window.chatlyOpeningConversation=true;
   if(voiceRecorder?.state==="recording")stopVoiceRecording(false);
   pauseMiniFlappyForChat();
   detachTypingBroadcast();
@@ -2576,6 +2578,10 @@ async function openConversation(id){
   $("createPollBtn")?.classList.toggle("hidden",!c.isGroup);updateActiveChatPresenceStatus();
   updateDirectBlockUI();renderConversations();if(typeof window.chatlyApplyThreadTheme==="function")window.chatlyApplyThreadTheme(id);if(liveChannel){sb.removeChannel(liveChannel);liveChannel=null;}if(activeGroupChannel){sb.removeChannel(activeGroupChannel);activeGroupChannel=null;}
   await loadMessages(true);
+  // Let the browser finish laying out message bubbles before enabling top-pagination.
+  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+  if(activeConversation===id){const thread=$("messages");thread.scrollTop=thread.scrollHeight;}
+  window.chatlyOpeningConversation=false;
   if(typeof window.chatlyApplyThreadTheme==="function")window.chatlyApplyThreadTheme(id);
   setupMessageReadObserver(id,c.isGroup?"group":"direct");
   setupMessageSwipeGestures();
@@ -2670,7 +2676,7 @@ async function loadMessages(scroll){
 
 async function loadOlderMessages(){
   const conversationId=activeConversation;
-  if(!conversationId||messagePageLoading||!messageHasMore||messagePageConversationId!==conversationId||!messagePageAnchor)return;
+  if(window.chatlyOpeningConversation||!conversationId||messagePageLoading||!messageHasMore||messagePageConversationId!==conversationId||!messagePageAnchor)return;
   const c=conversations.find(item=>item.id===conversationId);
   if(!c)return;
   messagePageLoading=true;
@@ -2716,7 +2722,7 @@ async function loadOlderMessages(){
 if(!window.chatlyOlderMessagesScrollBound){
   window.chatlyOlderMessagesScrollBound=true;
   $("messages").addEventListener("scroll",()=>{
-    if($("messages").scrollTop<90)loadOlderMessages().catch(error=>console.warn("Older message pagination failed:",error));
+    if(!window.chatlyOpeningConversation&&$("messages").scrollTop<90)loadOlderMessages().catch(error=>console.warn("Older message pagination failed:",error));
   },{passive:true});
 }
 

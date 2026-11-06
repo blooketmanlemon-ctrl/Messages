@@ -1,14 +1,7 @@
-CHATLY COMPLETE PLUS — REPLACEMENT PACKAGE
+Chatly scroll-position fix
 
-IMPORTANT: The replacement file in this ZIP is named exactly index.html.
+Replace the index.html in the ROOT of your existing GitHub repository with this file, then commit and wait for deployment.
 
-INSTALL:
-1. Open your existing Chatly GitHub repository.
-2. Open the same folder that currently contains the live index.html.
-3. Replace that existing index.html with the index.html from this ZIP.
-4. Commit the replacement and wait for your normal hosting deployment.
-5. Open the deployed app with a hard refresh (Cmd+Shift+R on Mac, Ctrl+Shift+R on Windows), or clear the site's cached files.
+This patch prevents the older-message pagination listener from firing while a conversation is initially opening and its message list is being laid out. It then sets the thread to the bottom after two animation frames, once message layout has settled.
 
-Do not upload this as an extra file named Chatly-Complete-Plus-index.html. It must replace the existing index.html.
-
-This package contains the Chatly Complete Plus HTML build, including the previously prepared client-side feature work. It has not been tested against the live Supabase project, so database access rules and storage permissions may still need separate debugging.
+No SQL changes are required for this client-side scroll fix.

@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <title>Chatly</title>
-<meta name="chatly-build" content="chatly-complete-plus-2026-11-06-scroll-stability-v5">
+<meta name="chatly-build" content="chatly-complete-plus-2026-11-06-scroll-stability-v6">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -809,7 +809,7 @@ body.dark #app #emptyState.mini-flappy-empty{background:radial-gradient(ellipse 
 </style>
 
 
-<style id="chatly-scroll-stability-repair-v5">
+<style id="chatly-scroll-stability-repair-v6">
 /* One vertical layout model for the conversation pane. The message list is the
    only flexible/scrolling region; header, toolbars, notices and composer keep
    their natural height. */
@@ -848,7 +848,7 @@ body { position: fixed !important; inset: 0 !important; }
   max-height: none !important; margin: 0;
   overflow-x: hidden !important; overflow-y: auto !important;
   overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch;
-  touch-action: pan-y; overflow-anchor: auto !important;
+  touch-action: pan-y; overflow-anchor: none !important; scroll-behavior: auto !important;
 }
 #app.app.chat-open > .chat-pane > #messageForm {
   display: flex !important; flex: 0 0 auto !important;

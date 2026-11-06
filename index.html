@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <title>Chatly</title>
-<meta name="chatly-build" content="chatly-complete-plus-2026-11-06-scroll-fix-v3">
+<meta name="chatly-build" content="chatly-complete-plus-2026-11-05-scroll-stability-v4">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -806,6 +806,65 @@ body.dark #app #emptyState.mini-flappy-empty{background:radial-gradient(ellipse 
 .message-reactions .studio-sticker-reaction-chip{margin-top:2px}
 @media(max-width:650px){.chatly-studio-topbar{grid-template-columns:1fr auto;}.chatly-studio-brand{display:none}.studio-designer-grid{grid-template-columns:1fr}.studio-sticker-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.studio-sticker-preview{height:90px}}
 @media(max-width:390px){.studio-sticker-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.studio-form-grid{grid-template-columns:1fr}}
+</style>
+
+
+<style id="chatly-scroll-stability-repair-v4">
+/* One vertical layout model for the conversation pane. The message list is the
+   only flexible/scrolling region; header, toolbars, notices and composer keep
+   their natural height. */
+html, body {
+  width: 100%; height: 100%; min-height: 0; margin: 0;
+  overflow: hidden !important; overscroll-behavior: none;
+}
+body { position: fixed !important; inset: 0 !important; }
+#app.app {
+  position: fixed !important; inset: 0 !important;
+  width: 100%; height: 100vh; height: 100dvh;
+  min-height: 0 !important; max-height: 100%;
+  max-width: 1500px; margin: 0 auto;
+  overflow: hidden !important;
+}
+#app.app.chat-open { grid-template-columns: minmax(0, 1fr) !important; }
+#app.app.chat-open > .list-pane { display: none !important; }
+#app.app.chat-open > .chat-pane {
+  display: flex !important; flex-direction: column !important;
+  grid-column: 1 / -1 !important; grid-row: 1 !important;
+  width: 100% !important; height: 100% !important;
+  min-width: 0 !important; min-height: 0 !important;
+  max-height: 100% !important; overflow: hidden !important;
+}
+#app.app.chat-open > .chat-pane > .chat-head {
+  flex: 0 0 72px !important; min-height: 0 !important;
+}
+#app.app.chat-open > .chat-pane > #messageSelectionToolbar,
+#app.app.chat-open > .chat-pane > #blockedNotice {
+  flex: 0 0 auto !important; min-height: 0;
+}
+#app.app.chat-open > .chat-pane > #messages {
+  display: flex !important; flex: 1 1 0 !important;
+  width: 100% !important; height: 0 !important;
+  min-width: 0 !important; min-height: 0 !important;
+  max-height: none !important; margin: 0;
+  overflow-x: hidden !important; overflow-y: auto !important;
+  overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch;
+  touch-action: pan-y; overflow-anchor: none !important;
+}
+#app.app.chat-open > .chat-pane > #messageForm {
+  display: flex !important; flex: 0 0 auto !important;
+  min-width: 0 !important; min-height: 0 !important; margin: 0;
+}
+#app.app:not(.chat-open) > .chat-pane {
+  display: flex !important; flex-direction: column !important;
+  min-width: 0; min-height: 0; overflow: hidden;
+}
+#app.app:not(.chat-open) > .chat-pane > #emptyState {
+  flex: 1 1 auto; min-height: 0; height: auto; overflow: auto;
+}
+@media (max-width: 720px) {
+  #app.app:not(.chat-open) > .chat-pane { display: none !important; }
+  #app.app.chat-open > .chat-pane > .chat-head { flex-basis: 64px !important; }
+}
 </style>
 
 </head>
@@ -2567,21 +2626,35 @@ function detachTypingBroadcast(){
 }
 
 async function openConversation(id){
-  // Suppress the older-history trigger while a newly opened thread is being laid out.
+  // Give each open operation its own token so a slow previous chat cannot
+  // reset the current chat's scroll state or install stale subscriptions.
+  const openToken=(window.chatlyOpenConversationToken||0)+1;
+  window.chatlyOpenConversationToken=openToken;
   window.chatlyOpeningConversation=true;
+  window.chatlyFollowLatestMessages=true;
+  setupChatlyMessageScrollStability();
   if(voiceRecorder?.state==="recording")stopVoiceRecording(false);
   pauseMiniFlappyForChat();
   detachTypingBroadcast();
   if(messageSelectionMode)toggleMessageSelectionMode(false);
-  const c=conversations.find(x=>x.id===id);if(!c)return;activeConversation=id;activeContact=c.person||null;seen=new Set();readReceiptState.clear();readObserverContext=null;if(messageReadObserver){messageReadObserver.disconnect();messageReadObserver=null;}$("app").classList.add("chat-open");$("emptyState").classList.add("hidden");$("chatHead").classList.remove("hidden");$("messages").classList.remove("hidden");$("messageForm").classList.remove("hidden");
+  const c=conversations.find(x=>x.id===id);if(!c){if(openToken===window.chatlyOpenConversationToken)window.chatlyOpeningConversation=false;return;}activeConversation=id;activeContact=c.person||null;seen=new Set();readReceiptState.clear();readObserverContext=null;if(messageReadObserver){messageReadObserver.disconnect();messageReadObserver=null;}$("app").classList.add("chat-open");$("emptyState").classList.add("hidden");$("chatHead").classList.remove("hidden");$("messages").classList.remove("hidden");$("messageForm").classList.remove("hidden");
   const name=conversationTitle(c);$("chatName").textContent=name;$("chatHead").style.backgroundImage="";if(c.isGroup){$("chatAvatar").innerHTML="👥";$("chatStatus").textContent=(c.members||[]).length+" members";$("renameContact").title="Add people to group";}else{setAvatar($("chatAvatar"),c.person.avatar_url,name);$("chatStatus").textContent=c.person.status_text||"Chatly message";if(c.person.banner_url&&/^https:\/\//i.test(c.person.banner_url))$("chatHead").style.backgroundImage=`linear-gradient(90deg,rgba(12,18,30,.66),rgba(12,18,30,.10)),url("${c.person.banner_url.replace(/["\\]/g,"")}")`;$("renameContact").title="Rename contact";}
   $("createPollBtn")?.classList.toggle("hidden",!c.isGroup);updateActiveChatPresenceStatus();
   updateDirectBlockUI();renderConversations();if(typeof window.chatlyApplyThreadTheme==="function")window.chatlyApplyThreadTheme(id);if(liveChannel){sb.removeChannel(liveChannel);liveChannel=null;}if(activeGroupChannel){sb.removeChannel(activeGroupChannel);activeGroupChannel=null;}
-  await loadMessages(true);
-  // Let the browser finish laying out message bubbles before enabling top-pagination.
-  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-  if(activeConversation===id){const thread=$("messages");thread.scrollTop=thread.scrollHeight;}
-  window.chatlyOpeningConversation=false;
+  try{
+    await loadMessages(true);
+    // Wait for the flex layout and initial rows to settle before releasing the
+    // pagination guard. A stale open operation must never move the new thread.
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    if(openToken!==window.chatlyOpenConversationToken||activeConversation!==id)return;
+    const thread=$("messages");thread.scrollTop=thread.scrollHeight;
+  }catch(error){
+    console.warn("Could not finish opening Chatly conversation:",error?.message||error);
+    return;
+  }finally{
+    if(openToken===window.chatlyOpenConversationToken)window.chatlyOpeningConversation=false;
+  }
+  if(openToken!==window.chatlyOpenConversationToken||activeConversation!==id)return;
   if(typeof window.chatlyApplyThreadTheme==="function")window.chatlyApplyThreadTheme(id);
   setupMessageReadObserver(id,c.isGroup?"group":"direct");
   setupMessageSwipeGestures();
@@ -2598,8 +2671,61 @@ async function openConversation(id){
   subscribeTypingChannel(c,id);
   subscribeChatFeatureEvents(c,id);
 }
+function setupChatlyMessageScrollStability(){
+  const el=$("messages");
+  if(!el||el.dataset.chatlyScrollObserverReady==="1")return;
+  el.dataset.chatlyScrollObserverReady="1";
+  const priorHeights=new WeakMap();
+  let pendingFrame=0;
+  const scrollToLatest=()=>{
+    if(pendingFrame)return;
+    pendingFrame=requestAnimationFrame(()=>{
+      pendingFrame=0;
+      if(window.chatlyFollowLatestMessages&&activeConversation&&!window.chatlyOpeningConversation){
+        el.scrollTop=el.scrollHeight;
+      }
+    });
+  };
+  if(typeof ResizeObserver==="function"){
+    const rowResizeObserver=new ResizeObserver(entries=>{
+      let heightAboveViewport=0;
+      const viewport=el.getBoundingClientRect();
+      for(const entry of entries){
+        const row=entry.target;
+        const nextHeight=entry.borderBoxSize?.[0]?.blockSize||entry.contentRect.height;
+        const previousHeight=priorHeights.get(row);
+        priorHeights.set(row,nextHeight);
+        if(previousHeight!==undefined&& !window.chatlyFollowLatestMessages){
+          const rect=row.getBoundingClientRect();
+          if(rect.bottom<=viewport.top+1)heightAboveViewport+=nextHeight-previousHeight;
+        }
+      }
+      if(window.chatlyFollowLatestMessages)scrollToLatest();
+      else if(heightAboveViewport)el.scrollTop=Math.max(0,el.scrollTop+heightAboveViewport);
+    });
+    const observeRows=root=>{
+      root.querySelectorAll?.(".message-row").forEach(row=>rowResizeObserver.observe(row));
+      if(root.matches?.(".message-row"))rowResizeObserver.observe(root);
+    };
+    observeRows(el);
+    if(typeof MutationObserver==="function"){
+      const additions=new MutationObserver(records=>{
+        for(const record of records)for(const node of record.addedNodes){
+          if(node.nodeType===1)observeRows(node);
+        }
+      });
+      additions.observe(el,{childList:true,subtree:true});
+    }
+  }
+  el.addEventListener("scroll",()=>{
+    if(window.chatlyOpeningConversation)return;
+    const distance=el.scrollHeight-el.scrollTop-el.clientHeight;
+    if(distance<110)window.chatlyFollowLatestMessages=true;
+    else window.chatlyFollowLatestMessages=false;
+  },{passive:true});
+}
 function nearBottomNow(){const el=$("messages");return el.scrollHeight-el.scrollTop-el.clientHeight<110;}
-function scrollBottom(){const el=$("messages");requestAnimationFrame(()=>{el.scrollTop=el.scrollHeight;});}
+function scrollBottom(){const el=$("messages");window.chatlyFollowLatestMessages=true;requestAnimationFrame(()=>{el.scrollTop=el.scrollHeight;});}
 async function loadMessages(scroll){
   if(messageSelectionMode)toggleMessageSelectionMode(false);
   const conversationId=activeConversation;
